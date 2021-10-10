@@ -4,8 +4,8 @@ extern crate alloc;
 
 use core::{convert::TryInto, fmt::Debug};
 
-use alloc::vec::Vec;
-use hotg_rune_proc_blocks::{Tensor, Transform, ProcBlock};
+use alloc::{borrow::Cow, vec::Vec};
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 /// A proc block which, when given a set of indices, will return their
 /// associated labels.
@@ -33,7 +33,7 @@ where
     T: Copy + TryInto<usize>,
     <T as TryInto<usize>>::Error: Debug,
 {
-    type Output = Tensor<&'static str>;
+    type Output = Tensor<Cow<'static, str>>;
 
     fn transform(&mut self, input: Tensor<T>) -> Self::Output {
         let view = input
@@ -49,7 +49,7 @@ where
         // to provide the user with more useful error messages
         indices
             .map(|ix| match self.labels.get(ix) {
-                Some(&label) => label,
+                Some(&label) => Cow::Borrowed(label),
                 None => panic!("Index out of bounds: there are {} labels but label {} was requested", self.labels.len(), ix)
             })
             .collect()
@@ -84,7 +84,9 @@ mod tests {
         let mut proc_block = Label::default();
         proc_block.set_labels(["zero", "one", "two", "three"]);
         let input = Tensor::new_vector(alloc::vec![3, 1, 2]);
-        let should_be = Tensor::new_vector(alloc::vec!["three", "one", "two"]);
+        let should_be = Tensor::new_vector(
+            ["three", "one", "two"].iter().copied().map(Cow::Borrowed),
+        );
 
         let got = proc_block.transform(input);
 
