@@ -1,1 +1,11 @@
 [workspace]
+members = [
+    "fft",
+    "audio_float_conversion",
+    "image-normalization",
+    "label",
+    "modulo",
+    "most_confident_indices",
+    "noise-filtering",
+    "normalize",
+]
