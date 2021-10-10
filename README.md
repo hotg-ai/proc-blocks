@@ -1,4 +1,4 @@
-# proc-blocks
+# Common Processing Blocks
 
 [![Continuous integration](https://github.com/hotg-ai/proc-blocks/workflows/Continuous%20integration/badge.svg?branch=master)](https://github.com/hotg-ai/proc-blocks/actions)
 
