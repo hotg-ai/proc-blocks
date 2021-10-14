@@ -8,4 +8,6 @@ members = [
     "most_confident_indices",
     "noise-filtering",
     "normalize",
+    "utf8_decode",
+    "parse",
 ]
