@@ -8,6 +8,8 @@ use alloc::vec;
 use core::str;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
+/// A proc block which can convert u8 bytes to utf8
+
 #[derive(Debug, Default, Clone, PartialEq, ProcBlock)]
 pub struct Utf8Decode {}
 
@@ -40,7 +42,7 @@ mod tests {
     use alloc::vec::Vec;
     #[test]
 
-    fn test_for_f32() {
+    fn test_for_utf8_decoding() {
         let mut cast = Utf8Decode::default();
         let bytes: Vec<u8> = "Hi, use me to convert your u8 bytes to utf8."
             .as_bytes()
