@@ -2,22 +2,11 @@
 
 extern crate alloc;
 
-use crate::alloc::string::ToString;
-use alloc::borrow::Cow;
-use alloc::vec::Vec;
-use core::fmt::Debug;
-use core::iter::IntoIterator;
-use core::marker::PhantomData;
-use core::str::FromStr;
+use alloc::{borrow::Cow, vec::Vec};
+use core::{fmt::Debug, marker::PhantomData, str::FromStr};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 /// A proc block which can parse a string to numbers.
-/// To get [1,2,3,4,5] as output from this proc-block, send your input to RAW capability in this format:
-/// 1
-/// 2
-/// 3
-/// 4
-/// 5
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct Parse<T: 'static> {
@@ -42,20 +31,34 @@ where
 
     fn transform(&mut self, input: Tensor<Cow<'static, str>>) -> Self::Output {
         let input = input.elements();
-        let number_list = input[0].to_string();
-        let mut index = number_list.len();
-        if number_list.contains("\u{0000}") {
-            index = number_list.find("\u{0000}").unwrap();
+        let number_list = &input;
+
+        let mut w = Vec::new();
+
+        // split at `\n`
+        for s in number_list.into_iter() {
+            let mut st = &s[..s.len()];
+            if let Some(index) = s.find("\u{0000}") {
+                st = &s[..index];
+            }
+            let x: Vec<&str> = st.lines().collect();
+            w.extend(x);
         }
-        let number_list = &number_list[..index];
-        let w: Vec<&str> = number_list.lines().collect();
+
+        let mut u = Vec::new();
+
+        // split at whitespaces.
+        for s in w.into_iter() {
+            let x: Vec<&str> = s.split_whitespace().collect();
+            u.extend(x);
+        }
 
         let mut v = Vec::new();
 
-        for i in w.into_iter() {
+        for i in u.into_iter() {
             let val = T::from_str(i);
             match val {
-                Ok(value) => value,
+                Ok(value) => v.push(value),
                 Err(e) => panic!(
                     "Unable to parse \"{}\" as a {}: {:?}",
                     i,
@@ -63,7 +66,6 @@ where
                     e
                 ),
             };
-            v.push(val.unwrap());
         }
 
         Tensor::new_vector(v)
@@ -76,12 +78,37 @@ mod tests {
     use alloc::vec;
 
     #[test]
-    fn test_for_number() {
+    fn test_for_number_in_lines() {
         let mut parser = Parse::default();
         let bytes = vec![Cow::Borrowed("5\n6\n7")];
         let input = Tensor::new_vector(bytes);
         let output = parser.transform(input);
         let should_be = Tensor::new_vector(vec![5, 6, 7]);
+        assert_eq!(output, should_be);
+    }
+
+    #[test]
+    fn test_for_number_in_vec() {
+        let mut parser = Parse::default();
+        let bytes =
+            vec![Cow::Borrowed("5"), Cow::Borrowed("6"), Cow::Borrowed("7")];
+        let input = Tensor::new_vector(bytes);
+        let output = parser.transform(input);
+        let should_be = Tensor::new_vector(vec![5, 6, 7]);
+        assert_eq!(output, should_be);
+    }
+    #[test]
+    fn test_for_number_in_lines_and_vec() {
+        let mut parser = Parse::default();
+        let bytes = vec![
+            Cow::Borrowed("2"),
+            Cow::Borrowed("3"),
+            Cow::Borrowed("4"),
+            Cow::Borrowed("5\n6\n7"),
+        ];
+        let input = Tensor::new_vector(bytes);
+        let output = parser.transform(input);
+        let should_be = Tensor::new_vector(vec![2, 3, 4, 5, 6, 7]);
         assert_eq!(output, should_be);
     }
 
@@ -96,7 +123,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(
+        expected = "Unable to parse \"a\" as a f64: ParseFloatError { kind: Invalid }"
+    )]
     fn test_for_invalid_data_type() {
         let mut cast = Parse::default();
         let bytes = vec![Cow::Borrowed("1.0\na")];

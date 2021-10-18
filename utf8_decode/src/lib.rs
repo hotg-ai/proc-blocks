@@ -9,7 +9,6 @@ use core::str;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 /// A proc block which can convert u8 bytes to utf8
-
 #[derive(Debug, Default, Clone, PartialEq, ProcBlock)]
 pub struct Utf8Decode {}
 
@@ -19,15 +18,12 @@ impl Transform<Tensor<u8>> for Utf8Decode {
     fn transform(&mut self, input: Tensor<u8>) -> Self::Output {
         let underlying_bytes: &[u8] = input.elements();
 
-        let mut index = underlying_bytes.len();
-        for (ind, value) in underlying_bytes.iter().enumerate() {
-            if value == &0_u8 {
-                index = ind
-            }
+        let mut useful_bytes = &underlying_bytes[..underlying_bytes.len()];
+        if let Some(index) = underlying_bytes.iter().position(|&x| x == 0) {
+            useful_bytes = &underlying_bytes[..index];
         }
-        let underlying_bytes = &underlying_bytes[..index];
 
-        let input_text = core::str::from_utf8(underlying_bytes)
+        let input_text = core::str::from_utf8(useful_bytes)
             .expect("Input tensor should be valid UTF8");
 
         let output_text = vec![Cow::Owned(input_text.to_string())];
