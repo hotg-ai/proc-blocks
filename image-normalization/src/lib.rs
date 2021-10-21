@@ -4,8 +4,8 @@
 #[macro_use]
 extern crate alloc;
 
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use num_traits::{Bounded, ToPrimitive};
-use hotg_rune_proc_blocks::{ProcBlock, Transform, Tensor};
 
 /// A normalization routine which takes some tensor of integers and fits their
 /// values to the range `[0, 1]` as `f32`'s.

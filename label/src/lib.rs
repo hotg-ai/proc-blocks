@@ -1,10 +1,12 @@
 #![no_std]
 
+pub mod into_index_macro;
+pub use into_index_macro::IntoIndex;
+
 extern crate alloc;
 
-use core::{convert::TryInto, fmt::Debug};
-
 use alloc::{borrow::Cow, vec::Vec};
+use core::fmt::Debug;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 /// A proc block which, when given a set of indices, will return their
@@ -22,37 +24,37 @@ use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 /// let got = proc_block.transform(input);
 ///
 /// assert_eq!(got.elements(), &["three", "one", "two"]);
-/// ```
+
 #[derive(Debug, Default, Clone, PartialEq, ProcBlock)]
 pub struct Label {
     labels: Vec<&'static str>,
 }
 
+impl Label {
+    fn get_by_index(&mut self, ix: usize) -> Cow<'static, str> {
+        // Note: We use a more cumbersome match statement instead of unwrap()
+        // to provide the user with more useful error messages
+        match self.labels.get(ix) {
+            Some(&label) => label.into(),
+            None => panic!("Index out of bounds: there are {} labels but label {} was requested", self.labels.len(), ix)
+        }
+    }
+}
+
 impl<T> Transform<Tensor<T>> for Label
 where
-    T: Copy + TryInto<usize>,
-    <T as TryInto<usize>>::Error: Debug,
+    T: Copy + IntoIndex,
 {
     type Output = Tensor<Cow<'static, str>>;
 
     fn transform(&mut self, input: Tensor<T>) -> Self::Output {
-        let view = input
-            .view::<1>()
-            .expect("This proc block only supports 1D inputs");
+        let indices = input
+            .elements()
+            .iter()
+            .copied()
+            .map(IntoIndex::try_into_index);
 
-        let indices = view.elements().iter().copied().map(|ix| {
-            ix.try_into()
-                .expect("Unable to convert the index to a usize")
-        });
-
-        // Note: We use a more cumbersome match statement instead of unwrap()
-        // to provide the user with more useful error messages
-        indices
-            .map(|ix| match self.labels.get(ix) {
-                Some(&label) => Cow::Borrowed(label),
-                None => panic!("Index out of bounds: there are {} labels but label {} was requested", self.labels.len(), ix)
-            })
-            .collect()
+        indices.map(|ix| self.get_by_index(ix)).collect()
     }
 }
 
@@ -61,12 +63,17 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic]
-    fn only_works_with_1d_inputs() {
+    fn get_the_correct_labels() {
         let mut proc_block = Label::default();
-        let input: Tensor<i32> = Tensor::zeroed(alloc::vec![1, 2, 3]);
+        proc_block.set_labels(["zero", "one", "two", "three"]);
+        let input = Tensor::new_vector(alloc::vec![2, 0, 1]);
+        let should_be = Tensor::new_vector(
+            ["two", "zero", "one"].iter().copied().map(Cow::Borrowed),
+        );
 
-        let _ = proc_block.transform(input);
+        let got = proc_block.transform(input);
+
+        assert_eq!(got, should_be);
     }
 
     #[test]
@@ -80,16 +87,12 @@ mod tests {
     }
 
     #[test]
-    fn get_the_correct_labels() {
+    #[should_panic = "UNSUPPORTED: Can't be converted to usize. It only supports u8, u16, u32, u64, i32, i64 ( with positive numbers) f32 (with their fractional part zero E.g. 2.0, 4.0, etc)"]
+    fn get_the_correct_labels_panic() {
         let mut proc_block = Label::default();
         proc_block.set_labels(["zero", "one", "two", "three"]);
-        let input = Tensor::new_vector(alloc::vec![3, 1, 2]);
-        let should_be = Tensor::new_vector(
-            ["three", "one", "two"].iter().copied().map(Cow::Borrowed),
-        );
+        let input = Tensor::new_vector(alloc::vec![-3, -1, -2]);
 
-        let got = proc_block.transform(input);
-
-        assert_eq!(got, should_be);
+        let _got = proc_block.transform(input);
     }
 }

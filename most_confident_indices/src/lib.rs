@@ -5,7 +5,7 @@ extern crate alloc;
 use core::{convert::TryInto, fmt::Debug};
 
 use alloc::vec::Vec;
-use hotg_rune_proc_blocks::{ProcBlock, Transform, Tensor};
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 /// A proc block which, when given a list of confidences, will return the
 /// indices of the top N most confident values.
@@ -18,7 +18,9 @@ pub struct MostConfidentIndices {
 }
 
 impl MostConfidentIndices {
-    pub fn new(count: usize) -> Self { MostConfidentIndices { count } }
+    pub fn new(count: usize) -> Self {
+        MostConfidentIndices { count }
+    }
 
     fn check_input_dimensions(&self, dimensions: &[usize]) {
         match simplify_dimensions(dimensions) {
@@ -37,7 +39,9 @@ impl MostConfidentIndices {
 }
 
 impl Default for MostConfidentIndices {
-    fn default() -> Self { MostConfidentIndices::new(1) }
+    fn default() -> Self {
+        MostConfidentIndices::new(1)
+    }
 }
 
 impl<T: PartialOrd + Copy> Transform<Tensor<T>> for MostConfidentIndices {

@@ -7,7 +7,7 @@ use core::{
     fmt::Debug,
     ops::{Div, Sub},
 };
-use hotg_rune_proc_blocks::{Transform, Tensor};
+use hotg_rune_proc_blocks::{Tensor, Transform};
 
 pub fn normalize<T>(input: &mut [T])
 where
@@ -70,7 +70,7 @@ where
             let min = if item < min { item } else { min };
             let max = if max < item { item } else { max };
             Some((min, max))
-        },
+        }
         None => Some((item, item)),
     })
 }

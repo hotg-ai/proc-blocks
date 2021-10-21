@@ -8,10 +8,10 @@ mod macros;
 mod gain_control;
 mod noise_reduction;
 
-pub use noise_reduction::NoiseReduction;
 pub use gain_control::GainControl;
+pub use noise_reduction::NoiseReduction;
 
-use hotg_rune_proc_blocks::{ProcBlock, Transform, Tensor};
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 #[derive(Debug, Default, Clone, PartialEq, ProcBlock)]
 pub struct NoiseFiltering {

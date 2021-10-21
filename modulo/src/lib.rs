@@ -1,7 +1,7 @@
 #![no_std]
 
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use num_traits::{FromPrimitive, ToPrimitive};
-use hotg_rune_proc_blocks::{Tensor, Transform, ProcBlock};
 
 pub fn modulo<T>(modulus: f32, values: &mut [T])
 where
@@ -19,11 +19,15 @@ pub struct Modulo {
 }
 
 impl Modulo {
-    pub fn new() -> Self { Modulo { modulus: 1.0 } }
+    pub fn new() -> Self {
+        Modulo { modulus: 1.0 }
+    }
 }
 
 impl Default for Modulo {
-    fn default() -> Self { Modulo::new() }
+    fn default() -> Self {
+        Modulo::new()
+    }
 }
 
 impl<'a, T> Transform<Tensor<T>> for Modulo

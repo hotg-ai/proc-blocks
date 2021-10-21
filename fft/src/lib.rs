@@ -14,9 +14,9 @@ extern crate pretty_assertions;
 pub type Fft = ShortTimeFourierTransform;
 
 use alloc::{sync::Arc, vec::Vec};
-use hotg_rune_proc_blocks::{ProcBlock, Transform, Tensor};
-use sonogram::SpecOptionsBuilder;
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use nalgebra::DMatrix;
+use sonogram::SpecOptionsBuilder;
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct ShortTimeFourierTransform {
@@ -107,7 +107,9 @@ impl ShortTimeFourierTransform {
 }
 
 impl Default for ShortTimeFourierTransform {
-    fn default() -> Self { ShortTimeFourierTransform::new() }
+    fn default() -> Self {
+        ShortTimeFourierTransform::new()
+    }
 }
 
 impl Transform<Tensor<i16>> for ShortTimeFourierTransform {

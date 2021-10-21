@@ -6,7 +6,7 @@ extern crate alloc;
 #[macro_use]
 extern crate std;
 
-use hotg_rune_proc_blocks::{ProcBlock, Transform, Tensor};
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 // TODO: Add Generics
 
@@ -36,7 +36,9 @@ impl AudioFloatConversion {
 }
 
 impl Default for AudioFloatConversion {
-    fn default() -> Self { AudioFloatConversion::new() }
+    fn default() -> Self {
+        AudioFloatConversion::new()
+    }
 }
 
 impl Transform<Tensor<i16>> for AudioFloatConversion {

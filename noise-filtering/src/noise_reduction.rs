@@ -56,7 +56,9 @@ impl NoiseReduction {
         min_signal_remaining: f32,
     );
 
-    pub fn noise_estimate(&self) -> &[u32] { &self.estimate }
+    pub fn noise_estimate(&self) -> &[u32] {
+        &self.estimate
+    }
 
     pub fn transform(&mut self, mut input: Tensor<u32>) -> Tensor<u32> {
         // make sure we have the right estimate buffer size and panic if we
