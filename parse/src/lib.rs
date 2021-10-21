@@ -2,12 +2,11 @@
 
 extern crate alloc;
 
-use alloc::{borrow::Cow, vec::Vec};
+use alloc::borrow::Cow;
 use core::{fmt::Debug, marker::PhantomData, str::FromStr};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 /// A proc block which can parse a string to numbers.
-
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct Parse<T: 'static> {
     #[proc_block(skip)]
@@ -30,46 +29,38 @@ where
     type Output = Tensor<T>;
 
     fn transform(&mut self, input: Tensor<Cow<'static, str>>) -> Self::Output {
-        let input = input.elements();
-        let number_list = &input;
+        let input = input.elements().iter();
 
-        let mut w = Vec::new();
+        let trimmed_input = input.map(|s| trim_padded_string(s));
+        let split_into_words =
+            trimmed_input.flat_map(|line| line.split_whitespace());
+        let parsed = split_into_words.map(parse);
 
-        // split at `\n`
-        for s in number_list.into_iter() {
-            let mut st = &s[..s.len()];
-            if let Some(index) = s.find("\u{0000}") {
-                st = &s[..index];
-            }
-            let x: Vec<&str> = st.lines().collect();
-            w.extend(x);
-        }
-
-        let mut u = Vec::new();
-
-        // split at whitespaces.
-        for s in w.into_iter() {
-            let x: Vec<&str> = s.split_whitespace().collect();
-            u.extend(x);
-        }
-
-        let mut v = Vec::new();
-
-        for i in u.into_iter() {
-            let val = T::from_str(i);
-            match val {
-                Ok(value) => v.push(value),
-                Err(e) => panic!(
-                    "Unable to parse \"{}\" as a {}: {:?}",
-                    i,
-                    core::any::type_name::<T>(),
-                    e
-                ),
-            };
-        }
-
-        Tensor::new_vector(v)
+        Tensor::new_vector(parsed)
     }
+}
+
+/// Remove the parts of the string after a trailing null
+fn trim_padded_string(s: &str) -> &str {
+    match s.find('\0') {
+        Some(index) => &s[..index],
+        None => s,
+    }
+}
+
+fn parse<T>(input: &str) -> T
+where
+    T: FromStr,
+    T::Err: Debug,
+{
+    input.parse().unwrap_or_else(|e| {
+        panic!(
+            "Unable to parse {:?} as a {}: {:?}",
+            input,
+            core::any::type_name::<T>(),
+            e
+        );
+    })
 }
 
 #[cfg(test)]
