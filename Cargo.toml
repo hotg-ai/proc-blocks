@@ -10,4 +10,5 @@ members = [
     "normalize",
     "utf8_decode",
     "parse",
+    "segment_output"
 ]
