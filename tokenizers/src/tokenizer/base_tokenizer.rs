@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::alloc::borrow::ToOwned;
 use crate::tokenizer::tokenization_utils::{clean_text, lowercase};
 use crate::tokenizer::tokenization_utils::{
     split_on_punct, split_on_special_tokens, strip_accents, tokenize_cjk_chars,
     truncate_sequences, whitespace_tokenize,
 };
 use crate::vocab::Vocab;
-use alloc::prelude::v1::{String, ToOwned, ToString, Vec};
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 // use rayon::prelude::*;
 
 /// # Truncation strategy variants

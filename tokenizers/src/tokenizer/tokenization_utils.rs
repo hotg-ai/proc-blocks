@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::alloc::borrow::ToOwned;
 use crate::tokenizer::base_tokenizer::{
     TokenIdsWithOffsets, TruncationStrategy,
 };
@@ -21,7 +22,9 @@ use crate::tokenizer::constants::{
 };
 use crate::vocab::{BertVocab, Vocab};
 use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
-use alloc::prelude::v1::{String, ToOwned, Vec};
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use anyhow::Result;
 use core::borrow::BorrowMut;
 use core::char;

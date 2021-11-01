@@ -1,5 +1,4 @@
 [package]
-resolver = "2"
 name = "argmax"
 version = "0.1.0"
 edition = "2018"
