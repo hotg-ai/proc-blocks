@@ -10,5 +10,9 @@ members = [
     "normalize",
     "utf8_decode",
     "parse",
-    "segment_output"
+    "segment_output",
+    "tokenizers",
+    "softmax",
+    "argmax",
+    "text_extractor",
 ]
