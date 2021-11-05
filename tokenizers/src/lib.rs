@@ -55,11 +55,12 @@ impl Transform<(Tensor<u8>, Tensor<u8>)> for Tokenizers {
         let underlying_bytes_1: &[u8] = s1.elements();
         let input_text_1: &str = core::str::from_utf8(underlying_bytes_1)
             .expect("Input tensor should be valid UTF8");
+        let input_text_1 = input_text_1.trim_end_matches('\0');
         assert!(!input_text_1.is_empty(), "Sentence 1 is empty");
-
         let underlying_bytes_2: &[u8] = s2.elements();
         let input_text_2: &str = core::str::from_utf8(underlying_bytes_2)
             .expect("Input tensor should be valid UTF8");
+        let input_text_2 = input_text_2.trim_end_matches('\0');
         assert!(!input_text_2.is_empty(), "Sentence 2 is empty");
 
         let tok: Tokenizers = Default::default();
@@ -395,5 +396,35 @@ mod tests {
         .into();
 
         assert_eq!(word_bytes, word_bytes_should_be);
+    }
+
+    #[test]
+    #[should_panic(expected = "Sentence 1 is empty")]
+    fn empty_sentence_1() {
+        let word1: Vec<u8> = "".as_bytes().to_vec();
+        let bytes1 = Tensor::new_vector(word1);
+
+        let word2: Vec<u8> = "Hi".as_bytes().to_vec();
+        let bytes2 = Tensor::new_vector(word2);
+
+        let input = (bytes1, bytes2);
+        let mut token_generator = Tokenizers::default();
+        let (_input_ids, _mask_ids, _segment_ids, _word_bytes) =
+            token_generator.transform(input);
+    }
+
+    #[test]
+    #[should_panic(expected = "Sentence 2 is empty")]
+    fn empty_sentence_2() {
+        let word1: Vec<u8> = "Hi".as_bytes().to_vec();
+        let bytes1 = Tensor::new_vector(word1);
+
+        let word2: Vec<u8> = "".as_bytes().to_vec();
+        let bytes2 = Tensor::new_vector(word2);
+
+        let input = (bytes1, bytes2);
+        let mut token_generator = Tokenizers::default();
+        let (_input_ids, _mask_ids, _segment_ids, _word_bytes) =
+            token_generator.transform(input);
     }
 }
