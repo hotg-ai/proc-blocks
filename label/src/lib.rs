@@ -31,6 +31,10 @@ pub struct Label {
 }
 
 impl Label {
+    pub fn set_wordlist(&mut self, wordlist: &'static str) {
+        self.labels = wordlist.lines().map(|l| l.trim()).collect();
+    }
+
     fn get_by_index(&mut self, ix: usize) -> Cow<'static, str> {
         // Note: We use a more cumbersome match statement instead of unwrap()
         // to provide the user with more useful error messages
