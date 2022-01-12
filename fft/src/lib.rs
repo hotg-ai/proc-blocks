@@ -107,9 +107,7 @@ impl ShortTimeFourierTransform {
 }
 
 impl Default for ShortTimeFourierTransform {
-    fn default() -> Self {
-        ShortTimeFourierTransform::new()
-    }
+    fn default() -> Self { ShortTimeFourierTransform::new() }
 }
 
 impl Transform<Tensor<i16>> for ShortTimeFourierTransform {
@@ -129,7 +127,7 @@ mod tests {
     #[test]
     fn it_works() {
         let mut fft_pb = ShortTimeFourierTransform::new();
-        fft_pb.set_sample_rate(16000);
+        fft_pb.set_sample_rate("16000").unwrap();
         let input = Tensor::new_vector(vec![0; 16000]);
 
         let got = fft_pb.transform(input);
