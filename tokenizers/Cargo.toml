@@ -7,6 +7,6 @@ edition = "2018"
 
 [dependencies]
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
-hotg-rune-proc-blocks = "^0.10.0"
+hotg-rune-proc-blocks = "^0.11.0"
 anyhow = { version = "1.0", default-features = false }
 unicode-normalization = {version = "0.1.19", default-features =false}
