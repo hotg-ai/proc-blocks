@@ -8,10 +8,8 @@ pub use crate::tokenizer::base_tokenizer::{
     Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
     TokenTrait, TokenizedInput, TokensWithOffsets,
 };
-use alloc::vec;
-use alloc::vec::Vec;
-use core::default::Default;
-use core::str::FromStr;
+use alloc::{vec, vec::Vec};
+use core::{default::Default, str::FromStr};
 
 #[macro_use]
 extern crate alloc;
@@ -24,7 +22,9 @@ use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 #[derive(ProcBlock)]
 pub struct Tokenizers {
+    #[proc_block(skip)]
     bert_tokenizer: BertTokenizer,
+    #[proc_block(skip)]
     bert_vocab: BertVocab,
 }
 

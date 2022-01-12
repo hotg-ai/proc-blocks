@@ -19,15 +19,11 @@ pub struct Modulo {
 }
 
 impl Modulo {
-    pub fn new() -> Self {
-        Modulo { modulus: 1.0 }
-    }
+    pub fn new() -> Self { Modulo { modulus: 1.0 } }
 }
 
 impl Default for Modulo {
-    fn default() -> Self {
-        Modulo::new()
-    }
+    fn default() -> Self { Modulo::new() }
 }
 
 impl<'a, T> Transform<Tensor<T>> for Modulo
@@ -54,7 +50,7 @@ mod tests {
     fn mod_360() {
         let number = 42 + 360;
         let mut m = Modulo::new();
-        m.set_modulus(360.0);
+        m.set_modulus("360").unwrap();
         let input = Tensor::single(number);
 
         let got = m.transform(input);

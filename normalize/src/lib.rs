@@ -32,9 +32,7 @@ where
 #[transform(inputs = [f32; 1], outputs = [f32; 1])]
 #[transform(inputs = [f32; 2], outputs = [f32; 2])]
 #[transform(inputs = [f32; 3], outputs = [f32; 3])]
-pub struct Normalize {
-    unused: &'static str,
-}
+pub struct Normalize {}
 
 impl<T> Transform<Tensor<T>> for Normalize
 where
@@ -70,7 +68,7 @@ where
             let min = if item < min { item } else { min };
             let max = if max < item { item } else { max };
             Some((min, max))
-        }
+        },
         None => Some((item, item)),
     })
 }
