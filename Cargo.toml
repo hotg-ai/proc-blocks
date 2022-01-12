@@ -16,9 +16,3 @@ members = [
     "argmax",
     "text_extractor",
 ]
-
-# Temporarily use the hotg-* crates from GitHub
-[patch.crates-io]
-hotg-rune-core = { git = "https://github.com/hotg-ai/rune", branch = "arguments-are-strings" }
-hotg-rune-proc-blocks = { git = "https://github.com/hotg-ai/rune", branch = "arguments-are-strings" }
-hotg-rune-proc-block-macros = { git = "https://github.com/hotg-ai/rune", branch = "arguments-are-strings" }
