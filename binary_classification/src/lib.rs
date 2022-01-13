@@ -5,6 +5,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
+/// A proc-block which takes a rank 1 `tensor` as input, return 1 if value inside the tensor is greater than 1 otherwise 0.
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct BinaryClassification {
     threshold: f32,
