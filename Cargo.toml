@@ -15,4 +15,5 @@ members = [
     "softmax",
     "argmax",
     "text_extractor",
+    "binary_classification",
 ]
