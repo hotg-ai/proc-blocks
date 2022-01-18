@@ -5,59 +5,37 @@
 use alloc::vec::Vec;
 use hotg_rune_proc_blocks::Tensor;
 
-const WIDE_DYNAMIC_FUNCTION_BITS: usize = 32;
-const WIDE_DYNAMIC_FUNCTION_LUT_SIZE: usize =
+pub const WIDE_DYNAMIC_FUNCTION_BITS: usize = 32;
+pub const WIDE_DYNAMIC_FUNCTION_LUT_SIZE: usize =
     4 * WIDE_DYNAMIC_FUNCTION_BITS - 3;
-const PCAN_SNR_BITS: i32 = 12;
-const PCAN_OUTPUT_BITS: usize = 6;
-const SMOOTHING_BITS: u16 = 10;
-const CORRECTION_BITS: i32 = -1;
+pub const PCAN_SNR_BITS: i32 = 12;
+pub const PCAN_OUTPUT_BITS: usize = 6;
+pub const SMOOTHING_BITS: u16 = 10;
+pub const CORRECTION_BITS: i32 = -1;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct GainControl {
-    config: Config,
-    state: State,
+    pub strength: f32,
+    pub offset: f32,
+    pub gain_bits: i32,
 }
 
 impl GainControl {
-    defered_builder_methods! {
-        config.strength: f32;
-        config.offset: f32;
-        config.gain_bits: i32;
-    }
-
-    pub fn transform(
-        &mut self,
+    pub(crate) fn transform(
+        &self,
         input: Tensor<u32>,
         noise_estimate: &[u32],
+        smoothing_bits: u16,
+        state: &mut State,
     ) -> Tensor<u32> {
-        self.state.transform(input, noise_estimate)
+        state.update(*self, smoothing_bits);
+        state.transform(input, noise_estimate)
     }
 }
 
 impl Default for GainControl {
     fn default() -> Self {
-        let config = Config::default();
-        let state = State::new(config, SMOOTHING_BITS, CORRECTION_BITS);
-
-        GainControl { config, state }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-struct Config {
-    strength: f32,
-    offset: f32,
-    gain_bits: i32,
-}
-
-impl Config {
-    builder_methods!(strength: f32, offset: f32, gain_bits: i32);
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
+        GainControl {
             strength: 0.95,
             offset: 80.0,
             gain_bits: 21,
@@ -66,16 +44,17 @@ impl Default for Config {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct State {
+pub struct State {
     gain_lut: Vec<i16>,
     snr_shift: i32,
+    config: GainControl,
 }
 
 impl State {
-    fn new(config: Config, smoothing_bits: u16, correction_bits: i32) -> Self {
+    pub(crate) fn new(config: GainControl, smoothing_bits: u16) -> Self {
         let mut gain_lut = vec![0; WIDE_DYNAMIC_FUNCTION_LUT_SIZE];
-        let snr_shift = config.gain_bits - correction_bits - PCAN_SNR_BITS;
-        let input_bits = smoothing_bits as i32 - correction_bits;
+        let snr_shift = config.gain_bits - CORRECTION_BITS - PCAN_SNR_BITS;
+        let input_bits = smoothing_bits as i32 - CORRECTION_BITS;
 
         gain_lut[0] = gain_lookup(config, input_bits, 0);
         gain_lut[1] = gain_lookup(config, input_bits, 1);
@@ -106,10 +85,17 @@ impl State {
         State {
             gain_lut,
             snr_shift,
+            config,
         }
     }
 
-    fn transform(
+    pub fn update(&mut self, config: GainControl, smoothing_bits: u16) {
+        if self.config != config {
+            *self = State::new(config, smoothing_bits);
+        }
+    }
+
+    pub fn transform(
         &mut self,
         mut input: Tensor<u32>,
         noise_estimate: &[u32],
@@ -167,7 +153,7 @@ fn wide_dynamic_function(x: u32, lookup_table: &[i16]) -> i16 {
     result as i16
 }
 
-fn gain_lookup(config: Config, input_bits: i32, x: u32) -> i16 {
+fn gain_lookup(config: GainControl, input_bits: i32, x: u32) -> i16 {
     let x = (x as f32) / (1 << input_bits) as f32;
     let gain = (1 << config.gain_bits) as f32
         * libm::powf(x + config.offset, -config.strength);
@@ -184,13 +170,17 @@ mod tests {
     /// https://github.com/tensorflow/tensorflow/blob/0f6d728b920e9b0286171bdfec9917d8486ac08b/tensorflow/lite/experimental/microfrontend/lib/pcan_gain_control_test.cc#L43-L63
     #[test]
     fn test_pcan_gain_control() {
-        let mut gain_control = GainControl::default();
-        gain_control.set_strength(0.95).set_offset(80.0);
+        let gain_control = GainControl {
+            strength: 0.95,
+            offset: 80.0,
+            ..Default::default()
+        };
         let input = Tensor::new_vector(vec![241137, 478104]);
         // Note: we get this from a the noise reduction step
         let noise_estimate = vec![6321887, 31248341];
+        let mut state = State::new(gain_control, SMOOTHING_BITS);
 
-        let got = gain_control.transform(input, &noise_estimate);
+        let got = state.transform(input, &noise_estimate);
 
         let should_be = Tensor::new_vector(vec![3578, 1533]);
         assert_eq!(got, should_be);
@@ -198,13 +188,13 @@ mod tests {
 
     #[test]
     fn initialize_state() {
-        let config = Config {
+        let config = GainControl {
             strength: 0.95,
             offset: 80.0,
             gain_bits: 21,
         };
 
-        let got = State::new(config, SMOOTHING_BITS, CORRECTION_BITS);
+        let got = State::new(config, SMOOTHING_BITS);
 
         let should_be = State {
             snr_shift: 10,
@@ -220,6 +210,7 @@ mod tests {
                 64, 0, 107, -85, 34, 0, 56, -45, 18, 0, 29, -22, 8, 0, 15, -13,
                 6, 0, 8, -8, 4, 0, 4, -2, 0,
             ],
+            config,
         };
 
         assert_eq!(got, should_be);
@@ -227,12 +218,12 @@ mod tests {
 
     #[test]
     fn known_wide_dynamic_function_results() {
-        let config = Config {
+        let config = GainControl {
             strength: 0.95,
             offset: 80.0,
             gain_bits: 21,
         };
-        let state = State::new(config, SMOOTHING_BITS, CORRECTION_BITS);
+        let state = State::new(config, SMOOTHING_BITS);
 
         let inputs = vec![(6321887, 990), (31248341, 219)];
 

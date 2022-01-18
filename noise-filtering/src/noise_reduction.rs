@@ -4,68 +4,38 @@
 
 extern crate alloc;
 
+use core::str::FromStr;
+
 use alloc::vec::Vec;
 use hotg_rune_proc_blocks::Tensor;
 
 const NOISE_REDUCTION_BITS: usize = 14;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct NoiseReduction {
-    smoothing_bits: u32,
-    even_smoothing: u16,
-    odd_smoothing: u16,
-    min_signal_remaining: u16,
-    estimate: Vec<u32>,
+#[derive(Debug, Clone, Default)]
+pub(crate) struct State {
+    pub estimate: Vec<u32>,
 }
 
-macro_rules! scaled_builder_methods {
-    ($( $property:ident : $type:ty ),* $(,)?) => {
-        $(
-            paste::paste! {
-                pub fn [< with_ $property >](mut self, $property: $type) -> Self {
-                    self.[< set_ $property >]($property);
-                    self
-                }
-            }
-        )*
-
-        $(
-            paste::paste! {
-                pub fn [< set_ $property >](&mut self, $property: $type) {
-                    self.$property = scale($property);
-                }
-            }
-        )*
-
-        $(
-            paste::paste! {
-                pub fn $property(&self) -> $type {
-                    unscale(self.$property)
-                }
-            }
-        )*
-    };
+/// Core logic for the noise reduction step.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NoiseReduction {
+    pub smoothing_bits: u32,
+    pub even_smoothing: ScaledU16,
+    pub odd_smoothing: ScaledU16,
+    pub min_signal_remaining: ScaledU16,
 }
 
 impl NoiseReduction {
-    builder_methods!(smoothing_bits: u32);
-
-    scaled_builder_methods!(
-        even_smoothing: f32,
-        odd_smoothing: f32,
-        min_signal_remaining: f32,
-    );
-
-    pub fn noise_estimate(&self) -> &[u32] {
-        &self.estimate
-    }
-
-    pub fn transform(&mut self, mut input: Tensor<u32>) -> Tensor<u32> {
+    pub(crate) fn transform(
+        &self,
+        mut input: Tensor<u32>,
+        state: &mut State,
+    ) -> Tensor<u32> {
         // make sure we have the right estimate buffer size and panic if we
         // don't. This works because the input and output have the same
         // dimensions.
         match input.dimensions() {
-            [1, len, ] => self.estimate.resize(*len, 0),
+            [1, len, ] => state.estimate.resize(*len, 0),
             other => panic!(
                 "This transform only supports outputs of the form [1, _], not {:?}",
                 other
@@ -76,9 +46,9 @@ impl NoiseReduction {
 
         for (i, value) in signal.iter_mut().enumerate() {
             let smoothing = if i % 2 == 0 {
-                self.even_smoothing as u64
+                self.even_smoothing.0 as u64
             } else {
-                self.odd_smoothing as u64
+                self.odd_smoothing.0 as u64
             };
 
             let one_minus_smoothing = 1 << NOISE_REDUCTION_BITS;
@@ -86,15 +56,15 @@ impl NoiseReduction {
             // update the estimate of the noise
             let signal_scaled_up = (*value << self.smoothing_bits) as u64;
             let mut estimate = ((signal_scaled_up * smoothing)
-                + (self.estimate[i] as u64 * one_minus_smoothing))
+                + (state.estimate[i] as u64 * one_minus_smoothing))
                 >> NOISE_REDUCTION_BITS;
-            self.estimate[i] = estimate as u32;
+            state.estimate[i] = estimate as u32;
 
             // Make sure that we can't get a negative value for the signal
             // estimate
             estimate = core::cmp::min(estimate, signal_scaled_up);
 
-            let floor = (*value as u64 * self.min_signal_remaining as u64)
+            let floor = (*value as u64 * self.min_signal_remaining.0 as u64)
                 >> NOISE_REDUCTION_BITS;
             let subtracted =
                 (signal_scaled_up - estimate) >> self.smoothing_bits;
@@ -109,23 +79,49 @@ impl NoiseReduction {
 impl Default for NoiseReduction {
     fn default() -> Self {
         NoiseReduction {
-            smoothing_bits: 10,
-            even_smoothing: scale(0.025),
-            odd_smoothing: scale(0.06),
-            min_signal_remaining: scale(0.05),
-            estimate: vec![],
+            smoothing_bits: crate::gain_control::SMOOTHING_BITS.into(),
+            even_smoothing: ScaledU16::from(0.025),
+            odd_smoothing: ScaledU16::from(0.06),
+            min_signal_remaining: ScaledU16::from(0.05),
         }
     }
 }
 
-fn scale(number: f32) -> u16 {
-    let scale_factor: f32 = (1 << NOISE_REDUCTION_BITS) as f32;
-    (number * scale_factor) as u16
+/// A `u16` which can be parsed from a float that gets scaled from `[0, 1]` to
+/// `[0, 2^14]`.
+///
+/// # Examples
+///
+/// ```
+/// # use noise_filtering::ScaledU16;
+/// let input = "0.5";
+/// let parsed: ScaledU16 = input.parse().unwrap();
+/// assert_eq!(parsed.0, (1 << 14)/2);
+/// ```
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct ScaledU16(pub u16);
+
+impl From<f32> for ScaledU16 {
+    fn from(number: f32) -> Self {
+        let scale_factor: f32 = (1 << NOISE_REDUCTION_BITS) as f32;
+        ScaledU16((number.clamp(0.0, 1.0) * scale_factor) as u16)
+    }
 }
 
-fn unscale(number: u16) -> f32 {
-    let scale_factor: f32 = (1 << NOISE_REDUCTION_BITS) as f32;
-    number as f32 / scale_factor
+impl From<ScaledU16> for f32 {
+    fn from(scaled: ScaledU16) -> Self {
+        let scale_factor: f32 = (1 << NOISE_REDUCTION_BITS) as f32;
+        scaled.0 as f32 / scale_factor
+    }
+}
+
+impl FromStr for ScaledU16 {
+    type Err = core::num::ParseFloatError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let float: f32 = s.parse()?;
+        Ok(ScaledU16::from(float))
+    }
 }
 
 #[cfg(test)]
@@ -137,12 +133,13 @@ mod tests {
     /// https://github.com/tensorflow/tensorflow/blob/5dcfc51118817f27fad5246812d83e5dccdc5f72/tensorflow/lite/experimental/microfrontend/lib/noise_reduction_test.cc#L41-L59
     #[test]
     fn test_noise_reduction_estimate() {
-        let mut state = NoiseReduction::default();
+        let noise_reduction = NoiseReduction::default();
         let input =
             Tensor::new_row_major(Arc::new([247311, 508620]), vec![1, 2]);
         let should_be = vec![6321887, 31248341];
+        let mut state = State::default();
 
-        let _ = state.transform(input);
+        let _ = noise_reduction.transform(input, &mut state);
 
         assert_eq!(state.estimate, should_be);
     }
@@ -150,13 +147,14 @@ mod tests {
     /// https://github.com/tensorflow/tensorflow/blob/5dcfc51118817f27fad5246812d83e5dccdc5f72/tensorflow/lite/experimental/microfrontend/lib/noise_reduction_test.cc#L61-L79
     #[test]
     fn test_noise_reduction() {
-        let mut state = NoiseReduction::default();
+        let noise_reduction = NoiseReduction::default();
         let input =
             Tensor::new_row_major(Arc::new([247311, 508620]), vec![1, 2]);
         let should_be =
             Tensor::new_row_major(Arc::new([241137, 478104]), vec![1, 2]);
+        let mut state = State::default();
 
-        let got = state.transform(input);
+        let got = noise_reduction.transform(input, &mut state);
 
         assert_eq!(got, should_be);
     }
