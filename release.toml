@@ -1,0 +1,6 @@
+tag-prefix = ""
+publish = false
+sign-commit = true
+sign-tag = true
+shared-version = true
+consolidate-commits = true
