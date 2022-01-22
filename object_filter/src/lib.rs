@@ -80,13 +80,7 @@ impl Object {
                     .copied()
                     .enumerate()
                     .max_by(|a, b| {
-                        if a.1 < b.1 {
-                            Ordering::Less
-                        } else if a.1 > b.1 {
-                            Ordering::Greater
-                        } else {
-                            Ordering::Equal
-                        }
+                        a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal)
                     })
                     .expect("there should be at least one label");
 
