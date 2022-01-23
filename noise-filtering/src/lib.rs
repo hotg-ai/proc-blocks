@@ -68,7 +68,7 @@ impl Transform<Tensor<u32>> for NoiseFiltering {
             .map(|_, energy| libm::log2((*energy as f64) + 1.0));
 
         let (min_value, max_value) = amplified.elements().iter().copied().fold(
-            (f64::NEG_INFINITY, f64::INFINITY),
+            (f64::INFINITY, f64::NEG_INFINITY),
             |(lower, upper), current| (lower.min(current), upper.max(current)),
         );
 
