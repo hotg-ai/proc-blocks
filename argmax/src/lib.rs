@@ -1,23 +1,14 @@
-#![no_std]
-
-extern crate alloc;
-use alloc::vec;
-use alloc::vec::Vec;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct Argmax {}
 
 impl Argmax {
-    pub const fn new() -> Self {
-        Argmax {}
-    }
+    pub const fn new() -> Self { Argmax {} }
 }
 
 impl Default for Argmax {
-    fn default() -> Self {
-        Argmax::new()
-    }
+    fn default() -> Self { Argmax::new() }
 }
 
 impl Transform<Tensor<f32>> for Argmax {
@@ -32,6 +23,41 @@ impl Transform<Tensor<f32>> for Argmax {
         let v: Vec<u32> = vec![index as u32];
 
         Tensor::new_vector(v)
+    }
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!("wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("wit-files/rune/rune-v1.wit");
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata = Metadata {
+                name: env!("CARGO_PKG_NAME"),
+                version: env!("CARGO_PKG_VERSION"),
+                description: Some(env!("CARGO_PKG_DESCRIPTION")),
+                repository: option_env!("CARGO_PKG_REPOSITORY"),
+                tags: &[],
+                arguments: &[],
+                inputs: &[TensorMetadata {
+                    name: "input",
+                    description: None,
+                }],
+                outputs: &[TensorMetadata {
+                    name: "max",
+                    description: Some(
+                        "The index of the element with the highest value",
+                    ),
+                }],
+            };
+
+            register_node(metadata);
+        }
     }
 }
 
