@@ -26,9 +26,9 @@ impl AudioFloatConversion {
     }
 
     fn check_input_dimensions(&self, dimensions: &[usize]) {
-        assert_eq!(
-            dimensions.len(),
-            1,
+         assert_eq!(
+            (!(dimensions.len() == 2 && dimensions[0] == 1) || !((dimensions.len() == 1))),
+            true,
             "This proc block only supports 1D outputs (requested output: {:?})",
             dimensions
         );
