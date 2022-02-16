@@ -15,8 +15,8 @@ jobs:
         rust:
           - nightly
           - stable
-          # MSRV - Relatively recent compiler version
-          - 1.55.0
+          # MSRV - Required for std::process::Command's get_program() method
+          - 1.57.0
     steps:
       - uses: actions/checkout@v2
         with:
@@ -26,6 +26,7 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
+      - run: ls -la */*
       - uses: actions-rs/cargo@v1
         with:
           command: check
