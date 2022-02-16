@@ -19,6 +19,8 @@ jobs:
           - 1.55.0
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -40,6 +42,11 @@ jobs:
         with:
           command: xtask
           args: dist --output-dir target/proc-blocks
+      - name: Save Compiled proc-blocks
+        uses: actions/upload-artifact@v2
+        with:
+          name: compiled-proc-blocks
+          path: target/proc-blocks
 
   api-docs:
     name: Publish API Docs to GitHub Pages
