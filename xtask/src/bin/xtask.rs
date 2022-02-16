@@ -29,7 +29,7 @@ pub enum Command {
 #[derive(Debug, StructOpt)]
 pub struct Dist {
     /// The top-level `Cargo.toml` file.
-    #[structopt(long, default_value = ".")]
+    #[structopt(long, default_value = "./Cargo.toml")]
     workspace_root: PathBuf,
     /// Compile the proc-blocks without performing any runtime or code size
     /// optimisations.
@@ -54,8 +54,10 @@ impl Dist {
 
         let mut wasm_modules = proc_blocks.compile(mode)?;
 
-        tracing::info!("Stripping custom sections to reduce binary size");
-        wasm_modules.iter_mut().for_each(|m| m.strip());
+        if !self.debug {
+            tracing::info!("Stripping custom sections to reduce binary size");
+            wasm_modules.iter_mut().for_each(|m| m.strip());
+        }
 
         if let Some(parent) = self.out_dir.parent() {
             std::fs::create_dir_all(parent).with_context(|| {

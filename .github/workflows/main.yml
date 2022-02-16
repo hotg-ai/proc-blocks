@@ -36,6 +36,10 @@ jobs:
         with:
           command: test
           args: --all --verbose
+      - uses: actions-rs/cargo@v1
+        with:
+          command: xtask
+          args: dist --output-dir target/proc-blocks
 
   api-docs:
     name: Publish API Docs to GitHub Pages
