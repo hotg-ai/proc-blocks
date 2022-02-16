@@ -81,7 +81,6 @@ pub mod metadata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::vec;
     #[test]
     fn test_argmax() {
         let v = Tensor::new_vector(vec![2.3, 12.4, 55.1, 15.4]);
