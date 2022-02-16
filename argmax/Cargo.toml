@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 hotg-rune-proc-blocks = "^0.11.0"
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", optional = true }
+wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", optional = true, rev = "e9c7c0a3405845cecd3fe06f3c20ab413302fc73"  }
 
 [lib]
 crate-type = ["rlib", "cdylib"]
