@@ -37,26 +37,43 @@ pub mod metadata {
         fn start() {
             use runtime_v1::*;
 
-            let metadata = Metadata {
-                name: env!("CARGO_PKG_NAME"),
-                version: env!("CARGO_PKG_VERSION"),
-                description: Some(env!("CARGO_PKG_DESCRIPTION")),
-                repository: option_env!("CARGO_PKG_REPOSITORY"),
-                tags: &[],
-                arguments: &[],
-                inputs: &[TensorMetadata {
-                    name: "input",
-                    description: None,
-                }],
-                outputs: &[TensorMetadata {
-                    name: "max",
-                    description: Some(
-                        "The index of the element with the highest value",
-                    ),
-                }],
-            };
+            let metadata = Metadata::new(
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+            );
+            metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.add_tag("max");
+            metadata.add_tag("numeric");
 
-            register_node(metadata);
+            let element_types = &[
+                ElementType::Uint8,
+                ElementType::Int8,
+                ElementType::Uint16,
+                ElementType::Int16,
+                ElementType::Uint32,
+                ElementType::Int32,
+                ElementType::Float32,
+                ElementType::Int64,
+                ElementType::Uint64,
+                ElementType::Float64,
+            ];
+
+            let input = TensorMetadata::new("input");
+
+            for &ty in element_types {
+                let hint = example_shape(ty, Dimensions::Dynamic);
+                input.add_hint(&hint);
+            }
+            metadata.add_input(&input);
+
+            let max = TensorMetadata::new("max");
+            max.set_description(
+                "The index of the element with the highest value",
+            );
+            metadata.add_output(&max);
+
+            register_node(&metadata);
         }
     }
 }

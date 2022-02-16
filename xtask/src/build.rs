@@ -76,6 +76,7 @@ impl ProcBlocks {
             .arg(&self.workspace_root)
             .arg("--workspace")
             .arg("--target=wasm32-unknown-unknown")
+            .arg("--exclude=xtask")
             .arg("--features=metadata");
 
         match mode {
@@ -180,8 +181,6 @@ fn manifest(manifest_path: &Path) -> Result<Metadata, Error> {
 
     Ok(metadata)
 }
-
-pub fn strip(wasm: &mut [Module]) {}
 
 fn remove_custom_sections(customs: &mut ModuleCustomSections) {
     let to_remove: Vec<_> = customs
