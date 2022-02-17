@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::{fs::File, num::NonZeroUsize, path::Path, sync::Mutex};
 use wasmtime::{Engine, Linker, Module, Store};
 
-wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
-wit_bindgen_wasmtime::import!("../wit-files/rune/rune-v1.wit");
+wit_bindgen_wasmtime::export!("wit-files/rune/runtime-v1.wit");
+wit_bindgen_wasmtime::import!("wit-files/rune/rune-v1.wit");
 
 pub fn generate_manifest(
     modules: Vec<CompiledModule>,
