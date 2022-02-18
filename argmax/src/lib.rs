@@ -1,23 +1,14 @@
-#![no_std]
-
-extern crate alloc;
-use alloc::vec;
-use alloc::vec::Vec;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct Argmax {}
 
 impl Argmax {
-    pub const fn new() -> Self {
-        Argmax {}
-    }
+    pub const fn new() -> Self { Argmax {} }
 }
 
 impl Default for Argmax {
-    fn default() -> Self {
-        Argmax::new()
-    }
+    fn default() -> Self { Argmax::new() }
 }
 
 impl Transform<Tensor<f32>> for Argmax {
@@ -35,10 +26,61 @@ impl Transform<Tensor<f32>> for Argmax {
     }
 }
 
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!("wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("wit-files/rune/rune-v1.wit");
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata = Metadata::new(
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+            );
+            metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.add_tag("max");
+            metadata.add_tag("numeric");
+
+            let element_types = &[
+                ElementType::Uint8,
+                ElementType::Int8,
+                ElementType::Uint16,
+                ElementType::Int16,
+                ElementType::Uint32,
+                ElementType::Int32,
+                ElementType::Float32,
+                ElementType::Int64,
+                ElementType::Uint64,
+                ElementType::Float64,
+            ];
+
+            let input = TensorMetadata::new("input");
+
+            for &ty in element_types {
+                let hint = example_shape(ty, Dimensions::Dynamic);
+                input.add_hint(&hint);
+            }
+            metadata.add_input(&input);
+
+            let max = TensorMetadata::new("max");
+            max.set_description(
+                "The index of the element with the highest value",
+            );
+            metadata.add_output(&max);
+
+            register_node(&metadata);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::vec;
     #[test]
     fn test_argmax() {
         let v = Tensor::new_vector(vec![2.3, 12.4, 55.1, 15.4]);

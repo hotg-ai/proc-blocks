@@ -16,6 +16,6 @@ members = [
     "argmax",
     "text_extractor",
     "binary_classification",
-    "object_filter"
+    "object_filter",
+    "xtask"
 ]
-

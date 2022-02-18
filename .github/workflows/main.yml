@@ -15,15 +15,19 @@ jobs:
         rust:
           - nightly
           - stable
-          # MSRV - Relatively recent compiler version
-          - 1.55.0
+          # MSRV - Required for std::process::Command's get_program() method
+          - 1.57.0
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
+          target: wasm32-unknown-unknown
+      - run: ls -la */*
       - uses: actions-rs/cargo@v1
         with:
           command: check
@@ -36,6 +40,15 @@ jobs:
         with:
           command: test
           args: --all --verbose
+      - uses: actions-rs/cargo@v1
+        with:
+          command: xtask
+          args: dist --out-dir target/proc-blocks
+      - name: Save Compiled proc-blocks
+        uses: actions/upload-artifact@v2
+        with:
+          name: compiled-proc-blocks
+          path: target/proc-blocks
 
   api-docs:
     name: Publish API Docs to GitHub Pages
