@@ -15,3 +15,4 @@ tracing = "0.1.30"
 tracing-subscriber = { version = "0.3.8", features = ["env-filter"] }
 walrus = "0.19.0"
 wasmtime = "0.34.0"
+wit-bindgen-wasmtime = { git = "https://github.com/bytecodealliance/wit-bindgen", rev = "e9c7c0a3405845cecd3fe06f3c20ab413302fc73" }
