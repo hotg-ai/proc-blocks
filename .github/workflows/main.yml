@@ -26,6 +26,7 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
+          target: wasm32-unknown-unknown
       - run: ls -la */*
       - uses: actions-rs/cargo@v1
         with:
