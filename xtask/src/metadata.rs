@@ -7,7 +7,9 @@ use crate::{
 };
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, num::NonZeroUsize, path::Path, sync::Mutex};
+use std::{
+    collections::HashMap, fs::File, num::NonZeroUsize, path::Path, sync::Mutex,
+};
 use wasmtime::{Engine, Linker, Module, Store};
 
 pub fn generate_manifest(
@@ -29,7 +31,10 @@ pub fn generate_manifest(
             %metadata.version,
             "Extracted metadata for proc-block",
         );
-        manifest.0.push((metadata, serialized));
+
+        let filename = format!("{}.wasm", metadata.name);
+        manifest.serialized.insert(filename.clone(), serialized);
+        manifest.metadata.insert(filename, metadata);
     }
 
     Ok(manifest)
@@ -83,7 +88,10 @@ struct State {
 }
 
 #[derive(Default)]
-pub struct Manifest(Vec<(Metadata, Vec<u8>)>);
+pub struct Manifest {
+    metadata: HashMap<String, Metadata>,
+    serialized: HashMap<String, Vec<u8>>,
+}
 
 impl Manifest {
     pub fn write_to_disk(&self, dir: &Path) -> Result<(), Error> {
@@ -93,25 +101,37 @@ impl Manifest {
             format!("Unable to create the \"{}\" directory", dir.display())
         })?;
 
-        for (meta, wasm) in &self.0 {
-            let filename = dir.join(&meta.name).with_extension("wasm");
+        for (name, wasm) in &self.serialized {
+            let filename = dir.join(&name);
             std::fs::write(&filename, wasm).with_context(|| {
-                format!("Unable to save to \"{}\"", dir.display())
+                format!("Unable to save to \"{}\"", filename.display())
             })?;
         }
 
-        let metadata: Vec<_> = self.0.iter().map(|(m, _)| m).collect();
-
-        let manifest = dir.join("manifest.json");
-        let f = File::create(&manifest).with_context(|| {
-            format!("Unable to open \"{}\" for writing", manifest.display())
-        })?;
-
-        serde_json::to_writer_pretty(f, &metadata)
+        save_json(dir.join("metadata.json"), &self.metadata)
             .context("Unable to save the metadata")?;
+
+        let names: Vec<_> = self.metadata.keys().collect();
+        save_json(dir.join("manifest.json"), &names)
+            .context("Unable to save the manifest")?;
 
         Ok(())
     }
+}
+
+fn save_json(
+    path: impl AsRef<Path>,
+    value: &impl Serialize,
+) -> Result<(), Error> {
+    let path = path.as_ref();
+
+    let f = File::create(path).with_context(|| {
+        format!("Unable to open \"{}\" for writing", path.display())
+    })?;
+
+    serde_json::to_writer_pretty(f, &value)?;
+
+    Ok(())
 }
 
 #[derive(Default)]
