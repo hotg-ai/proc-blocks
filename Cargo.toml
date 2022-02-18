@@ -19,7 +19,3 @@ members = [
     "object_filter",
     "xtask"
 ]
-
-[patch."https://github.com/bytecodealliance/wit-bindgen"]
-wit-bindgen-wasmtime = { git = "https://github.com/hotg-ai/witx-bindgen", rev = "bf8cc772f246ebb526a468a3e74c4fe766e381a1" }
-wit-bindgen-rust = { git = "https://github.com/hotg-ai/witx-bindgen", rev = "bf8cc772f246ebb526a468a3e74c4fe766e381a1" }

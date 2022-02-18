@@ -1,14 +1,14 @@
 use crate::{
-    rune_v1::{RuneV1, RuneV1Data},
+    bindings::{
+        rune_v1::{RuneV1, RuneV1Data},
+        runtime_v1,
+    },
     CompiledModule,
 };
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, num::NonZeroUsize, path::Path, sync::Mutex};
 use wasmtime::{Engine, Linker, Module, Store};
-
-wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
-wit_bindgen_wasmtime::import!("../wit-files/rune/rune-v1.wit");
 
 pub fn generate_manifest(
     modules: Vec<CompiledModule>,
@@ -392,5 +392,36 @@ impl From<runtime_v1::TypeHint> for TypeHint {
             runtime_v1::TypeHint::OnelineString => TypeHint::OnelineString,
             runtime_v1::TypeHint::MultilineString => TypeHint::MultilineString,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        io::ErrorKind,
+        process::{Command, Stdio},
+    };
+
+    #[test]
+    fn bindings_are_up_to_date() {
+        let mut cmd = Command::new("wit-bindgen");
+        cmd.arg("wasmtime")
+            .arg("--import=../wit-files/rune/rune-v1.wit")
+            .arg("--export=../wit-files/rune/runtime-v1.wit")
+            .arg("--out-dir=src")
+            .arg("--rustfmt")
+            .current_dir(env!("CARGO_MANIFEST_DIR"))
+            .stderr(Stdio::null())
+            .stdout(Stdio::null());
+
+        println!("Running: {:?}", cmd);
+
+        match cmd.status() {
+            Ok(status) if !status.success() => panic!("Command failed"),
+            Ok(_) => {},
+            // wit-bindgen probably isn't installed... ignore
+            Err(e) if e.kind() == ErrorKind::NotFound => return,
+            Err(e) => panic!("Unable to start wit-bindgen: {}", e),
+        };
     }
 }
