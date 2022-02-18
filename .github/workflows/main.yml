@@ -42,7 +42,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: xtask
-          args: dist --output-dir target/proc-blocks
+          args: dist --out-dir target/proc-blocks
       - name: Save Compiled proc-blocks
         uses: actions/upload-artifact@v2
         with:
