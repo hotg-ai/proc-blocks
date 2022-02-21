@@ -45,32 +45,23 @@ pub mod metadata {
             metadata.set_description("Find the index of the largest element.");
             metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
             metadata.add_tag("max");
+            metadata.add_tag("index");
             metadata.add_tag("numeric");
 
-            let element_types = &[
-                ElementType::Uint8,
-                ElementType::Int8,
-                ElementType::Uint16,
-                ElementType::Int16,
-                ElementType::Uint32,
-                ElementType::Int32,
-                ElementType::Float32,
-                ElementType::Int64,
-                ElementType::Uint64,
-                ElementType::Float64,
-            ];
-
             let input = TensorMetadata::new("input");
-            let hint = supported_shapes(element_types, Dimensions::Dynamic);
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[0]),
+            );
             input.add_hint(&hint);
             metadata.add_input(&input);
 
-            let max = TensorMetadata::new("max");
+            let max = TensorMetadata::new("max_index");
             max.set_description(
                 "The index of the element with the highest value",
             );
             let hint = supported_shapes(
-                &[ElementType::Int32],
+                &[ElementType::Uint32],
                 Dimensions::Fixed(&[1]),
             );
             max.add_hint(&hint);

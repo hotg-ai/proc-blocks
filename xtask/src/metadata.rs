@@ -176,7 +176,7 @@ struct TensorMetadata {
 enum TensorHint {
     DisplayAs(String),
     SupportedShape {
-        supported_element_types: Vec<ElementType>,
+        accepted_element_types: Vec<ElementType>,
         dimensions: Dimensions,
     },
 }
@@ -377,7 +377,7 @@ impl runtime_v1::RuntimeV1 for Runtime {
         dimensions: runtime_v1::Dimensions<'_>,
     ) -> Self::TensorHint {
         TensorHint::SupportedShape {
-            supported_element_types: supported_element_type
+            accepted_element_types: supported_element_type
                 .into_iter()
                 .map(ElementType::from)
                 .collect(),
