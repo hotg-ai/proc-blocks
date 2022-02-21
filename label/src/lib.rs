@@ -1,18 +1,9 @@
-#![no_std]
-
 pub mod into_index_macro;
 pub use into_index_macro::IntoIndex;
 
-extern crate alloc;
-
-use alloc::{
-    borrow::{Cow, ToOwned},
-    string::{String, ToString},
-    vec::Vec,
-};
-use core::{fmt::Debug, ops::Range};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use line_span::LineSpans;
+use std::{borrow::Cow, fmt::Debug, ops::Range};
 
 /// A proc block which, when given a set of indices, will return their
 /// associated labels.
@@ -100,6 +91,67 @@ impl core::str::FromStr for Lines {
     }
 }
 
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata = Metadata::new("Label", env!("CARGO_PKG_VERSION"));
+            metadata.set_description(
+                "Using a wordlist, retrieve the label that corresponds to each element in a tensor.",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("classify");
+
+            let labels = ArgumentMetadata::new("wordlist");
+            labels.set_type_hint(TypeHint::MultilineString);
+            metadata.add_argument(&labels);
+
+            let indices = TensorMetadata::new("indices");
+            indices.set_description("Indices for labels in the wordlist.");
+            let hint = supported_shapes(
+                &[
+                    ElementType::Uint8,
+                    ElementType::Int8,
+                    ElementType::Uint16,
+                    ElementType::Int16,
+                    ElementType::Uint32,
+                    ElementType::Int32,
+                    ElementType::Float32,
+                    ElementType::Uint64,
+                    ElementType::Int64,
+                    ElementType::Float64,
+                ],
+                Dimensions::Fixed(&[0]),
+            );
+            indices.add_hint(&hint);
+            metadata.add_input(&indices);
+
+            let output = TensorMetadata::new("labels");
+            output.set_description("The corresponding labels.");
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[0]),
+            );
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -109,7 +161,7 @@ mod tests {
         let mut proc_block = Label::default();
         let labels = ["zero", "one", "two", "three"].join("\n");
         proc_block.set_wordlist(&labels).unwrap();
-        let input = Tensor::new_vector(alloc::vec![2, 0, 1]);
+        let input = Tensor::new_vector(vec![2, 0, 1]);
         let should_be = Tensor::new_vector(
             ["two", "zero", "one"].iter().copied().map(Cow::Borrowed),
         );
@@ -125,7 +177,7 @@ mod tests {
         let mut proc_block = Label::default();
         let labels = ["first", "second"].join("\n");
         proc_block.set_wordlist(&labels).unwrap();
-        let input = Tensor::new_vector(alloc::vec![0_usize, 42]);
+        let input = Tensor::new_vector(vec![0_usize, 42]);
 
         let _ = proc_block.transform(input);
     }
@@ -136,7 +188,7 @@ mod tests {
         let mut proc_block = Label::default();
         let labels = ["zero", "one", "two", "three"].join("\n");
         proc_block.set_wordlist(&labels).unwrap();
-        let input = Tensor::new_vector(alloc::vec![-3, -1, -2]);
+        let input = Tensor::new_vector(vec![-3, -1, -2]);
 
         let _got = proc_block.transform(input);
     }
