@@ -123,7 +123,9 @@ impl ProcBlocks {
         let mut modules = Vec::new();
 
         for lib in libs {
-            let filename = artifact_dir.join(lib).with_extension("wasm");
+            let filename = artifact_dir
+                .join(lib.replace("-", "_"))
+                .with_extension("wasm");
             tracing::debug!(
                 filename = %filename.display(),
                 "Loading WebAssembly module",
