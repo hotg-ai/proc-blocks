@@ -1,9 +1,3 @@
-#![no_std]
-
-#[cfg(test)]
-#[macro_use]
-extern crate alloc;
-
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use num_traits::{Bounded, ToPrimitive};
 
@@ -54,6 +48,65 @@ where
     debug_assert!(min <= value && value <= max);
 
     Some((value - min) / (max - min))
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata =
+                Metadata::new("Image Normalization", env!("CARGO_PKG_VERSION"));
+            metadata.set_description(
+                "Normalize the pixels in an image to the range `[0, 1]`",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("image");
+            metadata.add_tag("normalize");
+
+            let input = TensorMetadata::new("image");
+            input.set_description("An image with the dimensions `[1, width, height, channels]`.\n\nRGB images typically have 3 channels and greyscale images have 1.");
+            let hint = supported_shapes(
+                &[
+                    ElementType::Uint8,
+                    ElementType::Int8,
+                    ElementType::Uint16,
+                    ElementType::Int16,
+                    ElementType::Uint32,
+                    ElementType::Int32,
+                    ElementType::Uint64,
+                    ElementType::Int64,
+                ],
+                Dimensions::Fixed(&[1, 0, 0, 0]),
+            );
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let output = TensorMetadata::new("normalized");
+            output.set_description(
+                "The image's pixels, normalized to the range `[0, 1]`.",
+            );
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[1, 0, 0, 0]),
+            );
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
+        }
+    }
 }
 
 #[cfg(test)]
