@@ -148,6 +148,7 @@ struct Metadata {
     version: String,
     description: Option<String>,
     repository: Option<String>,
+    homepage: Option<String>,
     tags: Vec<String>,
     arguments: Vec<ArgumentMetadata>,
     inputs: Vec<TensorMetadata>,
@@ -194,6 +195,7 @@ enum ElementType {
     U64,
     I64,
     F64,
+    Utf8,
 }
 
 impl From<runtime_v1::ElementType> for ElementType {
@@ -209,6 +211,7 @@ impl From<runtime_v1::ElementType> for ElementType {
             runtime_v1::ElementType::Int64 => ElementType::I64,
             runtime_v1::ElementType::Uint64 => ElementType::U64,
             runtime_v1::ElementType::Float64 => ElementType::F64,
+            runtime_v1::ElementType::Utf8 => ElementType::Utf8,
         }
     }
 }
@@ -266,7 +269,13 @@ impl runtime_v1::RuntimeV1 for Runtime {
     }
 
     fn metadata_set_repository(&mut self, self_: &Self::Metadata, url: &str) {
-        self_.lock().unwrap().repository = Some(url.to_string());
+        self_.lock().unwrap().repository =
+            url.is_empty().then(|| url.to_string());
+    }
+
+    fn metadata_set_homepage(&mut self, self_: &Self::Metadata, url: &str) {
+        self_.lock().unwrap().homepage =
+            url.is_empty().then(|| url.to_string());
     }
 
     fn metadata_add_tag(&mut self, self_: &Self::Metadata, tag: &str) {
