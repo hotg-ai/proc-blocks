@@ -1,7 +1,3 @@
-#![no_std]
-
-extern crate alloc;
-
 #[cfg(test)]
 #[macro_use]
 extern crate std;
@@ -13,10 +9,10 @@ extern crate pretty_assertions;
 /// version of this crate.
 pub type Fft = ShortTimeFourierTransform;
 
-use alloc::{sync::Arc, vec::Vec};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use nalgebra::DMatrix;
 use sonogram::SpecOptionsBuilder;
+use std::{sync::Arc, vec::Vec};
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct ShortTimeFourierTransform {
@@ -116,7 +112,72 @@ impl Transform<Tensor<i16>> for ShortTimeFourierTransform {
     fn transform(&mut self, input: Tensor<i16>) -> Self::Output {
         let input = input.elements().to_vec();
         let stft = self.transform_inner(input);
-        Tensor::new_row_major(Arc::new(stft), alloc::vec![1, stft.len()])
+        Tensor::new_row_major(Arc::new(stft), vec![1, stft.len()])
+    }
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata = Metadata::new(
+                "Short-time Fourier Transform",
+                env!("CARGO_PKG_VERSION"),
+            );
+            metadata.set_description("Convert a signal from the time domain to the frequency domain.");
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.add_tag("audio");
+            metadata.add_tag("stft");
+            metadata.add_tag("signal");
+
+            let sample_rate = ArgumentMetadata::new("sample_rate");
+            sample_rate.set_default_value("16000");
+            sample_rate.set_type_hint(TypeHint::Integer);
+            metadata.add_argument(&sample_rate);
+
+            let bins = ArgumentMetadata::new("bins");
+            bins.set_default_value("480");
+            bins.set_type_hint(TypeHint::Integer);
+            metadata.add_argument(&bins);
+
+            let window_overlap = ArgumentMetadata::new("window_overlap");
+            window_overlap.set_default_value("0.6666667");
+            window_overlap.set_type_hint(TypeHint::Float);
+            metadata.add_argument(&window_overlap);
+
+            let input = TensorMetadata::new("signal");
+            input.set_description("The signal to apply a STFT on.");
+            let hint = supported_shapes(
+                &[ElementType::Int16],
+                Dimensions::Fixed(&[16_000]),
+            );
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let max = TensorMetadata::new("f_transform");
+            max.set_description(
+                "The output will be a tensor of 1960 u32 elements i.e. [1, 2^32]",
+            );
+            let hint = supported_shapes(
+                &[ElementType::Uint32],
+                Dimensions::Fixed(&[1, 1960]),
+            );
+            max.add_hint(&hint);
+            metadata.add_output(&max);
+
+            register_node(&metadata);
+        }
     }
 }
 

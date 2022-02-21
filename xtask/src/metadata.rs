@@ -1,16 +1,18 @@
-use crate::{
-    bindings::{
-        rune_v1::{RuneV1, RuneV1Data},
-        runtime_v1,
-    },
-    CompiledModule,
-};
+use self::rune_v1::{RuneV1, RuneV1Data};
+use crate::CompiledModule;
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap, fs::File, num::NonZeroUsize, path::Path, sync::Mutex,
 };
 use wasmtime::{Engine, Linker, Module, Store};
+
+wit_bindgen_wasmtime::export!(
+    "${CARGO_MANIFEST_DIR}/../wit-files/rune/runtime-v1.wit"
+);
+wit_bindgen_wasmtime::import!(
+    "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+);
 
 pub fn generate_manifest(
     modules: Vec<CompiledModule>,
@@ -415,91 +417,5 @@ impl From<runtime_v1::TypeHint> for TypeHint {
             runtime_v1::TypeHint::OnelineString => TypeHint::OnelineString,
             runtime_v1::TypeHint::MultilineString => TypeHint::MultilineString,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{
-        io::ErrorKind,
-        path::Path,
-        process::{Command, Stdio},
-    };
-
-    #[test]
-    fn bindings_are_up_to_date() {
-        let temp = tempfile::tempdir().unwrap();
-        let project_root =
-            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-
-        let src_dir = project_root.join("xtask").join("src");
-        let rune_wit_files = project_root.join("wit-files").join("rune");
-        let rune_v1 = rune_wit_files.join("rune-v1.wit");
-        let runtime_v1 = rune_wit_files.join("runtime-v1.wit");
-
-        let mut cmd = Command::new("wit-bindgen");
-        cmd.arg("wasmtime")
-            .arg("--import")
-            .arg(rune_v1)
-            .arg("--export")
-            .arg(runtime_v1)
-            .arg("--rustfmt")
-            .current_dir(project_root)
-            .stderr(Stdio::piped())
-            .stdout(Stdio::piped());
-
-        // Note: we need to stash away the arguments so we can tell the user
-        // what command to run.
-        let args: Vec<_> = cmd
-            .get_args()
-            .map(|s| s.to_string_lossy().to_string())
-            .chain(std::iter::once("--out-dir".to_string()))
-            .chain(std::iter::once(src_dir.to_string_lossy().to_string()))
-            .collect();
-        cmd.arg("--out-dir").arg(temp.path());
-
-        match cmd.output() {
-            Ok(output) if !output.status.success() => {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                panic!(
-                    "Command failed\n\nstdout:\n{}\n\nstderr:\n{}",
-                    stdout, stderr
-                );
-            },
-            Ok(_) => {},
-            // wit-bindgen probably isn't installed... ignore
-            Err(e) if e.kind() == ErrorKind::NotFound => return,
-            Err(e) => panic!("Unable to start wit-bindgen: {}", e),
-        }
-
-        if is_outdated(temp.path(), &src_dir) {
-            panic!(
-                "Bindings are outdated, please re-run the following command:\n{} {}",
-                cmd.get_program().to_string_lossy(),
-                args.join(" "),
-        );
-        }
-    }
-
-    fn is_outdated(generated_files: &Path, dest: &Path) -> bool {
-        for generated_file in generated_files.read_dir().unwrap() {
-            let generated_file = generated_file.unwrap().path();
-            let current_version =
-                dest.join(generated_file.file_name().unwrap());
-
-            if !current_version.exists() {
-                return true;
-            }
-
-            let generated = std::fs::read(&generated_file).unwrap();
-            let current = std::fs::read(&current_version).unwrap();
-
-            if generated != current {
-                return true;
-            }
-        }
-
-        false
     }
 }
