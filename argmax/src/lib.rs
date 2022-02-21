@@ -44,6 +44,7 @@ pub mod metadata {
             let metadata = Metadata::new("Arg Max", env!("CARGO_PKG_VERSION"));
             metadata.set_description("Find the index of the largest element.");
             metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
             metadata.add_tag("max");
             metadata.add_tag("index");
             metadata.add_tag("numeric");

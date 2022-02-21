@@ -137,6 +137,7 @@ pub mod metadata {
             );
             metadata.set_description("Convert a signal from the time domain to the frequency domain.");
             metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
             metadata.add_tag("audio");
             metadata.add_tag("stft");
             metadata.add_tag("signal");

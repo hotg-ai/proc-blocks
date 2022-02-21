@@ -269,13 +269,11 @@ impl runtime_v1::RuntimeV1 for Runtime {
     }
 
     fn metadata_set_repository(&mut self, self_: &Self::Metadata, url: &str) {
-        self_.lock().unwrap().repository =
-            url.is_empty().then(|| url.to_string());
+        self_.lock().unwrap().repository = Some(url.to_string());
     }
 
     fn metadata_set_homepage(&mut self, self_: &Self::Metadata, url: &str) {
-        self_.lock().unwrap().homepage =
-            url.is_empty().then(|| url.to_string());
+        self_.lock().unwrap().homepage = Some(url.to_string());
     }
 
     fn metadata_add_tag(&mut self, self_: &Self::Metadata, tag: &str) {
