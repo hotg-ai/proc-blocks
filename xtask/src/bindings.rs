@@ -88,7 +88,7 @@ pub mod rune_v1 {
             })
         }
 
-        /// A function called on startup.
+        /// A function called when the module is first loaded.
         pub fn start(
             &self,
             mut caller: impl wasmtime::AsContextMut<Data = T>,
@@ -307,13 +307,14 @@ pub mod runtime_v1 {
         /// clip.
         fn interpret_as_audio(&mut self) -> Self::TensorHint;
 
-        /// Hint that a tensor may have a particular shape.
+        /// Hint that a tensor may have a particular shape and the element types
+        /// it supports.
         ///
         /// Note: This hint will be removed in the future in favour of a more
         /// flexible mechanism.
-        fn example_shape(
+        fn supported_shapes(
             &mut self,
-            element_type: ElementType,
+            supported_element_types: Vec<ElementType>,
             dimensions: Dimensions<'_>,
         ) -> Self::TensorHint;
 
@@ -685,41 +686,52 @@ pub mod runtime_v1 {
         )?;
         linker.func_wrap(
             "runtime-v1",
-            "example-shape",
+            "supported-shapes",
             move |mut caller: wasmtime::Caller<'_, T>,
                   arg0: i32,
                   arg1: i32,
                   arg2: i32,
-                  arg3: i32| {
+                  arg3: i32,
+                  arg4: i32| {
                 let memory = &get_memory(&mut caller, "memory")?;
                 let (mem, data) = memory.data_and_store_mut(&mut caller);
                 let mut _bc = wit_bindgen_wasmtime::BorrowChecker::new(mem);
                 let host = get(data);
                 let (host, _tables) = host;
-                let param0 = match arg0 {
-                    0 => ElementType::Uint8,
-                    1 => ElementType::Int8,
-                    2 => ElementType::Uint16,
-                    3 => ElementType::Int16,
-                    4 => ElementType::Uint32,
-                    5 => ElementType::Int32,
-                    6 => ElementType::Float32,
-                    7 => ElementType::Uint64,
-                    8 => ElementType::Int64,
-                    9 => ElementType::Float64,
-                    _ => return Err(invalid_variant("ElementType")),
-                };
-                let param1 = match arg1 {
+                let len1 = arg1;
+                let base1 = arg0;
+                let mut result1 = Vec::with_capacity(len1 as usize);
+                for i in 0..len1 {
+                    let base = base1 + i * 1;
+                    result1.push({
+                        let load0 = _bc.load::<u8>(base + 0)?;
+                        match i32::from(load0) {
+                            0 => ElementType::Uint8,
+                            1 => ElementType::Int8,
+                            2 => ElementType::Uint16,
+                            3 => ElementType::Int16,
+                            4 => ElementType::Uint32,
+                            5 => ElementType::Int32,
+                            6 => ElementType::Float32,
+                            7 => ElementType::Uint64,
+                            8 => ElementType::Int64,
+                            9 => ElementType::Float64,
+                            _ => return Err(invalid_variant("ElementType")),
+                        }
+                    });
+                }
+                let param0 = result1;
+                let param1 = match arg2 {
                     0 => Dimensions::Dynamic,
                     1 => Dimensions::Fixed({
-                        let ptr0 = arg2;
-                        let len0 = arg3;
-                        _bc.slice(ptr0, len0)?
+                        let ptr2 = arg3;
+                        let len2 = arg4;
+                        _bc.slice(ptr2, len2)?
                     }),
                     _ => return Err(invalid_variant("Dimensions")),
                 };
-                let result1 = host.example_shape(param0, param1);
-                Ok(_tables.tensor_hint_table.insert(result1) as i32)
+                let result3 = host.supported_shapes(param0, param1);
+                Ok(_tables.tensor_hint_table.insert(result3) as i32)
             },
         )?;
         linker.func_wrap(
@@ -806,5 +818,8 @@ pub mod runtime_v1 {
         )?;
         Ok(())
     }
-    use wit_bindgen_wasmtime::{rt::invalid_variant, Le};
+    use wit_bindgen_wasmtime::{
+        rt::{invalid_variant, RawMem},
+        Le,
+    };
 }

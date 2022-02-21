@@ -32,7 +32,7 @@ pub fn generate_manifest(
             "Extracted metadata for proc-block",
         );
 
-        let filename = format!("{}.wasm", metadata.name);
+        let filename = format!("{}.wasm", name);
         manifest.serialized.insert(filename.clone(), serialized);
         manifest.metadata.insert(filename, metadata);
     }
@@ -173,8 +173,8 @@ struct TensorMetadata {
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
 enum TensorHint {
     DisplayAs(String),
-    ExampleShape {
-        element_type: ElementType,
+    SupportedShape {
+        supported_element_types: Vec<ElementType>,
         dimensions: Dimensions,
     },
 }
@@ -369,13 +369,16 @@ impl runtime_v1::RuntimeV1 for Runtime {
         TensorHint::DisplayAs("audio".to_string())
     }
 
-    fn example_shape(
+    fn supported_shapes(
         &mut self,
-        element_type: runtime_v1::ElementType,
+        supported_element_type: Vec<runtime_v1::ElementType>,
         dimensions: runtime_v1::Dimensions<'_>,
     ) -> Self::TensorHint {
-        TensorHint::ExampleShape {
-            element_type: element_type.into(),
+        TensorHint::SupportedShape {
+            supported_element_types: supported_element_type
+                .into_iter()
+                .map(ElementType::from)
+                .collect(),
             dimensions: dimensions.into(),
         }
     }
@@ -419,29 +422,84 @@ impl From<runtime_v1::TypeHint> for TypeHint {
 mod tests {
     use std::{
         io::ErrorKind,
+        path::Path,
         process::{Command, Stdio},
     };
 
     #[test]
     fn bindings_are_up_to_date() {
+        let temp = tempfile::tempdir().unwrap();
+        let project_root =
+            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+
+        let src_dir = project_root.join("xtask").join("src");
+        let rune_wit_files = project_root.join("wit-files").join("rune");
+        let rune_v1 = rune_wit_files.join("rune-v1.wit");
+        let runtime_v1 = rune_wit_files.join("runtime-v1.wit");
+
         let mut cmd = Command::new("wit-bindgen");
         cmd.arg("wasmtime")
-            .arg("--import=../wit-files/rune/rune-v1.wit")
-            .arg("--export=../wit-files/rune/runtime-v1.wit")
-            .arg("--out-dir=src")
+            .arg("--import")
+            .arg(rune_v1)
+            .arg("--export")
+            .arg(runtime_v1)
             .arg("--rustfmt")
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .stderr(Stdio::null())
-            .stdout(Stdio::null());
+            .current_dir(project_root)
+            .stderr(Stdio::piped())
+            .stdout(Stdio::piped());
 
-        println!("Running: {:?}", cmd);
+        // Note: we need to stash away the arguments so we can tell the user
+        // what command to run.
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().to_string())
+            .chain(std::iter::once("--out-dir".to_string()))
+            .chain(std::iter::once(src_dir.to_string_lossy().to_string()))
+            .collect();
+        cmd.arg("--out-dir").arg(temp.path());
 
-        match cmd.status() {
-            Ok(status) if !status.success() => panic!("Command failed"),
+        match cmd.output() {
+            Ok(output) if !output.status.success() => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                panic!(
+                    "Command failed\n\nstdout:\n{}\n\nstderr:\n{}",
+                    stdout, stderr
+                );
+            },
             Ok(_) => {},
             // wit-bindgen probably isn't installed... ignore
             Err(e) if e.kind() == ErrorKind::NotFound => return,
             Err(e) => panic!("Unable to start wit-bindgen: {}", e),
-        };
+        }
+
+        if is_outdated(temp.path(), &src_dir) {
+            panic!(
+                "Bindings are outdated, please re-run the following command:\n{} {}",
+                cmd.get_program().to_string_lossy(),
+                args.join(" "),
+        );
+        }
+    }
+
+    fn is_outdated(generated_files: &Path, dest: &Path) -> bool {
+        for generated_file in generated_files.read_dir().unwrap() {
+            let generated_file = generated_file.unwrap().path();
+            let current_version =
+                dest.join(generated_file.file_name().unwrap());
+
+            if !current_version.exists() {
+                return true;
+            }
+
+            let generated = std::fs::read(&generated_file).unwrap();
+            let current = std::fs::read(&current_version).unwrap();
+
+            if generated != current {
+                return true;
+            }
+        }
+
+        false
     }
 }

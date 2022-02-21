@@ -37,10 +37,7 @@ pub mod metadata {
         fn start() {
             use runtime_v1::*;
 
-            let metadata = Metadata::new(
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION"),
-            );
+            let metadata = Metadata::new("Arg Max", env!("CARGO_PKG_VERSION"));
             metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
             metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
             metadata.add_tag("max");
@@ -60,11 +57,8 @@ pub mod metadata {
             ];
 
             let input = TensorMetadata::new("input");
-
-            for &ty in element_types {
-                let hint = example_shape(ty, Dimensions::Dynamic);
-                input.add_hint(&hint);
-            }
+            let hint = supported_shapes(element_types, Dimensions::Dynamic);
+            input.add_hint(&hint);
             metadata.add_input(&input);
 
             let max = TensorMetadata::new("max");
