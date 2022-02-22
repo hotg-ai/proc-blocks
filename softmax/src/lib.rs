@@ -1,7 +1,3 @@
-#![no_std]
-
-extern crate alloc;
-
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use libm::expf;
 
@@ -9,15 +5,11 @@ use libm::expf;
 pub struct Softmax {}
 
 impl Softmax {
-    pub const fn new() -> Self {
-        Softmax {}
-    }
+    pub const fn new() -> Self { Softmax {} }
 }
 
 impl Default for Softmax {
-    fn default() -> Self {
-        Softmax::new()
-    }
+    fn default() -> Self { Softmax::new() }
 }
 
 impl Transform<Tensor<f32>> for Softmax {
@@ -31,10 +23,48 @@ impl Transform<Tensor<f32>> for Softmax {
     }
 }
 
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata = Metadata::new("Softmax", env!("CARGO_PKG_VERSION"));
+            metadata.set_description("Apply [softmax](https://en.wikipedia.org/wiki/Softmax_function), sometimes referred to as the *\"normalized exponential function\"* to each element in the tensor.");
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+
+            let input = TensorMetadata::new("input");
+            let hint =
+                supported_shapes(&[ElementType::Float32], Dimensions::Dynamic);
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let output = TensorMetadata::new("output");
+            output.set_description("The result of `exp(x)` to each element, `x`, in the tensor and dividing by the sum.");
+            let hint =
+                supported_shapes(&[ElementType::Float32], Dimensions::Dynamic);
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::vec;
+
     #[test]
     fn test_softmax() {
         let v = Tensor::new_vector(vec![2.3, 12.4, 5.1]);
