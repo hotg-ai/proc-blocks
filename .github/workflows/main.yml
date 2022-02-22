@@ -21,26 +21,37 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/cache@v1
+        with:
+          path: |
+            ~/.cargo
+            target/
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
           target: wasm32-unknown-unknown
       - run: ls -la */*
-      - uses: actions-rs/cargo@v1
+      - name: Type Checking
+        uses: actions-rs/cargo@v1
         with:
           command: check
           args: --all --verbose
-      - uses: actions-rs/cargo@v1
+      - name: Build
+        uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all --verbose
-      - uses: actions-rs/cargo@v1
+      - name: Test
+        uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all --verbose
-      - uses: actions-rs/cargo@v1
+      - name: Compile to WebAssembly
+        uses: actions-rs/cargo@v1
         with:
           command: xtask
           args: dist --out-dir target/proc-blocks
