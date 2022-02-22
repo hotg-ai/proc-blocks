@@ -3,6 +3,7 @@ name = "most_confident_indices"
 version = "0.11.3"
 edition = "2018"
 publish = false
+repository = "https://github.com/hotg-ai/proc-blocks"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
