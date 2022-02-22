@@ -1,24 +1,17 @@
-#![no_std]
 pub mod tokenizer;
 pub mod vocab;
 
-use crate::alloc::string::{String, ToString};
-pub use crate::tokenizer::base_tokenizer::{
-    ConsolidatableTokens, ConsolidatedTokenIterator, Mask, Offset, OffsetSize,
-    Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
-    TokenTrait, TokenizedInput, TokensWithOffsets,
-};
-use alloc::{vec, vec::Vec};
-use core::{default::Default, str::FromStr};
-
-#[macro_use]
-extern crate alloc;
-
-pub use crate::{
-    tokenizer::{BertTokenizer, Tokenizer, TruncationStrategy},
+use crate::{
+    tokenizer::{
+        base_tokenizer::{
+            Mask, Offset, OffsetSize, Token, TokenRef, TokenizedInput,
+        },
+        BertTokenizer, Tokenizer, TruncationStrategy,
+    },
     vocab::{BertVocab, Vocab},
 };
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
+use std::str::FromStr;
 
 #[derive(ProcBlock)]
 pub struct Tokenizers {
@@ -107,6 +100,83 @@ impl Transform<(Tensor<u8>, Tensor<u8>)> for Tokenizers {
             Tensor::new_row_major(seg_ids.into(), vec![1, 384]),
             Tensor::new_vector(words),
         )
+    }
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata =
+                Metadata::new("Tokenizer", env!("CARGO_PKG_VERSION"));
+            metadata.set_description(
+                "Tokenize a question and a paragraph using the Bert tokenizer.",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("nlp");
+            metadata.add_tag("bert");
+
+            let question = TensorMetadata::new("question");
+            let hint =
+                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+            question.add_hint(&hint);
+            metadata.add_input(&question);
+
+            let paragraph = TensorMetadata::new("paragraph");
+            let hint =
+                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+            paragraph.add_hint(&hint);
+            metadata.add_input(&paragraph);
+
+            let token_ids = TensorMetadata::new("token_ids");
+            token_ids.set_description("The IDs for each token in the input.");
+            let hint = supported_shapes(
+                &[ElementType::Int32],
+                Dimensions::Fixed(&[1, 384]),
+            );
+            token_ids.add_hint(&hint);
+            metadata.add_output(&token_ids);
+
+            let token_mask = TensorMetadata::new("token_mask");
+            token_mask.set_description("A set of masks indicating whether an input token is inside a segment or not.");
+            let hint = supported_shapes(
+                &[ElementType::Int32],
+                Dimensions::Fixed(&[1, 384]),
+            );
+            token_mask.add_hint(&hint);
+            metadata.add_output(&token_mask);
+
+            let segment_ids = TensorMetadata::new("segment_ids");
+            segment_ids
+                .set_description("The ID of the segment each token is in.");
+            let hint = supported_shapes(
+                &[ElementType::Int32],
+                Dimensions::Fixed(&[1, 384]),
+            );
+            segment_ids.add_hint(&hint);
+            metadata.add_output(&segment_ids);
+
+            let encoded_text = TensorMetadata::new("encoded_text");
+            encoded_text.set_description("The encoded question and paragraph that was fed to the tokenizer.");
+            let hint =
+                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[1]));
+            encoded_text.add_hint(&hint);
+            metadata.add_output(&encoded_text);
+
+            register_node(&metadata);
+        }
     }
 }
 
