@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use alloc::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 use lazy_static::lazy_static;
 
@@ -23,7 +23,8 @@ pub const WHITESPACE_CHARS: [u32; 20] = [
     //        Standard whitespace characters (unicode category Zs)
     0x0020, 0x00A0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
     0x2006, 0x2007, 0x2008, 0x2009, 0x200A, 0x202F, 0x205F, 0x3000,
-    //        Additional characters considered whitespace for BERT (tab, newline, carriage return)
+    //        Additional characters considered whitespace for BERT (tab,
+    // newline, carriage return)
     0x0009, 0x000D, 0x00A,
 ];
 

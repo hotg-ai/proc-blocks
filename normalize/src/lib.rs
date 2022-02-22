@@ -1,13 +1,8 @@
-#![no_std]
-
-#[cfg(test)]
-extern crate std;
-
-use core::{
+use hotg_rune_proc_blocks::{Tensor, Transform};
+use std::{
     fmt::Debug,
     ops::{Div, Sub},
 };
-use hotg_rune_proc_blocks::{Tensor, Transform};
 
 pub fn normalize<T>(input: &mut [T])
 where
@@ -71,6 +66,46 @@ where
         },
         None => Some((item, item)),
     })
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata =
+                Metadata::new("Normalize", env!("CARGO_PKG_VERSION"));
+            metadata.set_description(
+                "Normalize a tensor's elements to the range, `[0, 1]`.",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("normalize");
+
+            let input = TensorMetadata::new("input");
+            let supported_types = [ElementType::Float32, ElementType::Float64];
+            let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let output = TensorMetadata::new("normalized");
+            let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
+        }
+    }
 }
 
 #[cfg(test)]

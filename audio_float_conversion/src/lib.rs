@@ -1,11 +1,3 @@
-#![no_std]
-
-extern crate alloc;
-
-#[cfg(test)]
-#[macro_use]
-extern crate std;
-
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 // TODO: Add Generics
@@ -26,8 +18,9 @@ impl AudioFloatConversion {
     }
 
     fn check_input_dimensions(&self, dimensions: &[usize]) {
-         assert_eq!(
-            (!(dimensions.len() == 2 && dimensions[0] == 1) || !((dimensions.len() == 1))),
+        assert_eq!(
+            (!(dimensions.len() == 2 && dimensions[0] == 1)
+                || !(dimensions.len() == 1)),
             true,
             "This proc block only supports 1D outputs (requested output: {:?})",
             dimensions
@@ -36,9 +29,7 @@ impl AudioFloatConversion {
 }
 
 impl Default for AudioFloatConversion {
-    fn default() -> Self {
-        AudioFloatConversion::new()
-    }
+    fn default() -> Self { AudioFloatConversion::new() }
 }
 
 impl Transform<Tensor<i16>> for AudioFloatConversion {
@@ -49,6 +40,57 @@ impl Transform<Tensor<i16>> for AudioFloatConversion {
         input.map(|_dims, &value| {
             (value as f32 / I16_MAX_AS_FLOAT).clamp(-1.0, 1.0)
         })
+    }
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata = Metadata::new(
+                "Audio to Float Conversion",
+                env!("CARGO_PKG_VERSION"),
+            );
+            metadata.set_description(
+                "Convert a tensor of `i16` samples to a normalized tensor of `f32`.",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("audio");
+
+            let input = TensorMetadata::new("input");
+            input.set_description("A 1D tensor of `i16` samples.");
+            let hint = supported_shapes(
+                &[ElementType::Int16],
+                Dimensions::Fixed(&[0]),
+            );
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let output = TensorMetadata::new("normalized");
+            output.set_description(
+                "The samples as floats normalized to the range `[0, 1]`.",
+            );
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[0]),
+            );
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
+        }
     }
 }
 

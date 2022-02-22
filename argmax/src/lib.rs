@@ -28,8 +28,12 @@ impl Transform<Tensor<f32>> for Argmax {
 
 #[cfg(feature = "metadata")]
 pub mod metadata {
-    wit_bindgen_rust::import!("wit-files/rune/runtime-v1.wit");
-    wit_bindgen_rust::export!("wit-files/rune/rune-v1.wit");
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
 
     struct RuneV1;
 
@@ -37,40 +41,31 @@ pub mod metadata {
         fn start() {
             use runtime_v1::*;
 
-            let metadata = Metadata::new(
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION"),
-            );
-            metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
+            let metadata = Metadata::new("Arg Max", env!("CARGO_PKG_VERSION"));
+            metadata.set_description("Find the index of the largest element.");
             metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
             metadata.add_tag("max");
+            metadata.add_tag("index");
             metadata.add_tag("numeric");
 
-            let element_types = &[
-                ElementType::Uint8,
-                ElementType::Int8,
-                ElementType::Uint16,
-                ElementType::Int16,
-                ElementType::Uint32,
-                ElementType::Int32,
-                ElementType::Float32,
-                ElementType::Int64,
-                ElementType::Uint64,
-                ElementType::Float64,
-            ];
-
             let input = TensorMetadata::new("input");
-
-            for &ty in element_types {
-                let hint = example_shape(ty, Dimensions::Dynamic);
-                input.add_hint(&hint);
-            }
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[0]),
+            );
+            input.add_hint(&hint);
             metadata.add_input(&input);
 
-            let max = TensorMetadata::new("max");
+            let max = TensorMetadata::new("max_index");
             max.set_description(
                 "The index of the element with the highest value",
             );
+            let hint = supported_shapes(
+                &[ElementType::Uint32],
+                Dimensions::Fixed(&[1]),
+            );
+            max.add_hint(&hint);
             metadata.add_output(&max);
 
             register_node(&metadata);

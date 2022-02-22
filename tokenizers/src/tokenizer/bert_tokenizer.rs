@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use alloc::vec::Vec;
-
-use crate::tokenizer::base_tokenizer::{
-    BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token,
-    TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef, Tokenizer,
+use crate::{
+    tokenizer::{
+        base_tokenizer::{
+            BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize,
+            Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
+            Tokenizer,
+        },
+        tokenization_utils::tokenize_wordpiece,
+    },
+    vocab::{BertVocab, Vocab},
 };
-use crate::tokenizer::tokenization_utils::tokenize_wordpiece;
-use crate::vocab::{BertVocab, Vocab};
 
 /// # BERT tokenizer
 /// BERT tokenizer performing:
@@ -35,8 +38,10 @@ impl BertTokenizer {
     //
     // # Parameters
     // - vocab (`BertVocab`): Thread-safe reference to a BERT vocabulary
-    // - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
-    // - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    // - lower_case (`bool`): flag indicating if the text should be lower-cased
+    //   as part of the tokenization
+    // - strip_accents (`bool`): flag indicating if accents should be stripped
+    //   from the text
     //
     // # Example
     //
@@ -68,12 +73,11 @@ impl BertTokenizer {
 }
 
 impl Tokenizer<BertVocab> for BertTokenizer {
-    fn vocab(&self) -> &BertVocab {
-        &self.vocab
-    }
+    fn vocab(&self) -> &BertVocab { &self.vocab }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
-        //the base tokenizers does most of the work, we simply add a wordpiece tokenizer on top
+        // the base tokenizers does most of the work, we simply add a wordpiece
+        // tokenizer on top
         self.base_tokenizer
             .tokenize_to_tokens(initial_token)
             .into_iter()

@@ -12,20 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::alloc::borrow::ToOwned;
-use crate::tokenizer::tokenization_utils::{clean_text, lowercase};
-use crate::tokenizer::tokenization_utils::{
-    split_on_punct, split_on_special_tokens, strip_accents, tokenize_cjk_chars,
-    truncate_sequences, whitespace_tokenize,
+use crate::{
+    tokenizer::tokenization_utils::{
+        clean_text, lowercase, split_on_punct, split_on_special_tokens,
+        strip_accents, tokenize_cjk_chars, truncate_sequences,
+        whitespace_tokenize,
+    },
+    vocab::Vocab,
 };
-use crate::vocab::Vocab;
-use alloc::string::String;
-use alloc::string::ToString;
-use alloc::vec::Vec;
-// use rayon::prelude::*;
 
 /// # Truncation strategy variants
-/// Indicates if and how sequence pairs exceeding a given length should be truncated
+/// Indicates if and how sequence pairs exceeding a given length should be
+/// truncated
 pub enum TruncationStrategy {
     /// Truncate the longest sequence first
     LongestFirst,
@@ -41,7 +39,8 @@ pub enum TruncationStrategy {
 pub type OffsetSize = u32;
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Eq)]
-///Offset information (in unicode points) to relate a token back to its original input string
+/// Offset information (in unicode points) to relate a token back to its
+/// original input string
 pub struct Offset {
     pub begin: OffsetSize,
     pub end: OffsetSize,
@@ -67,33 +66,44 @@ impl Offset {
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Eq)]
 pub enum Mask {
-    /// The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.
+    /// The token has no particular mask. This is the default situation. It may
+    /// indicate that further processing can be done on a token.
     None,
     /// The token represents a whitespace (in any shape or form)
     Whitespace,
     /// The token represents punctuation (in any shape or form)
     Punctuation,
-    /// The token represents a single Chinese/Japanese/Korean character (including kana and hangul)
+    /// The token represents a single Chinese/Japanese/Korean character
+    /// (including kana and hangul)
     CJK,
-    /// The token is a special marker (such as a separator marker, a class marker, etc)
+    /// The token is a special marker (such as a separator marker, a class
+    /// marker, etc)
     Special,
-    /// The token is the begin in a series of subtokens, the offset refers specifically to the sub-token. Subsequent tokens in this sequence will carry the 'Continuation' mask
+    /// The token is the begin in a series of subtokens, the offset refers
+    /// specifically to the sub-token. Subsequent tokens in this sequence will
+    /// carry the 'Continuation' mask
     Begin,
-    /// The token is the continuation of the previous token, the offset refers specifically to the sub-token. All but the first sub-token in a sequence carry this mask (the first carries 'Begin'). (this is the reverse of Mask::Unfinished)
+    /// The token is the continuation of the previous token, the offset refers
+    /// specifically to the sub-token. All but the first sub-token in a
+    /// sequence carry this mask (the first carries 'Begin'). (this is the
+    /// reverse of Mask::Unfinished)
     Continuation,
-    /// The token is the start of a token but not finished yet. All but the last sub-token in the a token sequence carry this mask. This is the reverse of Mask::Continuation.
+    /// The token is the start of a token but not finished yet. All but the
+    /// last sub-token in the a token sequence carry this mask. This is the
+    /// reverse of Mask::Continuation.
     Unfinished,
-    /// The token is out of vocabulary, it is unknown by the tokenizer and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
+    /// The token is out of vocabulary, it is unknown by the tokenizer and it
+    /// will decode to unknown. Tokens that can be decoded properly (but may
+    /// still be out of vocabulary) should not set this.
     Unknown,
 }
 
 impl Default for Mask {
-    fn default() -> Mask {
-        Mask::None
-    }
+    fn default() -> Mask { Mask::None }
 }
 
-/// Token abstraction trait to access token fields, irrespective of their form (reference of owned)
+/// Token abstraction trait to access token fields, irrespective of their form
+/// (reference of owned)
 pub trait TokenTrait {
     /// Returns the offset of the token with respect to the original string
     fn offset(&self) -> Option<Offset>;
@@ -104,14 +114,16 @@ pub trait TokenTrait {
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq)]
-/// Reference token that references the original text, with a string slice representation
+/// Reference token that references the original text, with a string slice
+/// representation
 pub struct TokenRef<'a> {
     /// String representation
     pub text: &'a str,
     /// Start and end positions of the token with respect to the original text
     pub offset: Offset,
-    /// Sequence of positions with respect to the original text contained in the token.
-    /// For example, if the token offset is `start: 4, end: 10`, corresponding reference_offsets are `[4, 5, 6, 7, 8, 9]`
+    /// Sequence of positions with respect to the original text contained in
+    /// the token. For example, if the token offset is `start: 4, end: 10`,
+    /// corresponding reference_offsets are `[4, 5, 6, 7, 8, 9]`
     pub reference_offsets: &'a [OffsetSize],
     /// Mask indicating the type of the token
     pub mask: Mask,
@@ -122,7 +134,8 @@ impl<'a> TokenRef<'a> {
     ///
     /// # Parameters
     /// - text (`&str`): text reference
-    /// - offsets (`&[OffsetSize]`): reference positions with respect to the original text
+    /// - offsets (`&[OffsetSize]`): reference positions with respect to the
+    ///   original text
     ///
     /// # Example
     // ```
@@ -157,37 +170,26 @@ impl<'a> TokenRef<'a> {
     // let owned_token = token_ref.to_owned();
     // ```
     pub fn to_owned(self) -> Token {
-        //not a real implementation of ToOwned because that can't work in the current setup
+        // not a real implementation of ToOwned because that can't work in the
+        // current setup
         Token::from(self)
     }
 }
 
 impl<'a> TokenTrait for TokenRef<'a> {
-    fn offset(&self) -> Option<Offset> {
-        self.offset.into_option()
-    }
+    fn offset(&self) -> Option<Offset> { self.offset.into_option() }
 
-    fn mask(&self) -> Mask {
-        self.mask
-    }
+    fn mask(&self) -> Mask { self.mask }
 
-    fn as_str(&self) -> &str {
-        self.text
-    }
+    fn as_str(&self) -> &str { self.text }
 }
 
 impl TokenTrait for Token {
-    fn offset(&self) -> Option<Offset> {
-        self.offset.into_option()
-    }
+    fn offset(&self) -> Option<Offset> { self.offset.into_option() }
 
-    fn mask(&self) -> Mask {
-        self.mask
-    }
+    fn mask(&self) -> Mask { self.mask }
 
-    fn as_str(&self) -> &str {
-        self.text.as_str()
-    }
+    fn as_str(&self) -> &str { self.text.as_str() }
 }
 
 impl<'a> From<&'a Token> for TokenRef<'a> {
@@ -202,9 +204,7 @@ impl<'a> From<&'a Token> for TokenRef<'a> {
 }
 
 impl From<&str> for Token {
-    fn from(text: &str) -> Self {
-        Token::new(text.to_owned())
-    }
+    fn from(text: &str) -> Self { Token::new(text.to_owned()) }
 }
 
 impl<'a> From<TokenRef<'a>> for Token {
@@ -221,7 +221,8 @@ impl<'a> From<TokenRef<'a>> for Token {
 /// # ConsolidatedTokenIterator
 ///
 /// This iterator loops over collections of tokens (implementing `TokenTrait`)
-/// and groups all subtokens that belong together (forming a word or something similar).
+/// and groups all subtokens that belong together (forming a word or something
+/// similar).
 pub struct ConsolidatedTokenIterator<'a, T>
 where
     T: TokenTrait,
@@ -235,7 +236,8 @@ impl<'a, T> ConsolidatedTokenIterator<'a, T>
 where
     T: TokenTrait,
 {
-    /// Creates a new `ConsolidatedTokenIterator` from a sequence of `Tokens` or `TokenRefs`
+    /// Creates a new `ConsolidatedTokenIterator` from a sequence of `Tokens` or
+    /// `TokenRefs`
     pub fn new(tokens: &'a [T]) -> Self {
         ConsolidatedTokenIterator {
             tokens,
@@ -255,7 +257,7 @@ where
         loop {
             if let Some(sub_token) = self.tokens.get(self.cursor) {
                 if sub_token.mask() != Mask::Continuation {
-                    //return the previous buffer of subtokens (no copies!)
+                    // return the previous buffer of subtokens (no copies!)
                     if self.cursor > self.begin {
                         let sub_tokens = &self.tokens[self.begin..self.cursor];
                         self.begin = self.cursor;
@@ -265,14 +267,14 @@ where
                 }
                 self.cursor += 1;
             } else {
-                //we are at past the last item, return remaining buffer
+                // we are at past the last item, return remaining buffer
                 if self.begin < self.cursor {
                     let sub_tokens = &self.tokens[self.begin..self.cursor];
                     self.cursor += 1;
                     self.begin = self.cursor;
                     return Some(sub_tokens);
                 } else {
-                    //nothing in buffer, we're done
+                    // nothing in buffer, we're done
                     return None;
                 }
             }
@@ -282,10 +284,9 @@ where
 
 /// # ConsolidatableTokens
 ///
-/// This trait can be implemented for collections of tokens (i.e. things that implement `TokenTrait`)
-/// and instantiates an iterator to quickly iterate over the tokens in consolidated form, e.g.
-/// grouping subtokens into words.
-///
+/// This trait can be implemented for collections of tokens (i.e. things that
+/// implement `TokenTrait`) and instantiates an iterator to quickly iterate over
+/// the tokens in consolidated form, e.g. grouping subtokens into words.
 // ```no_run
 // use rust_tokenizers::{ConsolidatableTokens, Token};
 // let tokens: Vec<Token> = vec![]; //add some tokens
@@ -316,14 +317,16 @@ impl<'a> ConsolidatableTokens<TokenRef<'a>> for Vec<TokenRef<'a>> {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-/// Owned token that references the original text but stores its own string representation.
+/// Owned token that references the original text but stores its own string
+/// representation.
 pub struct Token {
     /// String representation
     pub text: String,
     /// Start and end positions of the token with respect to the original text
     pub offset: Offset,
-    /// Sequence of positions with respect to the original text contained in the token.
-    /// For example, if the token offset is `start: 4, end: 10`, corresponding reference_offsets are `[4, 5, 6, 7, 8, 9]`
+    /// Sequence of positions with respect to the original text contained in
+    /// the token. For example, if the token offset is `start: 4, end: 10`,
+    /// corresponding reference_offsets are `[4, 5, 6, 7, 8, 9]`
     pub reference_offsets: Vec<OffsetSize>,
     /// Mask indicating the type of the token
     pub mask: Mask,
@@ -365,104 +368,127 @@ impl Token {
     // let token_ref = token.as_ref();
     // ```
     pub fn as_ref(&self) -> TokenRef {
-        //not a real implementation of AsRef because we do something slightly different
+        // not a real implementation of AsRef because we do something slightly
+        // different
         TokenRef::from(self)
     }
 }
 
 /// # Tokenized Input, ready for processing in language models
-/// This represents the final output of the encoding process (tokenized sentence with encoded values)
+/// This represents the final output of the encoding process (tokenized sentence
+/// with encoded values)
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct TokenizedInput {
     /// Vector of token IDs
     pub token_ids: Vec<i64>,
 
-    /// Vector segments ids (for example for BERT segments are separated with a [SEP] marker, each incrementing the segment ID).
-    /// This vector has the same length as token_ids.
+    /// Vector segments ids (for example for BERT segments are separated with a
+    /// [SEP] marker, each incrementing the segment ID). This vector has
+    /// the same length as token_ids.
     pub segment_ids: Vec<i8>,
 
-    /// Flags tokens as special tokens (1) or not (0). This vector has the same length as token_ids.
+    /// Flags tokens as special tokens (1) or not (0). This vector has the same
+    /// length as token_ids.
     pub special_tokens_mask: Vec<i8>,
 
-    /// Vector containing overflowing tokens, populated following a truncation step
+    /// Vector containing overflowing tokens, populated following a truncation
+    /// step
     pub overflowing_tokens: Vec<i64>,
 
-    /// Number of overflowing tokens following a truncation step. this equals the length `overflowing_tokens`
+    /// Number of overflowing tokens following a truncation step. this equals
+    /// the length `overflowing_tokens`
     pub num_truncated_tokens: usize,
 
-    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as start and end positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub token_offsets: Vec<Option<Offset>>,
 
-    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as a sequence of positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub reference_offsets: Vec<Vec<OffsetSize>>,
 
-    /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
+    /// Masks tokens providing information on the type of tokens. This vector
+    /// has the same length as token_ids.
     pub mask: Vec<Mask>,
 }
 
 /// # Encoded input with special tokens
-/// Intermediate tokenization steps before truncation to a maximum length, after encoding and addition of special tokens
+/// Intermediate tokenization steps before truncation to a maximum length, after
+/// encoding and addition of special tokens
 #[derive(Debug, Clone)]
 pub struct TokenIdsWithSpecialTokens {
     /// Vector of token IDs
     pub token_ids: Vec<i64>,
 
-    /// Vector segments ids (for example for BERT segments are separated with a [SEP] marker, each incrementing the segment ID).
-    /// This vector has the same length as token_ids.
+    /// Vector segments ids (for example for BERT segments are separated with a
+    /// [SEP] marker, each incrementing the segment ID). This vector has
+    /// the same length as token_ids.
     pub segment_ids: Vec<i8>,
 
-    /// Flags tokens as special tokens (1) or not (0). This vector has the same length as token_ids.
+    /// Flags tokens as special tokens (1) or not (0). This vector has the same
+    /// length as token_ids.
     pub special_tokens_mask: Vec<i8>,
 
-    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as start and end positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub token_offsets: Vec<Option<Offset>>,
 
-    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as a sequence of positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub reference_offsets: Vec<Vec<OffsetSize>>,
 
-    /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
+    /// Masks tokens providing information on the type of tokens. This vector
+    /// has the same length as token_ids.
     pub mask: Vec<Mask>,
 }
 
 /// # Tokenized sequence
-/// Intermediate tokenization steps before encoding, addition of special tokens and truncation
+/// Intermediate tokenization steps before encoding, addition of special tokens
+/// and truncation
 #[derive(Debug, Clone)]
 pub struct TokensWithOffsets {
     /// Vector of token strings
     pub tokens: Vec<String>,
 
-    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as start and end positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub offsets: Vec<Option<Offset>>,
 
-    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as a sequence of positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub reference_offsets: Vec<Vec<OffsetSize>>,
 
-    /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
+    /// Masks tokens providing information on the type of tokens. This vector
+    /// has the same length as token_ids.
     pub masks: Vec<Mask>,
 }
 
 /// # Encoded sequence
-/// Intermediate tokenization steps before addition of special tokens, after encoding
+/// Intermediate tokenization steps before addition of special tokens, after
+/// encoding
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenIdsWithOffsets {
     /// Vector of token IDs
     pub ids: Vec<i64>,
 
-    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as start and end positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub offsets: Vec<Option<Offset>>,
 
-    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as a sequence of positions) in relation to the
+    /// original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub reference_offsets: Vec<Vec<OffsetSize>>,
 
-    /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
+    /// Masks tokens providing information on the type of tokens. This vector
+    /// has the same length as token_ids.
     pub masks: Vec<Mask>,
 }
 
@@ -472,7 +498,8 @@ pub trait Tokenizer<T: Vocab> {
     fn vocab(&self) -> &T;
 
     /// Tokenize a string, returns a vector of tokens as strings.
-    /// Use `tokenize_with_offsets` or `tokenize_to_tokens` to return offset information.
+    /// Use `tokenize_with_offsets` or `tokenize_to_tokens` to return offset
+    /// information.
     ///
     /// # Parameters
     /// - text : text (string-like) to tokenize
@@ -481,7 +508,6 @@ pub trait Tokenizer<T: Vocab> {
     /// `Vec<String>` containing the tokens string representation
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -506,7 +532,6 @@ pub trait Tokenizer<T: Vocab> {
     /// `TokensWithOffsets` with the tokens and their offset information
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -565,8 +590,10 @@ pub trait Tokenizer<T: Vocab> {
     /// Tokenize a TokenRef, returning a sequence of tokens
     ///
     /// # Parameters
-    /// - text (`TokenRef`): TokenRef to tokenize (this is especially useful for nested tokenization,
-    /// where a tokenizer is called on the ouput of a pre-tokenizer, such as BERT).
+    /// - text (`TokenRef`): TokenRef to tokenize (this is especially useful for
+    ///   nested tokenization,
+    /// where a tokenizer is called on the ouput of a pre-tokenizer, such as
+    /// BERT).
     ///
     /// # Returns
     /// `Vec<Token>` tokenization of the original `TokenRef`
@@ -581,7 +608,8 @@ pub trait Tokenizer<T: Vocab> {
     // let strip_accents = false;
     // let lower_case = false;
     // let tokenizer: BaseTokenizer<BaseVocab> =
-    //     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    //     BaseTokenizer::from_file("path/to/vocab/file", lower_case,
+    // strip_accents).unwrap();
     //
     // let text = "Hello, world!";
     // let offsets = (0..text.len() as OffsetSize).collect_vec();
@@ -599,7 +627,6 @@ pub trait Tokenizer<T: Vocab> {
     /// `Vec<Vec<String>>` with the token strings representation
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -623,18 +650,19 @@ pub trait Tokenizer<T: Vocab> {
             .collect()
     }
 
-    /// Tokenize a list of strings, where each corresponds to for example a sentence, returns a
-    /// vector of TokensWithOffsets containing the tokens and their offset information. This calls
+    /// Tokenize a list of strings, where each corresponds to for example a
+    /// sentence, returns a vector of TokensWithOffsets containing the
+    /// tokens and their offset information. This calls
     /// `tokenize_with_offsets` on the list provided.
     ///
     /// # Parameters
     /// - text_list: list of strings to tokenize
     ///
     /// # Returns
-    /// `Vec<TokensWithOffsets>` with the token strings representation and offsets
+    /// `Vec<TokensWithOffsets>` with the token strings representation and
+    /// offsets
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -670,7 +698,6 @@ pub trait Tokenizer<T: Vocab> {
     /// `Vec<i64>` with the token indices
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -698,20 +725,26 @@ pub trait Tokenizer<T: Vocab> {
     ///
     /// # Parameters
     /// - text_1: input text (string-like) to encode
-    /// - text_2: optional additional input text (string-like) to encode. When provided, both texts are
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
-    /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
-    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
-    /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    /// - text_2: optional additional input text (string-like) to encode. When
+    ///   provided, both texts are
+    /// combined into a single encoding by using the
+    /// `build_input_with_special_tokens` method.
+    /// - max_len (`usize`): maximum combined sequence length. If the combined
+    ///   encoding would exceed this
+    /// max_len, the encoding is truncated following the `TruncationStrategy`
+    /// provided.
+    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for
+    ///   the truncation, if required
+    /// - stride (`usize`): amount of tokens to shift the input by if truncation
+    ///   is required
+    /// (allowing for the generation of overlapping sequences with overflowing
+    /// tokens)
     ///
     /// # Returns
-    /// `TokenizedInput` containing the encoding output (token indices, token types, segment ids,
-    /// ovrflowing tokens and special token mask)
+    /// `TokenizedInput` containing the encoding output (token indices, token
+    /// types, segment ids, ovrflowing tokens and special token mask)
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -821,24 +854,31 @@ pub trait Tokenizer<T: Vocab> {
         }
     }
 
-    /// Encode a sequence of string-like texts (tokenization followed by encoding). Not that in contrast
-    /// with `encode` optional second text, each text provided is encoded independently.
+    /// Encode a sequence of string-like texts (tokenization followed by
+    /// encoding). Not that in contrast with `encode` optional second text,
+    /// each text provided is encoded independently.
     ///
     /// # Parameters
     /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
-    /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
-    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
-    /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    /// combined into a single encoding by using the
+    /// `build_input_with_special_tokens` method.
+    /// - max_len (`usize`): maximum combined sequence length. If the combined
+    ///   encoding would exceed this
+    /// max_len, the encoding is truncated following the `TruncationStrategy`
+    /// provided.
+    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for
+    ///   the truncation, if required
+    /// - stride (`usize`): amount of tokens to shift the input by if truncation
+    ///   is required
+    /// (allowing for the generation of overlapping sequences with overflowing
+    /// tokens)
     ///
     /// # Returns
-    /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
-    /// ovrflowing tokens and special token mask) for each provided text
+    /// `Vec<TokenizedInput>` containing the encoding output (token indices,
+    /// token types, segment ids, ovrflowing tokens and special token mask)
+    /// for each provided text
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -877,24 +917,31 @@ pub trait Tokenizer<T: Vocab> {
             .collect()
     }
 
-    /// Encode a sequence of string-like text pairs (tokenization followed by encoding). This combines
-    /// with `encode` with the list processing of `encode_list`.
+    /// Encode a sequence of string-like text pairs (tokenization followed by
+    /// encoding). This combines with `encode` with the list processing of
+    /// `encode_list`.
     ///
     /// # Parameters
     /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
-    /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
-    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
-    /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    /// combined into a single encoding by using the
+    /// `build_input_with_special_tokens` method.
+    /// - max_len (`usize`): maximum combined sequence length. If the combined
+    ///   encoding would exceed this
+    /// max_len, the encoding is truncated following the `TruncationStrategy`
+    /// provided.
+    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for
+    ///   the truncation, if required
+    /// - stride (`usize`): amount of tokens to shift the input by if truncation
+    ///   is required
+    /// (allowing for the generation of overlapping sequences with overflowing
+    /// tokens)
     ///
     /// # Returns
-    /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
-    /// ovrflowing tokens and special token mask) for each provided text
+    /// `Vec<TokenizedInput>` containing the encoding output (token indices,
+    /// token types, segment ids, ovrflowing tokens and special token mask)
+    /// for each provided text
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -940,7 +987,8 @@ pub trait Tokenizer<T: Vocab> {
             .collect()
     }
 
-    /// Cleans-up tokenization artifacts (for example whitespace before punctuation)
+    /// Cleans-up tokenization artifacts (for example whitespace before
+    /// punctuation)
     ///
     /// # Arguments
     /// - input_string (`String`): input string to clean up
@@ -949,7 +997,6 @@ pub trait Tokenizer<T: Vocab> {
     /// - `String`: clean-up string
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -978,8 +1025,8 @@ pub trait Tokenizer<T: Vocab> {
             .replace(" 're", "'re")
     }
 
-    /// Build model inputs from a sequence or a pair of sequence for sequence classification tasks
-    /// by concatenating and adding special tokens.
+    /// Build model inputs from a sequence or a pair of sequence for sequence
+    /// classification tasks by concatenating and adding special tokens.
     ///
     /// For example, a RoBERTa sequence has the following format:
     /// - single sequence: <s> X </s>
@@ -987,13 +1034,14 @@ pub trait Tokenizer<T: Vocab> {
     ///
     /// # Parameters
     /// - tokens_ids_with_offsets_1 (`TokenIdsWithOffsets`): first sequence
-    /// - tokens_ids_with_offsets_2 (`TokenIdsWithOffsets`): (optional) second sequence
+    /// - tokens_ids_with_offsets_2 (`TokenIdsWithOffsets`): (optional) second
+    ///   sequence
     ///
     /// # Returns
-    /// - `TokenIdsWithSpecialTokens` containing a concatenation of both sequences with added special tokens
+    /// - `TokenIdsWithSpecialTokens` containing a concatenation of both
+    ///   sequences with added special tokens
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -1074,22 +1122,21 @@ where
     Self: Sync + Send + Tokenizer<T>,
 {
     /// returns a reference to the tokenizer vocabulary
-    fn vocab(&self) -> &T {
-        Tokenizer::<T>::vocab(self)
-    }
+    fn vocab(&self) -> &T { Tokenizer::<T>::vocab(self) }
 
-    /// Tokenize a list of strings (with multithreading), where each corresponds to for example a sentence, returns a
-    /// vector of TokensWithOffsets containing the tokens and their offset information. This calls
+    /// Tokenize a list of strings (with multithreading), where each corresponds
+    /// to for example a sentence, returns a vector of TokensWithOffsets
+    /// containing the tokens and their offset information. This calls
     /// `tokenize_with_offsets` on the list provided.
     ///
     /// # Parameters
     /// - text_list: list of strings to tokenize
     ///
     /// # Returns
-    /// `Vec<TokensWithOffsets>` with the token strings representation and offsets
+    /// `Vec<TokensWithOffsets>` with the token strings representation and
+    /// offsets
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -1116,7 +1163,8 @@ where
             .collect()
     }
 
-    /// Multithreaded tokenization of a list of strings, returning tokens with offset information
+    /// Multithreaded tokenization of a list of strings, returning tokens with
+    /// offset information
     ///
     /// # Parameters
     /// - text_list: list of strings to tokenize
@@ -1125,7 +1173,6 @@ where
     /// `Vec<Vec<String>>` with the token strings representation
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -1149,24 +1196,31 @@ where
             .collect()
     }
 
-    /// Multithreaded encoding of a sequence of string-like texts (tokenization followed by encoding). Not that in contrast
-    /// with `encode` optional second text, each text provided is encoded independently.
+    /// Multithreaded encoding of a sequence of string-like texts (tokenization
+    /// followed by encoding). Not that in contrast with `encode` optional
+    /// second text, each text provided is encoded independently.
     ///
     /// # Parameters
     /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
-    /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
-    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
-    /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    /// combined into a single encoding by using the
+    /// `build_input_with_special_tokens` method.
+    /// - max_len (`usize`): maximum combined sequence length. If the combined
+    ///   encoding would exceed this
+    /// max_len, the encoding is truncated following the `TruncationStrategy`
+    /// provided.
+    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for
+    ///   the truncation, if required
+    /// - stride (`usize`): amount of tokens to shift the input by if truncation
+    ///   is required
+    /// (allowing for the generation of overlapping sequences with overflowing
+    /// tokens)
     ///
     /// # Returns
-    /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
-    /// ovrflowing tokens and special token mask) for each provided text
+    /// `Vec<TokenizedInput>` containing the encoding output (token indices,
+    /// token types, segment ids, ovrflowing tokens and special token mask)
+    /// for each provided text
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -1205,24 +1259,31 @@ where
             .collect()
     }
 
-    /// Multithreaded ncoding of a sequence of string-like text pairs (tokenization followed by encoding). This combines
-    /// with `encode` with the list processing of `encode_list`.
+    /// Multithreaded ncoding of a sequence of string-like text pairs
+    /// (tokenization followed by encoding). This combines with `encode`
+    /// with the list processing of `encode_list`.
     ///
     /// # Parameters
     /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
-    /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
-    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
-    /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    /// combined into a single encoding by using the
+    /// `build_input_with_special_tokens` method.
+    /// - max_len (`usize`): maximum combined sequence length. If the combined
+    ///   encoding would exceed this
+    /// max_len, the encoding is truncated following the `TruncationStrategy`
+    /// provided.
+    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for
+    ///   the truncation, if required
+    /// - stride (`usize`): amount of tokens to shift the input by if truncation
+    ///   is required
+    /// (allowing for the generation of overlapping sequences with overflowing
+    /// tokens)
     ///
     /// # Returns
-    /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
-    /// ovrflowing tokens and special token mask) for each provided text
+    /// `Vec<TokenizedInput>` containing the encoding output (token indices,
+    /// token types, segment ids, ovrflowing tokens and special token mask)
+    /// for each provided text
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -1278,7 +1339,8 @@ where
 /// - (optional) lower casing
 /// - (optional) accent stripping
 ///
-/// This tokenizer is used as a pre-tokenizer step in the BERT and GPT tokenizers.
+/// This tokenizer is used as a pre-tokenizer step in the BERT and GPT
+/// tokenizers.
 pub struct BaseTokenizer<T: Vocab> {
     vocab: T,
     lower_case: bool,
@@ -1290,12 +1352,14 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     /// Expects a vocabulary flat-file as an input.
     ///
     /// # Parameters
-    /// - path (`&str`): path to the vocabulary file (only used for special character splitting)
-    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
-    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    /// - path (`&str`): path to the vocabulary file (only used for special
+    ///   character splitting)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased
+    ///   as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped
+    ///   from the text
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::BaseVocab;
@@ -1322,11 +1386,12 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     ///
     /// # Parameters
     /// - vocab (`Vocab`): Thread-safe reference to a vocabulary
-    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
-    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased
+    ///   as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped
+    ///   from the text
     ///
     /// # Example
-    ///
     // ```no_run
     // use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     // use rust_tokenizers::vocab::{BaseVocab, Vocab};
@@ -1350,31 +1415,31 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
 }
 
 impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
-    fn vocab(&self) -> &T {
-        &self.vocab
-    }
+    fn vocab(&self) -> &T { &self.vocab }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
-        //split on whitespace
+        // split on whitespace
         let tokens: Vec<Token> = whitespace_tokenize(initial_token)
             .into_iter()
             .map(|token| {
-                //split on special tokens
+                // split on special tokens
                 split_on_special_tokens(token, &self.vocab)
             })
             .flatten()
             .map(|token| {
-                //split on punctuation (with care for maintaining special values)
+                // split on punctuation (with care for maintaining special
+                // values)
                 split_on_punct(token)
             })
             .flatten()
             .map(|token| {
-                //tokenize CJK characters so each character is one token
+                // tokenize CJK characters so each character is one token
                 tokenize_cjk_chars(token)
             })
             .flatten()
             .map(|token| {
-                // v-- this is where the token gets owned, all steps above handle TokenRefs (dealing with &str)
+                // v-- this is where the token gets owned, all steps above
+                // handle TokenRefs (dealing with &str)
                 let mut token = Token {
                     text: token.text.to_string(),
                     offset: token.offset,
@@ -1383,7 +1448,8 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
                 };
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     clean_text(&mut token, true);
-                    //apply the necessary transformations to the actual tokens (unless it's a special value)
+                    // apply the necessary transformations to the actual tokens
+                    // (unless it's a special value)
                     if self.lower_case {
                         lowercase(&mut token);
                     }

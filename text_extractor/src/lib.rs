@@ -1,26 +1,15 @@
-#![no_std]
-
-extern crate alloc;
-
-use alloc::borrow::Cow;
-use alloc::string::String;
-use alloc::vec;
-use alloc::vec::Vec;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
+use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct TextExtractor {}
 
 impl TextExtractor {
-    pub const fn new() -> Self {
-        TextExtractor {}
-    }
+    pub const fn new() -> Self { TextExtractor {} }
 }
 
 impl Default for TextExtractor {
-    fn default() -> Self {
-        TextExtractor::new()
-    }
+    fn default() -> Self { TextExtractor::new() }
 }
 
 impl Transform<(Tensor<u8>, Tensor<u32>, Tensor<u32>)> for TextExtractor {
@@ -64,6 +53,71 @@ impl Transform<(Tensor<u8>, Tensor<u32>, Tensor<u32>)> for TextExtractor {
         let output_text = vec![Cow::Owned(buffer)];
 
         Tensor::new_vector(output_text)
+    }
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata =
+                Metadata::new("Text Extractor", env!("CARGO_PKG_VERSION"));
+            metadata.set_description(
+                "Given a body of text and some start/end indices, extract parts of the text (i.e. words/phrases) specified by those indices.",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("nlp");
+
+            let text = TensorMetadata::new("text");
+            text.set_description("A string of text.");
+            let hint =
+                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+            text.add_hint(&hint);
+            metadata.add_input(&text);
+
+            let start_logits = TensorMetadata::new("start_logits");
+            start_logits.set_description(
+                "The indices for the start of each word/phrase to extract.",
+            );
+            let hint = supported_shapes(
+                &[ElementType::Uint32],
+                Dimensions::Fixed(&[0]),
+            );
+            start_logits.add_hint(&hint);
+            metadata.add_input(&start_logits);
+
+            let start_logits = TensorMetadata::new("start_logits");
+            start_logits.set_description(
+                "The indices for the end of each word/phrase to extract.",
+            );
+            let hint = supported_shapes(
+                &[ElementType::Uint32],
+                Dimensions::Fixed(&[0]),
+            );
+            start_logits.add_hint(&hint);
+            metadata.add_input(&start_logits);
+
+            let phrases = TensorMetadata::new("phrases");
+            phrases.set_description("The phrases that were extracted.");
+            let hint =
+                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+            phrases.add_hint(&hint);
+            metadata.add_input(&phrases);
+
+            register_node(&metadata);
+        }
     }
 }
 

@@ -1,16 +1,18 @@
-use crate::{
-    bindings::{
-        rune_v1::{RuneV1, RuneV1Data},
-        runtime_v1,
-    },
-    CompiledModule,
-};
+use self::rune_v1::{RuneV1, RuneV1Data};
+use crate::CompiledModule;
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap, fs::File, num::NonZeroUsize, path::Path, sync::Mutex,
 };
 use wasmtime::{Engine, Linker, Module, Store};
+
+wit_bindgen_wasmtime::export!(
+    "${CARGO_MANIFEST_DIR}/../wit-files/rune/runtime-v1.wit"
+);
+wit_bindgen_wasmtime::import!(
+    "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+);
 
 pub fn generate_manifest(
     modules: Vec<CompiledModule>,
@@ -32,7 +34,7 @@ pub fn generate_manifest(
             "Extracted metadata for proc-block",
         );
 
-        let filename = format!("{}.wasm", metadata.name);
+        let filename = format!("{}.wasm", name);
         manifest.serialized.insert(filename.clone(), serialized);
         manifest.metadata.insert(filename, metadata);
     }
@@ -146,6 +148,7 @@ struct Metadata {
     version: String,
     description: Option<String>,
     repository: Option<String>,
+    homepage: Option<String>,
     tags: Vec<String>,
     arguments: Vec<ArgumentMetadata>,
     inputs: Vec<TensorMetadata>,
@@ -173,8 +176,8 @@ struct TensorMetadata {
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
 enum TensorHint {
     DisplayAs(String),
-    ExampleShape {
-        element_type: ElementType,
+    SupportedShape {
+        accepted_element_types: Vec<ElementType>,
         dimensions: Dimensions,
     },
 }
@@ -192,6 +195,7 @@ enum ElementType {
     U64,
     I64,
     F64,
+    Utf8,
 }
 
 impl From<runtime_v1::ElementType> for ElementType {
@@ -207,6 +211,7 @@ impl From<runtime_v1::ElementType> for ElementType {
             runtime_v1::ElementType::Int64 => ElementType::I64,
             runtime_v1::ElementType::Uint64 => ElementType::U64,
             runtime_v1::ElementType::Float64 => ElementType::F64,
+            runtime_v1::ElementType::Utf8 => ElementType::Utf8,
         }
     }
 }
@@ -265,6 +270,10 @@ impl runtime_v1::RuntimeV1 for Runtime {
 
     fn metadata_set_repository(&mut self, self_: &Self::Metadata, url: &str) {
         self_.lock().unwrap().repository = Some(url.to_string());
+    }
+
+    fn metadata_set_homepage(&mut self, self_: &Self::Metadata, url: &str) {
+        self_.lock().unwrap().homepage = Some(url.to_string());
     }
 
     fn metadata_add_tag(&mut self, self_: &Self::Metadata, tag: &str) {
@@ -369,13 +378,16 @@ impl runtime_v1::RuntimeV1 for Runtime {
         TensorHint::DisplayAs("audio".to_string())
     }
 
-    fn example_shape(
+    fn supported_shapes(
         &mut self,
-        element_type: runtime_v1::ElementType,
+        supported_element_type: Vec<runtime_v1::ElementType>,
         dimensions: runtime_v1::Dimensions<'_>,
     ) -> Self::TensorHint {
-        TensorHint::ExampleShape {
-            element_type: element_type.into(),
+        TensorHint::SupportedShape {
+            accepted_element_types: supported_element_type
+                .into_iter()
+                .map(ElementType::from)
+                .collect(),
             dimensions: dimensions.into(),
         }
     }
@@ -412,36 +424,5 @@ impl From<runtime_v1::TypeHint> for TypeHint {
             runtime_v1::TypeHint::OnelineString => TypeHint::OnelineString,
             runtime_v1::TypeHint::MultilineString => TypeHint::MultilineString,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{
-        io::ErrorKind,
-        process::{Command, Stdio},
-    };
-
-    #[test]
-    fn bindings_are_up_to_date() {
-        let mut cmd = Command::new("wit-bindgen");
-        cmd.arg("wasmtime")
-            .arg("--import=../wit-files/rune/rune-v1.wit")
-            .arg("--export=../wit-files/rune/runtime-v1.wit")
-            .arg("--out-dir=src")
-            .arg("--rustfmt")
-            .current_dir(env!("CARGO_MANIFEST_DIR"))
-            .stderr(Stdio::null())
-            .stdout(Stdio::null());
-
-        println!("Running: {:?}", cmd);
-
-        match cmd.status() {
-            Ok(status) if !status.success() => panic!("Command failed"),
-            Ok(_) => {},
-            // wit-bindgen probably isn't installed... ignore
-            Err(e) if e.kind() == ErrorKind::NotFound => return,
-            Err(e) => panic!("Unable to start wit-bindgen: {}", e),
-        };
     }
 }
