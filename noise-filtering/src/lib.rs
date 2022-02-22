@@ -1,8 +1,3 @@
-#![no_std]
-
-#[macro_use]
-extern crate alloc;
-
 mod gain_control;
 mod noise_reduction;
 
@@ -107,6 +102,88 @@ impl Default for NoiseFiltering {
             odd_smoothing,
             min_signal_remaining,
             noise_reduction: noise_reduction::State::default(),
+        }
+    }
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata =
+                Metadata::new("Noise Filtering", env!("CARGO_PKG_VERSION"));
+            metadata.set_description(
+                "Reduce the amount of high frequency noise in an audio clip and increase its gain.",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("audio");
+
+            let strength = ArgumentMetadata::new("strength");
+            strength.set_type_hint(TypeHint::Float);
+            strength.set_default_value("0.95");
+            metadata.add_argument(&strength);
+
+            let offset = ArgumentMetadata::new("offset");
+            offset.set_type_hint(TypeHint::Float);
+            offset.set_default_value("80");
+            metadata.add_argument(&offset);
+
+            let gain_bits = ArgumentMetadata::new("gain_bits");
+            gain_bits.set_type_hint(TypeHint::Integer);
+            gain_bits.set_default_value("21");
+            metadata.add_argument(&gain_bits);
+
+            let smoothing_bits = ArgumentMetadata::new("smoothing_bits");
+            smoothing_bits.set_type_hint(TypeHint::Integer);
+            smoothing_bits.set_default_value("10");
+            metadata.add_argument(&smoothing_bits);
+
+            let even_smoothing = ArgumentMetadata::new("even_smoothing");
+            even_smoothing.set_type_hint(TypeHint::Float);
+            even_smoothing.set_default_value("0.025");
+            metadata.add_argument(&even_smoothing);
+
+            let odd_smoothing = ArgumentMetadata::new("odd_smoothing");
+            odd_smoothing.set_type_hint(TypeHint::Float);
+            odd_smoothing.set_default_value("0.06");
+            metadata.add_argument(&odd_smoothing);
+
+            let min_signal_remaining =
+                ArgumentMetadata::new("min_signal_remaining");
+            min_signal_remaining.set_type_hint(TypeHint::Float);
+            min_signal_remaining.set_default_value("0.05");
+            metadata.add_argument(&min_signal_remaining);
+
+            let input = TensorMetadata::new("audio");
+            input.set_description("An audio clip");
+            let hint = supported_shapes(
+                &[ElementType::Uint32],
+                Dimensions::Fixed(&[1, 0]),
+            );
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let output = TensorMetadata::new("filtered");
+            let hint = supported_shapes(
+                &[ElementType::Int8],
+                Dimensions::Fixed(&[1, 0]),
+            );
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
         }
     }
 }
