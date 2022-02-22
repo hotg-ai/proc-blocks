@@ -1,11 +1,6 @@
-#![no_std]
-
-extern crate alloc;
-use core::cmp::Ordering;
-
-use alloc::vec::Vec;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use libm::fabsf;
+use std::cmp::Ordering;
 
 /// A proc-block which takes 3-d tensor `[1, num_detection, detection_box(x, y,
 /// w, h) + confidence_scores + total_detection_classes]` and filter the
@@ -57,7 +52,7 @@ impl Transform<Tensor<f32>> for ObjectFilter {
             .flat_map(|j| j.into_elements())
             .collect();
 
-        Tensor::new_row_major(elements, alloc::vec![rows, 6])
+        Tensor::new_row_major(elements, vec![rows, 6])
     }
 }
 
@@ -127,13 +122,58 @@ fn find_duplicate(objects: &[Object]) -> Option<(usize, usize)> {
     None
 }
 
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata =
+                Metadata::new("Object Filter", env!("CARGO_PKG_VERSION"));
+            metadata.set_description(
+                "Given a set of detected objects and their locations, remove duplicates and any objects below a certain threshold.",
+            );
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("image");
+            metadata.add_tag("classify");
+
+            let input = TensorMetadata::new("bounding_boxes");
+            input.set_description("An arbitrary length tensor of detections, where each row starts with `[x, y, height, width, max_confidence, ...]` followed by an arbitrary number of confidence values (one value for each object type being detected).");
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[1, 0, 0]),
+            );
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let output = TensorMetadata::new("normalized");
+            output.set_description("The filtered objects and their indices as a list of objects, where each row contains `[x, y, height, width, confidence, index]`.");
+            let hint =
+                supported_shapes(&[ElementType::Float32], Dimensions::Fixed(&[0, 5]));
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
+        }
+    }
+}
+
 #[cfg(test)]
 
 mod test {
     use super::*;
-    use alloc::vec;
-    #[test]
 
+    #[test]
     fn test_object_filter() {
         let v: Tensor<f32> = [[[
             0.27335986, 0.43181776, 0.40072349, 0.33026114, 0.75, 0.1849257,
