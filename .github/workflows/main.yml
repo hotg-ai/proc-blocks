@@ -73,8 +73,8 @@ jobs:
         run: aws s3 sync target/proc-blocks s3://assets.hotg.ai/proc-blocks
         if: github.ref == 'refs/heads/master'
       - name: Invalidate Cloudfront
-        run: aws --profile assets.hotg.ai cloudfront create-invalidation --distribution-id=E20FU757GIUYVT --paths="/proc-blocks/*"
-        if: github.ref == 'refs/heads/master'
+        run: aws cloudfront create-invalidation --distribution-id=E20FU757GIUYVT --paths="/proc-blocks/*"
+        if: github.ref == 'refs/heads/master' && matrix.rust == 'stable'
 
   api-docs:
     name: Publish API Docs to GitHub Pages
