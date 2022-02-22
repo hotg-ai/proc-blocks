@@ -26,6 +26,7 @@ jobs:
           path: |
             ~/.cargo
             target/
+            Cargo.lock
           key: ${{ runner.os }}-cargo-${{ matrix.rust }}
       - name: Setup Rust Toolchain
         uses: actions-rs/toolchain@v1
