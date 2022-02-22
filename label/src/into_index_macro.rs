@@ -1,4 +1,4 @@
-use core::convert::TryInto;
+use std::convert::TryInto;
 use libm::floorf;
 
 pub trait IntoIndex: Sized {

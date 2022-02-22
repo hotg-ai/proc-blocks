@@ -12,27 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::alloc::borrow::ToOwned;
-use crate::tokenizer::base_tokenizer::{
-    TokenIdsWithOffsets, TruncationStrategy,
+use crate::{
+    tokenizer::{
+        base_tokenizer::{TokenIdsWithOffsets, TruncationStrategy},
+        constants::{
+            ACCENT_MARKERS, ADDITIONAL_WHITESPACE_CHARS, CONTROL_CHARS,
+            PUNCTUATION_CHARS, WHITESPACE_CHARS,
+        },
+    },
+    vocab::{BertVocab, Vocab},
+    Mask, Offset, OffsetSize, Token, TokenRef,
 };
-use crate::tokenizer::constants::{
-    ACCENT_MARKERS, ADDITIONAL_WHITESPACE_CHARS, CONTROL_CHARS,
-    PUNCTUATION_CHARS, WHITESPACE_CHARS,
-};
-use crate::vocab::{BertVocab, Vocab};
-use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
-use alloc::string::String;
-use alloc::vec::Vec;
-
 use anyhow::Result;
-use core::borrow::BorrowMut;
-use core::char;
-use core::char::REPLACEMENT_CHARACTER; // need to check if present in the
-use core::cmp::min;
+use std::{borrow::BorrowMut, char, char::REPLACEMENT_CHARACTER, cmp::min};
 use unicode_normalization::char::decompose_canonical;
 
-///Cleans text by removing control characters and normalizing whitespace
+/// Cleans text by removing control characters and normalizing whitespace
 pub fn clean_text(token: &mut Token, strict: bool) {
     let capacity = token.text.capacity();
     let mut cleaned_string = String::with_capacity(capacity);
@@ -59,7 +54,8 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
 }
 
-///Split a text on special tokens (like BOS/EOS/UNK markers), depending on the vocabulary
+/// Split a text on special tokens (like BOS/EOS/UNK markers), depending on the
+/// vocabulary
 pub fn split_on_special_tokens<'a>(
     token: TokenRef<'a>,
     vocab: &impl Vocab,
@@ -83,7 +79,7 @@ pub fn split_on_special_tokens<'a>(
     split_on_substr(token, test_substr, true)
 }
 
-///Tokenizes CJK characters, each character will be a token
+/// Tokenizes CJK characters, each character will be a token
 pub fn tokenize_cjk_chars(token: TokenRef) -> Vec<TokenRef> {
     split_on_char(token, is_cjk_char, true, Mask::CJK)
 }
@@ -104,12 +100,14 @@ pub fn is_whitespace(character: &char) -> bool {
     WHITESPACE_CHARS.contains(&(*character as u32))
 }
 
-///    This is a custom method to check if a character is a control character. The BERT tokenizer is
-/// taking any character whose unicode category starts with `C` as a control character, which includes
-/// the traditional control `Cc` category, but also the format `Cc`, private use `Co` and surrogate `Cs`.
-/// The unassigned unicode category `Cn` has been skipped in order to avoid unnecessary checks.
-///    A faster method may be called by setting strict to false and only check against the core control
-/// characters. To match the original BERT tokenization, this should remain true.
+///    This is a custom method to check if a character is a control character.
+/// The BERT tokenizer is taking any character whose unicode category starts
+/// with `C` as a control character, which includes the traditional control `Cc`
+/// category, but also the format `Cc`, private use `Co` and surrogate `Cs`. The
+/// unassigned unicode category `Cn` has been skipped in order to avoid
+/// unnecessary checks.    A faster method may be called by setting strict to
+/// false and only check against the core control characters. To match the
+/// original BERT tokenization, this should remain true.
 pub fn is_control(character: &char, strict: bool) -> bool {
     if ADDITIONAL_WHITESPACE_CHARS.contains(character) {
         false
@@ -143,12 +141,12 @@ pub fn is_punctuation(character: &char) -> bool {
     }
 }
 
-///Simple tokenization based on whitespace only
+/// Simple tokenization based on whitespace only
 pub fn whitespace_tokenize(token: TokenRef) -> Vec<TokenRef> {
     split_on_char(token, is_whitespace, false, Mask::Whitespace)
 }
 
-///Remove diacritics
+/// Remove diacritics
 pub fn lowercase(token: &mut Token) {
     let capacity = token.text.capacity();
     let mut lower_cased_string: String = String::with_capacity(capacity);
@@ -167,7 +165,7 @@ pub fn lowercase(token: &mut Token) {
     token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
 }
 
-///Remove diacritics
+/// Remove diacritics
 pub fn strip_accents(token: &mut Token) {
     let capacity = token.text.capacity();
     let mut decomposed_string: String = String::with_capacity(capacity);
@@ -188,15 +186,18 @@ pub fn strip_accents(token: &mut Token) {
     token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
 }
 
-///Split a token on punctuation
+/// Split a token on punctuation
 pub fn split_on_punct(token: TokenRef) -> Vec<TokenRef> {
     split_on_char(token, is_punctuation, true, Mask::Punctuation)
 }
 
-///Split a token on one or more characters (given a character test function)
+/// Split a token on one or more characters (given a character test function)
 /// * token: The token to split
-/// * test_character: A function that borrows a `char` and returns a boolean. If true, a split will be made here
-/// * add_separators: Add the separating characters to the tokens as well? (bool), separating tokens will be indicated in the returned mask by the value set in `set_mask`
+/// * test_character: A function that borrows a `char` and returns a boolean. If
+///   true, a split will be made here
+/// * add_separators: Add the separating characters to the tokens as well?
+///   (bool), separating tokens will be indicated in the returned mask by the
+///   value set in `set_mask`
 pub fn split_on_char<'a, F>(
     token: TokenRef<'a>,
     test_character: F,
@@ -212,13 +213,13 @@ where
     let mut charcount: usize = 0;
 
     if token.mask == Mask::None {
-        //iterate over all characters, returning the byte position with each
+        // iterate over all characters, returning the byte position with each
         for (char_idx, (bytes_idx, c)) in token.text.char_indices().enumerate()
         {
             charcount += 1;
             if test_character(&c) {
                 if charbegin < char_idx {
-                    //add previous token
+                    // add previous token
                     tokens.push(TokenRef {
                         text: &token.text
                             [bytesbegin..bytesbegin + (bytes_idx - bytesbegin)],
@@ -232,7 +233,7 @@ where
                     });
                 }
                 if add_separators {
-                    //add separator as a singleton token
+                    // add separator as a singleton token
                     tokens.push(TokenRef {
                         text: &token.text[bytes_idx..bytes_idx + c.len_utf8()],
                         offset: Offset {
@@ -246,17 +247,17 @@ where
                         mask: set_mask,
                     });
                 }
-                //reset
+                // reset
                 charbegin = char_idx + 1;
                 bytesbegin = bytes_idx + c.len_utf8();
             }
         }
     }
     if charcount == 0 {
-        //nothing done, return token as is
+        // nothing done, return token as is
         tokens.push(token);
     } else if bytesbegin < token.text.len() {
-        //add last buffered token if there is anything left
+        // add last buffered token if there is anything left
         if charcount == 0 {
             charcount = token.text.chars().count();
         }
@@ -277,11 +278,14 @@ where
 
 /// Split a token on one or more substrings (given a substring test function)
 /// * token: The token to split
-/// * test_str: A function that contains the string buffer from the current point forward and
-/// returns a 3-tuple with the length of the match in bytes, chars and the mask to set (if the
-/// length is zero then there is no match.
-/// * add_separators: Add the separating characters to the tokens as well? (bool), separating tokens
-/// will be indicated in the returned mask by the value set in `set_mask`, which is returned by the test_substr function
+/// * test_str: A function that contains the string buffer from the current
+///   point forward and
+/// returns a 3-tuple with the length of the match in bytes, chars and the mask
+/// to set (if the length is zero then there is no match.
+/// * add_separators: Add the separating characters to the tokens as well?
+///   (bool), separating tokens
+/// will be indicated in the returned mask by the value set in `set_mask`, which
+/// is returned by the test_substr function
 pub fn split_on_substr<'a, F>(
     token: TokenRef<'a>,
     test_substr: F,
@@ -296,8 +300,8 @@ where
     let mut char_count: usize = 0;
 
     if token.mask == Mask::None {
-        //don't process a token that already got marked in the mask
-        //iterate over all characters, returning the byte position with each
+        // don't process a token that already got marked in the mask
+        // iterate over all characters, returning the byte position with each
         for (char_idx, (bytes_idx, _)) in token.text.char_indices().enumerate()
         {
             char_count += 1;
@@ -305,7 +309,7 @@ where
                 test_substr(&token.text[bytes_idx..]);
             if matched_chars > 0 {
                 if char_begin < char_idx {
-                    //add previous token
+                    // add previous token
                     let trimmed_text = token.text
                         [bytes_begin..bytes_begin + (bytes_idx - bytes_begin)]
                         .trim_end();
@@ -327,7 +331,7 @@ where
                     }
                 }
                 if add_separators {
-                    //add separator as a singleton token
+                    // add separator as a singleton token
                     tokens.push(TokenRef {
                         text: &token.text[bytes_idx..bytes_idx + matched_bytes],
                         offset: Offset {
@@ -340,14 +344,14 @@ where
                         mask: set_mask,
                     });
                 }
-                //reset
+                // reset
                 char_begin = char_idx + matched_chars;
                 bytes_begin = bytes_idx + matched_bytes;
             }
         }
     }
     if bytes_begin < token.text.len() {
-        //add last buffered token if there is anything left
+        // add last buffered token if there is anything left
         let bytes_idx = token.text.len();
         let text =
             &token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)];
@@ -367,8 +371,8 @@ where
     tokens
 }
 
-///Tokenize a token into word pieces according to the supplied vocabulary
-///Continuation word pieces will all have the suffix `##`
+/// Tokenize a token into word pieces according to the supplied vocabulary
+/// Continuation word pieces will all have the suffix `##`
 pub fn tokenize_wordpiece(
     token: TokenRef,
     vocab: &impl Vocab,
@@ -387,15 +391,15 @@ pub fn tokenize_wordpiece(
             token.text.char_indices().map(|v| v.0).collect();
         let max_end: usize = char_indices.last().unwrap()
             + token.text.chars().last().unwrap().len_utf8();
-        let mut start: usize = 0; //bytes
-        let mut pos_begin = 0; //chars
+        let mut start: usize = 0; // bytes
+        let mut pos_begin = 0; // chars
         let mut pos_end;
         let mut end;
         while start < max_end {
-            //bytes
+            // bytes
             end = max_end;
-            pos_end = char_indices.len(); //chars
-            let mut is_unk: bool = true; //out of vocabulary? to be falsified
+            pos_end = char_indices.len(); // chars
+            let mut is_unk: bool = true; // out of vocabulary? to be falsified
             while start < end {
                 let mut substr = token.text[start..end].to_owned();
                 let char_length = substr.chars().count();
@@ -439,7 +443,8 @@ pub fn tokenize_wordpiece(
             pos_begin = pos_end;
         }
 
-        //fix the mask, set Mask::Begin where a sequence of continuations is introduced
+        // fix the mask, set Mask::Begin where a sequence of continuations is
+        // introduced
         fix_mask(&mut tokens);
     }
 
@@ -448,26 +453,33 @@ pub fn tokenize_wordpiece(
 
 /// # Truncates a sequence pair in place to the maximum length.
 ///
-///   * tokens_1: list of tokenized input ids. Can be obtained from a string by chaining the
-///       `tokenize` and `convert_tokens_to_ids` methods.
-///   * tokens_2: Optional second list of input ids. Can be obtained from a string by chaining the
-///       `tokenize` and `convert_tokens_to_ids` methods.
-///   * offsets: list of offsets for tokens_1 (must be same length or empty if not used at all)
-///   * offsets_2: optional second list of offsets for tokens_2 (must be same length or empty if not used at all)
-///   * tokens_2: Optional second list of input ids. Can be obtained from a string by chaining the
-///       `tokenize` and `convert_tokens_to_ids` methods.
-///   * num_tokens_to_remove
-///       number of tokens to remove using the truncation strategy
+///   * tokens_1: list of tokenized input ids. Can be obtained from a string by
+///     chaining the `tokenize` and `convert_tokens_to_ids` methods.
+///   * tokens_2: Optional second list of input ids. Can be obtained from a
+///     string by chaining the `tokenize` and `convert_tokens_to_ids` methods.
+///   * offsets: list of offsets for tokens_1 (must be same length or empty if
+///     not used at all)
+///   * offsets_2: optional second list of offsets for tokens_2 (must be same
+///     length or empty if not used at all)
+///   * tokens_2: Optional second list of input ids. Can be obtained from a
+///     string by chaining the `tokenize` and `convert_tokens_to_ids` methods.
+///   * num_tokens_to_remove number of tokens to remove using the truncation
+///     strategy
 ///   * truncation_strategy: truncation strategy
-///       - TruncationStrategy::LongestFirst (default) Iteratively reduce the inputs sequence until the input is under max_length
-///           starting from the longest one at each token (when there is a pair of input sequences).
-///           Overflowing tokens only contains overflow from the first sequence.
-///       - TruncationStrategy::OnlyFirst: Only truncate the first sequence. raise an error if the first sequence is shorter or equal to than num_tokens_to_remove.
+///       - TruncationStrategy::LongestFirst (default) Iteratively reduce the
+///         inputs sequence until the input is under max_length starting from
+///         the longest one at each token (when there is a pair of input
+///         sequences). Overflowing tokens only contains overflow from the first
+///         sequence.
+///       - TruncationStrategy::OnlyFirst: Only truncate the first sequence.
+///         raise an error if the first sequence is shorter or equal to than
+///         num_tokens_to_remove.
 ///       - TruncationStrategy::OnlySecond: Only truncate the second sequence
-///       - TruncationStrategy::DoNotTruncate: Does not truncate (raise an error if the input sequence is longer than max_length)
-///   * stride
-///       If set to a number along with max_length, the overflowing tokens returned will contain some tokens
-///       from the main sequence returned. The value of this argument defines the number of additional tokens.
+///       - TruncationStrategy::DoNotTruncate: Does not truncate (raise an error
+///         if the input sequence is longer than max_length)
+///   * stride If set to a number along with max_length, the overflowing tokens
+///     returned will contain some tokens from the main sequence returned. The
+///     value of this argument defines the number of additional tokens.
 pub fn truncate_sequences(
     mut token_ids_with_offsets_1: TokenIdsWithOffsets,
     mut token_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
@@ -577,7 +589,7 @@ pub fn truncate_sequences(
                 } else {
                     Err("Combined sequence length too short for requested truncation amount")
                 }
-            }
+            },
             TruncationStrategy::OnlyFirst => {
                 if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
                     let (overflow_tokens, overflow_offsets) =
@@ -598,7 +610,7 @@ pub fn truncate_sequences(
                 } else {
                     Err("First sequence too short for first only truncation")
                 }
-            }
+            },
             TruncationStrategy::OnlySecond => {
                 if token_ids_with_offsets_2_value.ids.len()
                     >= num_tokens_to_remove
@@ -623,10 +635,10 @@ pub fn truncate_sequences(
                 } else {
                     Err("Second sequence too short for second only truncation")
                 }
-            }
+            },
             TruncationStrategy::DoNotTruncate => {
                 Err("Truncation needed but no truncation requested")
-            }
+            },
         }
     } else if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
         match truncation_strategy {
@@ -647,13 +659,13 @@ pub fn truncate_sequences(
                     overflow_tokens,
                     overflow_offsets,
                 ))
-            }
+            },
             TruncationStrategy::OnlySecond => Err(
                 "Invalid truncation strategy for single sentence truncation",
             ),
             TruncationStrategy::DoNotTruncate => {
                 Err("Truncation needed but no truncation requested")
-            }
+            },
         }
     } else {
         Err("First sequence too short for first only truncation")

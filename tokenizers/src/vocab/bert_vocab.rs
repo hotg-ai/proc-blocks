@@ -11,11 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::alloc::string::ToString;
 use crate::vocab::base_vocab::{swap_key_values, Vocab};
-use alloc::{collections::BTreeMap, string::String};
 use anyhow::Result;
-use core::str::FromStr;
+use std::{collections::BTreeMap, str::FromStr, string::String};
 
 #[derive(Debug, Clone)]
 pub enum TokenError {
@@ -38,21 +36,14 @@ pub struct BertVocab {
 }
 
 impl BertVocab {
-    /// Returns the PAD token for BERT (`[PAD]`)
-    pub const PAD: &'static str = "[PAD]";
-
-    /// Returns the SEP token for BERT (`[SEP]`)
-    pub const SEPARATOR: &'static str = "[SEP]";
-
     /// Returns the CLS token for BERT (`[CLS]`)
     pub const CLS: &'static str = "[CLS]";
-
     /// Returns the MASK token for BERT (`[MASK]`)
     pub const MASK: &'static str = "[MASK]";
-
-    /// Returns the MASK token for BERT (`[UNK]`)
-    pub const UNKNOWN: &'static str = "[UNK]";
-
+    /// Returns the PAD token for BERT (`[PAD]`)
+    pub const PAD: &'static str = "[PAD]";
+    /// Returns the SEP token for BERT (`[SEP]`)
+    pub const SEPARATOR: &'static str = "[SEP]";
     pub const SPECIAL_VALUES: &'static [&'static str] = &[
         BertVocab::UNKNOWN,
         BertVocab::MASK,
@@ -60,6 +51,8 @@ impl BertVocab {
         BertVocab::CLS,
         BertVocab::PAD,
     ];
+    /// Returns the MASK token for BERT (`[UNK]`)
+    pub const UNKNOWN: &'static str = "[UNK]";
 }
 
 #[derive(Debug, Clone)]
@@ -149,13 +142,9 @@ impl FromStr for BertVocab {
 }
 
 impl Vocab for BertVocab {
-    fn values(&self) -> &BTreeMap<String, i64> {
-        &self.values
-    }
+    fn values(&self) -> &BTreeMap<String, i64> { &self.values }
 
-    fn indices(&self) -> &BTreeMap<i64, String> {
-        &self.indices
-    }
+    fn indices(&self) -> &BTreeMap<i64, String> { &self.indices }
 
     fn special_values(&self) -> &BTreeMap<String, i64> {
         &self.special_value_indices

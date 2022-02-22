@@ -9,10 +9,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::alloc::string::ToString;
-use alloc::{collections::BTreeMap, string::String};
 use anyhow::Result;
-use core::hash::Hash;
+use std::{collections::BTreeMap, hash::Hash, string::String};
 
 pub(crate) fn swap_key_values<
     T: Clone,
@@ -49,18 +47,20 @@ pub trait Vocab {
     // Return the map of token strings to IDs
     fn special_values(&self) -> &BTreeMap<String, i64>;
 
-    ///Return the map of token IDs to strings for special values
+    /// Return the map of token IDs to strings for special values
     fn special_indices(&self) -> &BTreeMap<i64, String>;
 
-    /// Converts a token to an id, provided a `BTreeMap` of values, a `BTreeMap` of special values and
-    /// the unknown value token string representation. This is not meant to be directly used, the method
-    /// `token_to_id` offers a more convenient interface for most vocabularies, but needs to be implemented
-    /// by the specific vocabulary.
+    /// Converts a token to an id, provided a `BTreeMap` of values, a `BTreeMap`
+    /// of special values and the unknown value token string representation.
+    /// This is not meant to be directly used, the method `token_to_id`
+    /// offers a more convenient interface for most vocabularies, but needs to
+    /// be implemented by the specific vocabulary.
     ///
     /// # Parameters
     /// - token (`&str`): token to convert
     /// - values (`&BTreeMap<String, i64>`): mapping from tokens to ids
-    /// - special_values (`&BTreeMap<String, i64>`): mapping from special tokens to ids
+    /// - special_values (`&BTreeMap<String, i64>`): mapping from special tokens
+    ///   to ids
     /// - unknown_value (`&str`): unknown token value
     ///
     /// # Returns
@@ -87,15 +87,19 @@ pub trait Vocab {
     /// - token (`&str`): token to convert
     ///
     /// # Returns
-    /// - `i64`: token index for the value provided. If not found in the indices, returns the unknown token index
+    /// - `i64`: token index for the value provided. If not found in the
+    ///   indices, returns the unknown token index
     fn token_to_id(&self, token: &str) -> i64;
 
     /// Register a token as a special value
     ///
     /// # Parameters
     /// - token (`&str`): token to register as a special value
-    /// - values (`&BTreeMap<String, i64>`): mapping from tokens to ids. This should contain the token to add and will be used to read the id for registration in `special_values`
-    /// - special_values (`&BTreeMap<String, i64>`): mapping from special tokens to ids
+    /// - values (`&BTreeMap<String, i64>`): mapping from tokens to ids. This
+    ///   should contain the token to add and will be used to read the id for
+    ///   registration in `special_values`
+    /// - special_values (`&BTreeMap<String, i64>`): mapping from special tokens
+    ///   to ids
     fn _register_as_special_value(
         token: &str,
         values: &BTreeMap<String, i64>,
@@ -107,25 +111,28 @@ pub trait Vocab {
                 return Err(TokenError::TokenNotFound {
                     word: token.to_string(),
                 });
-            }
+            },
         };
         special_values.insert(String::from(token), token_id);
         Ok(())
     }
 
-    /// Converts an id to a token, provided a `HashMap` of values, a `HashMap` of special values and
-    /// the unknown value token string representation. This is not meant to be directly used, the method
-    /// `id_to_token` offers a more convenient interface for most vocabularies, but needs to be implemented
-    /// by the specific vocabulary.
+    /// Converts an id to a token, provided a `HashMap` of values, a `HashMap`
+    /// of special values and the unknown value token string representation.
+    /// This is not meant to be directly used, the method `id_to_token`
+    /// offers a more convenient interface for most vocabularies, but needs to
+    /// be implemented by the specific vocabulary.
     ///
     /// # Parameters
     /// - id (`&i64`): token id to convert
     /// - indices (`&HashMap<i64, String>`): mapping from tokens to ids
-    /// - special_indices (`&HashMap<i64, String>`): mapping from special tokens to ids
+    /// - special_indices (`&HashMap<i64, String>`): mapping from special tokens
+    ///   to ids
     /// - unknown_value (`&str`): unknown token value
     ///
     /// # Returns
-    /// - `String`: token value for the index provided. If not found in the indices, returns the unknown token value
+    /// - `String`: token value for the index provided. If not found in the
+    ///   indices, returns the unknown token value
 
     fn _id_to_token<'a>(
         &self,
@@ -142,6 +149,7 @@ pub trait Vocab {
     }
 
     /// # Returns
-    /// - `String`: token value for the index provided. If not found in the indices, returns the unknown token value
+    /// - `String`: token value for the index provided. If not found in the
+    ///   indices, returns the unknown token value
     fn id_to_token(&self, id: i64) -> &str;
 }
