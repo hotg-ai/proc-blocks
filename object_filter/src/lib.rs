@@ -147,6 +147,14 @@ pub mod metadata {
             metadata.add_tag("image");
             metadata.add_tag("classify");
 
+            let threshold = ArgumentMetadata::new("threshold");
+            threshold.set_description(
+                "The minimum confidence value for an object to be included.",
+            );
+            threshold.set_type_hint(TypeHint::Float);
+            threshold.set_default_value("0.7");
+            metadata.add_argument(&threshold);
+
             let input = TensorMetadata::new("bounding_boxes");
             input.set_description("An arbitrary length tensor of detections, where each row starts with `[x, y, height, width, max_confidence, ...]` followed by an arbitrary number of confidence values (one value for each object type being detected).");
             let hint = supported_shapes(
@@ -158,8 +166,10 @@ pub mod metadata {
 
             let output = TensorMetadata::new("normalized");
             output.set_description("The filtered objects and their indices as a list of objects, where each row contains `[x, y, height, width, confidence, index]`.");
-            let hint =
-                supported_shapes(&[ElementType::Float32], Dimensions::Fixed(&[0, 5]));
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[0, 5]),
+            );
             output.add_hint(&hint);
             metadata.add_output(&output);
 

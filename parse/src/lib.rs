@@ -1,10 +1,5 @@
-#![no_std]
-
-extern crate alloc;
-
-use alloc::borrow::Cow;
-use core::{fmt::Debug, marker::PhantomData, str::FromStr};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
+use std::{borrow::Cow, fmt::Debug, marker::PhantomData, str::FromStr};
 
 /// A proc block which can parse a string to numbers.
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
@@ -63,10 +58,49 @@ where
     })
 }
 
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata = Metadata::new("Parse", env!("CARGO_PKG_VERSION"));
+            metadata.set_description("Parse numbers out of a string by splitting each element on whitespace, parsing them, and flattening into a 1D vector.");
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+
+            let input = TensorMetadata::new("text");
+            let hint =
+                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let output = TensorMetadata::new("parsed");
+            output.set_description("The parsed numbers.");
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[0]),
+            );
+            output.add_hint(&hint);
+            metadata.add_output(&output);
+
+            register_node(&metadata);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::vec;
 
     #[test]
     fn test_for_number_in_lines() {
