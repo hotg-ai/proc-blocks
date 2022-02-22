@@ -18,4 +18,3 @@ crate-type = ["rlib", "cdylib"]
 [features]
 default = []
 metadata = ["wit-bindgen-rust"]
-

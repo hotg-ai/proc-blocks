@@ -2,7 +2,6 @@
 //!
 //! [tf]: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/experimental/microfrontend/lib/pcan_gain_control.c
 
-use alloc::vec::Vec;
 use hotg_rune_proc_blocks::Tensor;
 
 pub const WIDE_DYNAMIC_FUNCTION_BITS: usize = 32;
