@@ -1,28 +1,23 @@
-#![no_std]
-
-extern crate alloc;
-use alloc::sync::Arc;
-use alloc::vec;
-use alloc::{collections::btree_set::BTreeSet, vec::Vec};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
+use std::{collections::btree_set::BTreeSet, sync::Arc, vec::Vec};
 
-/// A proc-block which takes a rank 4 `tensor` as input, whose dimension is of this form `[1, x, y, z]`. It will return:
-/// 1) a 2-d `tensor` after performing argmax along the axis-3 of the tensor
-/// 2) a 1-d `tensor` which a `set` of all the number present in the above 2-d `tensor`
+/// A proc-block which takes a rank 4 `tensor` as input, whose dimension is of
+/// this form `[1, x, y, z]`.
+///
+/// It will return:
+/// 1. a 2-d `tensor` after performing argmax along the axis-3 of the tensor
+/// 2. a 1-d `tensor` which a `set` of all the number present in the above 2-d
+///    `tensor`
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct SegmentOutput {}
 
 impl SegmentOutput {
-    pub const fn new() -> Self {
-        SegmentOutput {}
-    }
+    pub const fn new() -> Self { SegmentOutput {} }
 }
 
 impl Default for SegmentOutput {
-    fn default() -> Self {
-        SegmentOutput::new()
-    }
+    fn default() -> Self { SegmentOutput::new() }
 }
 
 impl Transform<Tensor<f32>> for SegmentOutput {
@@ -35,7 +30,7 @@ impl Transform<Tensor<f32>> for SegmentOutput {
                 if dim[0] != 1 {
                     panic!("the first dimension should be 1")
                 }
-            }
+            },
             _ => panic!("it only accept a rank 4 tensor"),
         }
         let mut vec_2d: Vec<Vec<u32>> = Vec::new();
@@ -69,9 +64,65 @@ impl Transform<Tensor<f32>> for SegmentOutput {
             .flat_map(|v: Vec<u32>| v.into_iter())
             .collect();
         (
-            Tensor::new_row_major(elements, alloc::vec![rows, columns]),
+            Tensor::new_row_major(elements, vec![rows, columns]),
             Tensor::new_vector(label_index),
         )
+    }
+}
+
+#[cfg(feature = "metadata")]
+pub mod metadata {
+    wit_bindgen_rust::import!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+    );
+    wit_bindgen_rust::export!(
+        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    );
+
+    struct RuneV1;
+
+    impl rune_v1::RuneV1 for RuneV1 {
+        fn start() {
+            use runtime_v1::*;
+
+            let metadata =
+                Metadata::new("Segment Output", env!("CARGO_PKG_VERSION"));
+            metadata.set_description("Useful in image segmentation. A proc-block which takes a rank 4 tensor as input, whose dimension is of this form `[1, rows, columns, confidence]`.");
+            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+            metadata.add_tag("image");
+            metadata.add_tag("segmentation");
+
+            let input = TensorMetadata::new("image");
+            input.set_description("An image-like tensor with the dimensions, `[1, rows, columns, category_confidence]`. Each \"pixel\" is associated with a set of confidence values, where each value indicates how confident the model is that the pixel is in that category.");
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[1, 0, 0, 0]),
+            );
+            input.add_hint(&hint);
+            metadata.add_input(&input);
+
+            let segmentation_map = TensorMetadata::new("segmentation_map");
+            segmentation_map.set_description("An image-like tensor where each pixel contains the index of the category with the highest confidence level.");
+            let hint = supported_shapes(
+                &[ElementType::Uint32],
+                Dimensions::Fixed(&[0, 0]),
+            );
+            segmentation_map.add_hint(&hint);
+            metadata.add_output(&segmentation_map);
+
+            let indices = TensorMetadata::new("indices");
+            indices
+                .set_description("The categories used in `segmentation_map`.");
+            let hint = supported_shapes(
+                &[ElementType::Uint32],
+                Dimensions::Fixed(&[0]),
+            );
+            indices.add_hint(&hint);
+            metadata.add_output(&indices);
+
+            register_node(&metadata);
+        }
     }
 }
 
