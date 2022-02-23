@@ -1,6 +1,12 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+use alloc::vec::Vec;
+use core::cmp::Ordering;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use libm::fabsf;
-use std::cmp::Ordering;
 
 /// A proc-block which takes 3-d tensor `[1, num_detection, detection_box(x, y,
 /// w, h) + confidence_scores + total_detection_classes]` and filter the

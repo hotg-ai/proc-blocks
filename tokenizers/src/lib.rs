@@ -1,3 +1,8 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
 pub mod tokenizer;
 pub mod vocab;
 
@@ -10,8 +15,12 @@ use crate::{
     },
     vocab::{BertVocab, Vocab},
 };
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::str::FromStr;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use std::str::FromStr;
 
 #[derive(ProcBlock)]
 pub struct Tokenizers {

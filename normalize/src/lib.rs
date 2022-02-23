@@ -1,5 +1,6 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
 use hotg_rune_proc_blocks::{Tensor, Transform};
-use std::{
+use core::{
     fmt::Debug,
     ops::{Div, Sub},
 };

@@ -1,6 +1,5 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-
-// TODO: Add Generics
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 #[transform(inputs = [i16; _], outputs = [f32; _])]

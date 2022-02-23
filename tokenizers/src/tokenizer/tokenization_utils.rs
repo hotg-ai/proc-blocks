@@ -23,8 +23,9 @@ use crate::{
     vocab::{BertVocab, Vocab},
     Mask, Offset, OffsetSize, Token, TokenRef,
 };
+use alloc::{borrow::ToOwned, vec::Vec, string::String};
 use anyhow::Result;
-use std::{borrow::BorrowMut, char, char::REPLACEMENT_CHARACTER, cmp::min};
+use core::{borrow::BorrowMut, char, char::REPLACEMENT_CHARACTER, cmp::min};
 use unicode_normalization::char::decompose_canonical;
 
 /// Cleans text by removing control characters and normalizing whitespace

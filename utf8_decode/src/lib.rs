@@ -1,5 +1,9 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+#[macro_use]
+extern crate alloc;
+
+use alloc::{borrow::Cow, string::ToString};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use std::borrow::Cow;
 
 /// A proc block which can convert u8 bytes to utf8
 #[derive(Debug, Default, Clone, PartialEq, ProcBlock)]

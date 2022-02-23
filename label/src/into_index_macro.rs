@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use core::convert::TryInto;
 use libm::floorf;
 
 pub trait IntoIndex: Sized {
@@ -45,37 +45,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_f32_floats() {
-        assert_eq!(1, 1.0f32.try_into_index())
-    }
+    fn test_f32_floats() { assert_eq!(1, 1.0f32.try_into_index()) }
 
     #[test]
-    fn test_u32_inetger() {
-        assert_eq!(1, 1u32.try_into_index())
-    }
+    fn test_u32_inetger() { assert_eq!(1, 1u32.try_into_index()) }
 
     #[test]
     #[should_panic = "UNSUPPORTED: Can't be converted to usize. It only supports u8, u16, u32, u64, i32, i64 ( with positive numbers) f32 (with their fractional part zero E.g. 2.0, 4.0, etc)"]
-    fn test_negative_integer() {
-        (-1).try_into_index();
-    }
+    fn test_negative_integer() { (-1).try_into_index(); }
 
     #[test]
     #[should_panic = "The index can't be infinite"]
-    fn test_infinite() {
-        (1.0 / 0.0).try_into_index();
-    }
+    fn test_infinite() { (1.0 / 0.0).try_into_index(); }
 
     #[test]
     #[should_panic = "The index must be a positive number"]
-    fn test_negative_float() {
-        (-3.0).try_into_index();
-    }
+    fn test_negative_float() { (-3.0).try_into_index(); }
     #[test]
     #[should_panic = "The index wasn't an intege"]
-    fn test_float_with_fraction() {
-        (4.3).try_into_index();
-    }
+    fn test_float_with_fraction() { (4.3).try_into_index(); }
 
     #[test]
     #[should_panic = "The index is larger than the largest number that can safely represent an integer"]

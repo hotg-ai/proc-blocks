@@ -1,9 +1,18 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+extern crate alloc;
+
 pub mod into_index_macro;
 pub use into_index_macro::IntoIndex;
 
+use alloc::{
+    borrow::{Cow, ToOwned},
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::{fmt::Debug, ops::Range};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use line_span::LineSpans;
-use std::{borrow::Cow, fmt::Debug, ops::Range};
 
 /// A proc block which, when given a set of indices, will return their
 /// associated labels.

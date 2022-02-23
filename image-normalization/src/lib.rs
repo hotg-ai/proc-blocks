@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use num_traits::{Bounded, ToPrimitive};
 

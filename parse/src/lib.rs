@@ -1,5 +1,10 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+extern crate alloc;
+
+use alloc::borrow::Cow;
+use core::{fmt::Debug, marker::PhantomData, str::FromStr};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use std::{borrow::Cow, fmt::Debug, marker::PhantomData, str::FromStr};
 
 /// A proc block which can parse a string to numbers.
 #[derive(Debug, Clone, PartialEq, ProcBlock)]

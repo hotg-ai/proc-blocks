@@ -1,3 +1,8 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
 mod gain_control;
 mod noise_reduction;
 

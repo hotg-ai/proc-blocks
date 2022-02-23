@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
 #[cfg(test)]
 #[macro_use]
 extern crate std;
@@ -5,14 +7,17 @@ extern crate std;
 #[macro_use]
 extern crate pretty_assertions;
 
+#[macro_use]
+extern crate alloc;
+
 /// A type alias for [`ShortTimeFourierTransform`] which uses the camel case
 /// version of this crate.
 pub type Fft = ShortTimeFourierTransform;
 
+use alloc::{sync::Arc, vec::Vec};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use nalgebra::DMatrix;
 use sonogram::SpecOptionsBuilder;
-use std::{sync::Arc, vec::Vec};
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct ShortTimeFourierTransform {
