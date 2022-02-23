@@ -9,8 +9,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+};
 use anyhow::Result;
-use std::{collections::BTreeMap, hash::Hash, string::String};
+use core::hash::Hash;
 
 pub(crate) fn swap_key_values<
     T: Clone,

@@ -1,5 +1,9 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+#[macro_use]
+extern crate alloc;
+
+use alloc::{collections::btree_set::BTreeSet, sync::Arc, vec::Vec};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use std::{collections::btree_set::BTreeSet, sync::Arc, vec::Vec};
 
 /// A proc-block which takes a rank 4 `tensor` as input, whose dimension is of
 /// this form `[1, x, y, z]`.

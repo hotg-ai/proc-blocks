@@ -1,6 +1,8 @@
-use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
+#![cfg_attr(not(feature = "metadata"), no_std)]
 
-// TODO: Add Generics
+extern crate alloc;
+
+use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 #[transform(inputs = [i16; _], outputs = [f32; _])]
@@ -97,6 +99,7 @@ pub mod metadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn handle_empty() {

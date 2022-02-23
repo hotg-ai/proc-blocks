@@ -1,5 +1,10 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+use alloc::{borrow::Cow, string::String, vec::Vec};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]
 pub struct TextExtractor {}

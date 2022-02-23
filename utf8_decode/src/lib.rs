@@ -1,5 +1,9 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+#[macro_use]
+extern crate alloc;
+
+use alloc::{borrow::Cow, string::ToString};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use std::borrow::Cow;
 
 /// A proc block which can convert u8 bytes to utf8
 #[derive(Debug, Default, Clone, PartialEq, ProcBlock)]
@@ -72,6 +76,7 @@ pub mod metadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::{vec, vec::Vec};
 
     #[test]
     fn test_for_utf8_decoding() {

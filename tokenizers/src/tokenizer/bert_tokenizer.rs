@@ -23,6 +23,7 @@ use crate::{
     },
     vocab::{BertVocab, Vocab},
 };
+use alloc::vec::Vec;
 
 /// # BERT tokenizer
 /// BERT tokenizer performing:

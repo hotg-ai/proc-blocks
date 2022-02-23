@@ -1,3 +1,7 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+extern crate alloc;
+
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use num_traits::{Bounded, ToPrimitive};
 
@@ -112,6 +116,7 @@ pub mod metadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn normalizing_with_default_distribution_is_noop() {

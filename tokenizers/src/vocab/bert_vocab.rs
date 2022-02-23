@@ -12,8 +12,12 @@
 // limitations under the License.
 
 use crate::vocab::base_vocab::{swap_key_values, Vocab};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+};
 use anyhow::Result;
-use std::{collections::BTreeMap, str::FromStr, string::String};
+use core::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub enum TokenError {

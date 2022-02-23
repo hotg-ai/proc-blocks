@@ -1,5 +1,10 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+extern crate alloc;
+
+use alloc::vec::Vec;
+use core::{convert::TryInto, fmt::Debug};
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use std::{convert::TryInto, fmt::Debug};
 
 /// A proc block which, when given a list of confidences, will return the
 /// indices of the top N most confident values.
@@ -141,6 +146,7 @@ pub mod metadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     #[should_panic]

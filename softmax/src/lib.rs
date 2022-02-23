@@ -1,3 +1,7 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+extern crate alloc;
+
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 use libm::expf;
 
@@ -64,6 +68,7 @@ pub mod metadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn test_softmax() {

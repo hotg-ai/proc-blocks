@@ -2,8 +2,9 @@
 //!
 //! [tf]: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/experimental/microfrontend/lib/noise_reduction.c
 
+use alloc::vec::Vec;
+use core::str::FromStr;
 use hotg_rune_proc_blocks::Tensor;
-use std::str::FromStr;
 
 const NOISE_REDUCTION_BITS: usize = 14;
 
@@ -123,7 +124,7 @@ impl FromStr for ScaledU16 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
+    use alloc::sync::Arc;
 
     /// https://github.com/tensorflow/tensorflow/blob/5dcfc51118817f27fad5246812d83e5dccdc5f72/tensorflow/lite/experimental/microfrontend/lib/noise_reduction_test.cc#L41-L59
     #[test]

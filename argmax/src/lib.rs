@@ -1,3 +1,9 @@
+#![cfg_attr(not(feature = "metadata"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+use alloc::vec::Vec;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
 #[derive(Debug, Clone, PartialEq, ProcBlock)]

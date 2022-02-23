@@ -20,6 +20,11 @@ use crate::{
     },
     vocab::Vocab,
 };
+use alloc::{
+    borrow::ToOwned,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 /// # Truncation strategy variants
 /// Indicates if and how sequence pairs exceeding a given length should be
