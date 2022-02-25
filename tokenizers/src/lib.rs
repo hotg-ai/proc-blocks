@@ -139,13 +139,13 @@ pub mod metadata {
 
             let question = TensorMetadata::new("question");
             let hint =
-                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+                supported_shapes(&[ElementType::Uint8], Dimensions::Fixed(&[0]));
             question.add_hint(&hint);
             metadata.add_input(&question);
 
             let paragraph = TensorMetadata::new("paragraph");
             let hint =
-                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+                supported_shapes(&[ElementType::Uint8], Dimensions::Fixed(&[0]));
             paragraph.add_hint(&hint);
             metadata.add_input(&paragraph);
 
@@ -180,7 +180,7 @@ pub mod metadata {
             let encoded_text = TensorMetadata::new("encoded_text");
             encoded_text.set_description("The encoded question and paragraph that was fed to the tokenizer.");
             let hint =
-                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[1]));
+                supported_shapes(&[ElementType::Uint8], Dimensions::Fixed(&[1]));
             encoded_text.add_hint(&hint);
             metadata.add_output(&encoded_text);
 
