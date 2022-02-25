@@ -150,7 +150,7 @@ pub mod metadata {
             let output = TensorMetadata::new("labels");
             output.set_description("The corresponding labels.");
             let hint = supported_shapes(
-                &[ElementType::Float32],
+                &[ElementType::Utf8],
                 Dimensions::Fixed(&[0]),
             );
             output.add_hint(&hint);
