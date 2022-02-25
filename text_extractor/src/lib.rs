@@ -119,7 +119,7 @@ pub mod metadata {
             let hint =
                 supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
             phrases.add_hint(&hint);
-            metadata.add_input(&phrases);
+            metadata.add_output(&phrases);
 
             register_node(&metadata);
         }
