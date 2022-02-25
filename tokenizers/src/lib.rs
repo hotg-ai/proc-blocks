@@ -180,7 +180,7 @@ pub mod metadata {
             let encoded_text = TensorMetadata::new("encoded_text");
             encoded_text.set_description("The encoded question and paragraph that was fed to the tokenizer.");
             let hint =
-                supported_shapes(&[ElementType::Uint8], Dimensions::Fixed(&[1]));
+                supported_shapes(&[ElementType::Uint8], Dimensions::Fixed(&[0]));
             encoded_text.add_hint(&hint);
             metadata.add_output(&encoded_text);
 
