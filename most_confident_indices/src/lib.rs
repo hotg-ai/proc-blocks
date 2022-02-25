@@ -133,7 +133,7 @@ pub mod metadata {
             );
             let hint = supported_shapes(
                 &[ElementType::Uint32],
-                Dimensions::Fixed(&[1]),
+                Dimensions::Fixed(&[0]),
             );
             output.add_hint(&hint);
             metadata.add_output(&output);
