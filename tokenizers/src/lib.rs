@@ -128,7 +128,7 @@ pub mod metadata {
             use runtime_v1::*;
 
             let metadata =
-                Metadata::new("Tokenizer", env!("CARGO_PKG_VERSION"));
+                Metadata::new("Tokenizers", env!("CARGO_PKG_VERSION"));
             metadata.set_description(
                 "Tokenize a question and a paragraph using the Bert tokenizer.",
             );
