@@ -88,7 +88,7 @@ pub mod metadata {
             let text = TensorMetadata::new("text");
             text.set_description("A string of text.");
             let hint =
-                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+                supported_shapes(&[ElementType::Uint8], Dimensions::Fixed(&[0]));
             text.add_hint(&hint);
             metadata.add_input(&text);
 
