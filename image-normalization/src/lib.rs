@@ -80,7 +80,7 @@ pub mod metadata {
             metadata.add_tag("normalize");
 
             let input = TensorMetadata::new("image");
-            input.set_description("An image with the dimensions `[1, width, height, channels]`.\n\nRGB images typically have 3 channels and greyscale images have 1.");
+            input.set_description("An image with the dimensions `[1, width, height, channels]`.\n\nRGB images typically have 3 channels and grayscale images have 1.");
             let hint = supported_shapes(
                 &[
                     ElementType::Uint8,
@@ -89,8 +89,8 @@ pub mod metadata {
                     ElementType::Int16,
                     ElementType::Uint32,
                     ElementType::Int32,
-                    ElementType::Uint64,
-                    ElementType::Int64,
+                    // ElementType::Uint64, //doesn't support these dtypes
+                    // ElementType::Int64,
                 ],
                 Dimensions::Fixed(&[1, 0, 0, 0]),
             );
