@@ -89,8 +89,6 @@ pub mod metadata {
                     ElementType::Int16,
                     ElementType::Uint32,
                     ElementType::Int32,
-                    // ElementType::Uint64, //doesn't support these dtypes
-                    // ElementType::Int64,
                 ],
                 Dimensions::Fixed(&[1, 0, 0, 0]),
             );
