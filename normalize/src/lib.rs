@@ -94,13 +94,27 @@ pub mod metadata {
             metadata.add_tag("normalize");
 
             let input = TensorMetadata::new("input");
-            let supported_types = [ElementType::Float32, ElementType::Float64];
+            let supported_types = [
+                ElementType::Uint8,
+                ElementType::Int8,
+                ElementType::Uint16,
+                ElementType::Int16,
+                ElementType::Uint32,
+                ElementType::Int32,
+                ElementType::Float32,
+                ElementType::Uint64,
+                ElementType::Int64,
+                ElementType::Float64,
+            ];
             let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
             input.add_hint(&hint);
             metadata.add_input(&input);
 
             let output = TensorMetadata::new("normalized");
-            let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
+            output.set_description(
+                "normalized tensor in the range [0, 1]",
+            );
+            let hint = supported_shapes(&[ElementType::Float32], Dimensions::Dynamic);
             output.add_hint(&hint);
             metadata.add_output(&output);
 
