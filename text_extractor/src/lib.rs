@@ -103,23 +103,23 @@ pub mod metadata {
             start_logits.add_hint(&hint);
             metadata.add_input(&start_logits);
 
-            let start_logits = TensorMetadata::new("start_logits");
-            start_logits.set_description(
+            let end_logits = TensorMetadata::new("end_logits");
+            end_logits.set_description(
                 "The indices for the end of each word/phrase to extract.",
             );
             let hint = supported_shapes(
                 &[ElementType::Uint32],
                 Dimensions::Fixed(&[0]),
             );
-            start_logits.add_hint(&hint);
-            metadata.add_input(&start_logits);
+            end_logits.add_hint(&hint);
+            metadata.add_input(&end_logits);
 
             let phrases = TensorMetadata::new("phrases");
             phrases.set_description("The phrases that were extracted.");
             let hint =
                 supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
             phrases.add_hint(&hint);
-            metadata.add_input(&phrases);
+            metadata.add_output(&phrases);
 
             register_node(&metadata);
         }
