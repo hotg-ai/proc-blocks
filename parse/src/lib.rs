@@ -104,7 +104,7 @@ pub mod metadata {
                 ElementType::Float64,
             ];
             let hint = supported_shapes(
-                &supported_shapes,
+                &supported_types,
                 Dimensions::Fixed(&[0]),
             );
             output.add_hint(&hint);
