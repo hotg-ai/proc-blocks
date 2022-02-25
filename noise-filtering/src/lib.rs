@@ -182,7 +182,7 @@ pub mod metadata {
 
             let output = TensorMetadata::new("filtered");
             let hint = supported_shapes(
-                &[ElementType::Int8],
+                &[ElementType::Int16],
                 Dimensions::Fixed(&[1, 0]),
             );
             output.add_hint(&hint);
