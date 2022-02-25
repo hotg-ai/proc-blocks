@@ -91,8 +91,20 @@ pub mod metadata {
 
             let output = TensorMetadata::new("parsed");
             output.set_description("The parsed numbers.");
+            let supported_types = [
+                ElementType::Uint8,
+                ElementType::Int8,
+                ElementType::Uint16,
+                ElementType::Int16,
+                ElementType::Uint32,
+                ElementType::Int32,
+                ElementType::Float32,
+                ElementType::Uint64,
+                ElementType::Int64,
+                ElementType::Float64,
+            ];
             let hint = supported_shapes(
-                &[ElementType::Float32],
+                &supported_types,
                 Dimensions::Fixed(&[0]),
             );
             output.add_hint(&hint);
