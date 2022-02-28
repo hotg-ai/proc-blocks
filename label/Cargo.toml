@@ -13,9 +13,6 @@ hotg-rune-proc-blocks = "^0.11.0"
 line-span = "0.1.3"
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", optional = true }
 
-[lib]
-crate-type = ["rlib", "cdylib"]
-
 [features]
 default = []
 metadata = ["wit-bindgen-rust"]

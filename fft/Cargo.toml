@@ -22,9 +22,6 @@ wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", op
 [dev-dependencies]
 pretty_assertions = "0.7.2"
 
-[lib]
-crate-type = ["rlib", "cdylib"]
-
 [features]
 default = []
 metadata = ["wit-bindgen-rust"]
