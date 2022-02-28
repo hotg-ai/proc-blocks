@@ -46,13 +46,11 @@ pub fn discover_proc_block_manifests(
     Ok(ProcBlocks {
         packages,
         target_dir: metadata.target_directory.into_std_path_buf(),
-        workspace_root: workspace_root.to_path_buf(),
     })
 }
 
 #[derive(Debug)]
 pub struct ProcBlocks {
-    workspace_root: PathBuf,
     packages: Vec<Package>,
     target_dir: PathBuf,
 }
