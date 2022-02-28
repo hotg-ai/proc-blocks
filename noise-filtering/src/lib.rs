@@ -111,7 +111,7 @@ impl Default for NoiseFiltering {
     }
 }
 
-#[cfg(feature = "metadata")]
+
 pub mod metadata {
     wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
     wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
@@ -134,6 +134,7 @@ pub mod metadata {
             let strength = ArgumentMetadata::new("strength");
             strength.set_type_hint(TypeHint::Float);
             strength.set_default_value("0.95");
+            strength.argument_metadata_set_argument_range("0","1");
             metadata.add_argument(&strength);
 
             let offset = ArgumentMetadata::new("offset");
