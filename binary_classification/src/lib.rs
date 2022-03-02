@@ -14,11 +14,15 @@ pub struct BinaryClassification {
 }
 
 impl BinaryClassification {
-    pub const fn new() -> Self { BinaryClassification { threshold: 0.5 } }
+    pub const fn new() -> Self {
+        BinaryClassification { threshold: 0.5 }
+    }
 }
 
 impl Default for BinaryClassification {
-    fn default() -> Self { BinaryClassification::new() }
+    fn default() -> Self {
+        BinaryClassification::new()
+    }
 }
 
 impl Transform<Tensor<f32>> for BinaryClassification {
@@ -66,6 +70,8 @@ pub mod metadata {
             threshold.set_default_value("0.5");
             threshold.set_description("The classification threshold.");
             threshold.set_type_hint(TypeHint::Float);
+            let threshold_range = interpret_as_number_in_range("0.0", "1.0");
+            threshold.add_hint(&threshold_range);
             metadata.add_argument(&threshold);
 
             let input = TensorMetadata::new("input");
