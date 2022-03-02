@@ -111,7 +111,7 @@ impl Default for NoiseFiltering {
     }
 }
 
-
+#[cfg(feature = "metadata")]
 pub mod metadata {
     wit_bindgen_rust::import!(
         "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
@@ -138,38 +138,53 @@ pub mod metadata {
             let strength = ArgumentMetadata::new("strength");
             strength.set_type_hint(TypeHint::Float);
             strength.set_default_value("0.95");
-            strength.argument_metadata_set_argument_range("0","1");
+            let strength_range = interpret_as_number_in_range("0.00", "1.00");
+            strength.add_hint(&strength_range);
             metadata.add_argument(&strength);
 
             let offset = ArgumentMetadata::new("offset");
             offset.set_type_hint(TypeHint::Float);
             offset.set_default_value("80");
+            let offset_range = interpret_as_number_in_range("0", "100");
+            offset.add_hint(&offset_range);
             metadata.add_argument(&offset);
 
             let gain_bits = ArgumentMetadata::new("gain_bits");
             gain_bits.set_type_hint(TypeHint::Integer);
             gain_bits.set_default_value("21");
+            let gain_bits_range = interpret_as_number_in_range("0", "100");
+            gain_bits.add_hint(&gain_bits_range);
             metadata.add_argument(&gain_bits);
 
             let smoothing_bits = ArgumentMetadata::new("smoothing_bits");
             smoothing_bits.set_type_hint(TypeHint::Integer);
             smoothing_bits.set_default_value("10");
+            let smoothing_bits_range = interpret_as_number_in_range("0", "100");
+            smoothing_bits.add_hint(&smoothing_bits_range);
             metadata.add_argument(&smoothing_bits);
 
             let even_smoothing = ArgumentMetadata::new("even_smoothing");
             even_smoothing.set_type_hint(TypeHint::Float);
             even_smoothing.set_default_value("0.025");
+            let even_smoothing_range =
+                interpret_as_number_in_range("0.000", "1.000");
+            smoothing_bits.add_hint(&even_smoothing_range);
             metadata.add_argument(&even_smoothing);
 
             let odd_smoothing = ArgumentMetadata::new("odd_smoothing");
             odd_smoothing.set_type_hint(TypeHint::Float);
             odd_smoothing.set_default_value("0.06");
+            let odd_smoothing_range =
+                interpret_as_number_in_range("0.00", "1.00");
+            odd_smoothing.add_hint(&odd_smoothing_range);
             metadata.add_argument(&odd_smoothing);
 
             let min_signal_remaining =
                 ArgumentMetadata::new("min_signal_remaining");
             min_signal_remaining.set_type_hint(TypeHint::Float);
             min_signal_remaining.set_default_value("0.05");
+            let min_signal_range = interpret_as_number_in_range("0.00", "1.00");
+            min_signal_remaining.add_hint(&min_signal_range);
             metadata.add_argument(&min_signal_remaining);
 
             let input = TensorMetadata::new("audio");
