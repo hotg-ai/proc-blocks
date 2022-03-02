@@ -23,11 +23,15 @@ pub struct ObjectFilter {
 }
 
 impl ObjectFilter {
-    pub const fn new() -> Self { ObjectFilter { threshold: 0.7 } }
+    pub const fn new() -> Self {
+        ObjectFilter { threshold: 0.7 }
+    }
 }
 
 impl Default for ObjectFilter {
-    fn default() -> Self { ObjectFilter::new() }
+    fn default() -> Self {
+        ObjectFilter::new()
+    }
 }
 
 impl Transform<Tensor<f32>> for ObjectFilter {
@@ -159,6 +163,8 @@ pub mod metadata {
             );
             threshold.set_type_hint(TypeHint::Float);
             threshold.set_default_value("0.7");
+            let threshold_range = interpret_as_number_in_range("0.0", "1.0");
+            threshold.add_hint(&threshold_range);
             metadata.add_argument(&threshold);
 
             let input = TensorMetadata::new("bounding_boxes");
