@@ -107,7 +107,9 @@ impl ShortTimeFourierTransform {
 }
 
 impl Default for ShortTimeFourierTransform {
-    fn default() -> Self { ShortTimeFourierTransform::new() }
+    fn default() -> Self {
+        ShortTimeFourierTransform::new()
+    }
 }
 
 impl Transform<Tensor<i16>> for ShortTimeFourierTransform {
@@ -149,16 +151,24 @@ pub mod metadata {
             let sample_rate = ArgumentMetadata::new("sample_rate");
             sample_rate.set_default_value("16000");
             sample_rate.set_type_hint(TypeHint::Integer);
+            let sample_rate_range: ArgumentHint =
+                interpret_as_number_in_range("1", "384000");
+            sample_rate.add_hint(&sample_rate_range);
             metadata.add_argument(&sample_rate);
 
             let bins = ArgumentMetadata::new("bins");
             bins.set_default_value("480");
             bins.set_type_hint(TypeHint::Integer);
+            let bins_range = interpret_as_number_in_range("1", "1000");
+            bins.add_hint(&bins_range);
             metadata.add_argument(&bins);
 
             let window_overlap = ArgumentMetadata::new("window_overlap");
             window_overlap.set_default_value("0.6666667");
             window_overlap.set_type_hint(TypeHint::Float);
+            let window_overlap_range =
+                interpret_as_number_in_range("0.0000000", "1.0000000");
+            window_overlap.add_hint(&window_overlap_range);
             metadata.add_argument(&window_overlap);
 
             let input = TensorMetadata::new("signal");

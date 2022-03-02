@@ -26,6 +26,6 @@ pretty_assertions = "0.7.2"
 crate-type = ["rlib", "cdylib"]
 
 [features]
-default = []
+default = ["metadata"]
 metadata = ["wit-bindgen-rust"]
 
