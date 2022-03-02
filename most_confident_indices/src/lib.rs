@@ -105,6 +105,8 @@ pub mod metadata {
             count.set_description("The number of indices to return.");
             count.set_default_value("1");
             count.set_type_hint(TypeHint::Integer);
+            let count_range = interpret_as_number_in_range("1", "MAX_INT");
+            count.add_hint(&count_range);
             metadata.add_argument(&count);
 
             let input = TensorMetadata::new("confidences");

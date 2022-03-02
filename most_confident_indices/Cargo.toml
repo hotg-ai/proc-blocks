@@ -15,5 +15,5 @@ wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", op
 crate-type = ["rlib", "cdylib"]
 
 [features]
-default = []
+default = ["metadata"]
 metadata = ["wit-bindgen-rust"]
