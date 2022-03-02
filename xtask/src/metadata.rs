@@ -162,7 +162,7 @@ struct ArgumentMetadata {
     description: Option<String>,
     default_value: Option<String>,
     type_hint: Option<TypeHint>,
-    hints: Option<ArgumentHint>
+    hints: Vec<ArgumentHint>,
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -187,9 +187,12 @@ enum TensorHint {
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
 enum ArgumentHint {
     NumberRange {
-        minValue: String,
-        maxValue: String
-    }
+        min_value: String,
+        max_value: String,
+    },
+    ValidOptions {
+        options: Vec<String>,
+    },
 }
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -261,6 +264,7 @@ impl runtime_v1::RuntimeV1 for Runtime {
     type Metadata = Mutex<Metadata>;
     type TensorHint = TensorHint;
     type TensorMetadata = Mutex<TensorMetadata>;
+    type ArgumentHint = ArgumentHint;
 
     fn metadata_new(&mut self, name: &str, version: &str) -> Self::Metadata {
         Mutex::new(Metadata {
@@ -357,15 +361,6 @@ impl runtime_v1::RuntimeV1 for Runtime {
         self_.lock().unwrap().type_hint = Some(hint.into());
     }
 
-    fn argument_metadata_set_argument_range(
-        &mut self,
-        self_: &Self::ArgumentMetadata,
-        min_value: &String,
-        max_value: &String
-    ) {
-        self_.lock().unwrap().hint = Some(NumberRange{ minValue: min_value. maxValue: max_value });
-    }
-
     fn tensor_metadata_new(&mut self, name: &str) -> Self::TensorMetadata {
         Mutex::new(TensorMetadata {
             name: name.to_string(),
@@ -413,6 +408,54 @@ impl runtime_v1::RuntimeV1 for Runtime {
 
     fn register_node(&mut self, metadata: &Self::Metadata) {
         self.node = Some(metadata.lock().unwrap().clone());
+    }
+
+    fn drop_argument_metadata(&mut self, state: Self::ArgumentMetadata) {
+        drop(state);
+    }
+
+    fn drop_metadata(&mut self, state: Self::Metadata) {
+        drop(state);
+    }
+
+    fn drop_tensor_hint(&mut self, state: Self::TensorHint) {
+        drop(state);
+    }
+
+    fn drop_tensor_metadata(&mut self, state: Self::TensorMetadata) {
+        drop(state);
+    }
+
+    fn drop_argument_hint(&mut self, state: Self::ArgumentHint) {
+        drop(state);
+    }
+
+    fn argument_metadata_add_hint(
+        &mut self,
+        self_: &Self::ArgumentMetadata,
+        hint: &Self::ArgumentHint,
+    ) {
+        self_.lock().unwrap().hints.push(hint.clone());
+    }
+
+    fn interpret_as_number_in_range(
+        &mut self,
+        min: &str,
+        max: &str,
+    ) -> Self::ArgumentHint {
+        ArgumentHint::NumberRange {
+            min_value: min.clone().to_string(),
+            max_value: max.clone().to_string(),
+        }
+    }
+
+    fn interpret_as_string_in_enum(
+        &mut self,
+        string_enum: Vec<&str>,
+    ) -> Self::ArgumentHint {
+        ArgumentHint::ValidOptions {
+            options: string_enum.into_iter().map(|s| s.to_string()).collect(),
+        }
     }
 }
 
