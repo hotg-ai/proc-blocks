@@ -18,11 +18,15 @@ pub struct Modulo {
 }
 
 impl Modulo {
-    pub fn new() -> Self { Modulo { modulus: 1.0 } }
+    pub fn new() -> Self {
+        Modulo { modulus: 1.0 }
+    }
 }
 
 impl Default for Modulo {
-    fn default() -> Self { Modulo::new() }
+    fn default() -> Self {
+        Modulo::new()
+    }
 }
 
 impl<'a, T> Transform<Tensor<T>> for Modulo
@@ -66,6 +70,9 @@ pub mod metadata {
             let modulus = ArgumentMetadata::new("modulus");
             modulus.set_type_hint(TypeHint::Float);
             modulus.set_default_value("0");
+            let modulus_range =
+                interpret_as_number_in_range("0", "MAX_FLOAT64"); //Yes 65526 not 170 followed by another 306 zeros then a decimal point
+            modulus.add_hint(&modulus_range);
             metadata.add_argument(&modulus);
 
             let input = TensorMetadata::new("input");
