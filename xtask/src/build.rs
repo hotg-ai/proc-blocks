@@ -46,13 +46,11 @@ pub fn discover_proc_block_manifests(
     Ok(ProcBlocks {
         packages,
         target_dir: metadata.target_directory.into_std_path_buf(),
-        workspace_root: workspace_root.to_path_buf(),
     })
 }
 
 #[derive(Debug)]
 pub struct ProcBlocks {
-    workspace_root: PathBuf,
     packages: Vec<Package>,
     target_dir: PathBuf,
 }
@@ -70,48 +68,43 @@ impl ProcBlocks {
         let cargo =
             std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
 
-        let mut cmd = Command::new(cargo);
-        cmd.arg("build")
-            .arg("--manifest-path")
-            .arg(&self.workspace_root)
-            .arg("--workspace")
-            .arg("--target=wasm32-unknown-unknown")
-            .arg("--exclude=xtask")
-            .arg("--features=metadata");
+        let mut libs = Vec::new();
 
-        match mode {
-            CompilationMode::Release => {
-                cmd.arg("--release");
-            },
-            CompilationMode::Debug => {},
+        for package in &self.packages {
+            let mut cmd = Command::new(&cargo);
+            cmd.arg("rustc")
+                .arg("--manifest-path")
+                .arg(&package.manifest_path)
+                .arg("--lib")
+                .arg("--target=wasm32-unknown-unknown")
+                .arg("--features=metadata")
+                .arg("-Zunstable-options")
+                .arg("--crate-type=cdylib");
+
+            match mode {
+                CompilationMode::Release => {
+                    cmd.arg("--release");
+                },
+                CompilationMode::Debug => {},
+            }
+
+            tracing::debug!(command = ?cmd, "Running cargo build");
+
+            let status = cmd.status().with_context(|| {
+                format!(
+                    "Unable to start \"{}\"",
+                    cmd.get_program().to_string_lossy()
+                )
+            })?;
+
+            tracing::debug!(exit_code = ?status.code(), "Cargo build completed");
+
+            if !status.success() {
+                anyhow::bail!("Compilation failed");
+            }
+
+            libs.push(&package.name);
         }
-
-        tracing::debug!(command = ?cmd, "Running cargo build");
-
-        let status = cmd.status().with_context(|| {
-            format!(
-                "Unable to start \"{}\"",
-                cmd.get_program().to_string_lossy()
-            )
-        })?;
-
-        tracing::debug!(exit_code = ?status.code(), "Cargo build completed");
-
-        if !status.success() {
-            anyhow::bail!("Compilation failed");
-        }
-
-        let libs: Vec<_> = self
-            .packages
-            .iter()
-            .filter(|pkg| pkg.features.contains_key("metadata"))
-            .filter_map(|pkg| {
-                pkg.targets
-                    .iter()
-                    .find(|t| t.kind.iter().any(|k| k == "cdylib"))
-                    .map(|t| &t.name)
-            })
-            .collect();
 
         tracing::debug!(?libs);
 

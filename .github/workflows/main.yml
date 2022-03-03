@@ -27,14 +27,13 @@ jobs:
             ~/.cargo
             target/
             Cargo.lock
-          key: ${{ runner.os }}-cargo-${{ matrix.rust }}
+          key: ${{ runner.os }}-${{ github.job }}-${{ matrix.rust }}
       - name: Setup Rust Toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-          target: wasm32-unknown-unknown
       - run: ls -la */*
       - name: Type Checking
         uses: actions-rs/cargo@v1
@@ -51,11 +50,39 @@ jobs:
         with:
           command: test
           args: --all --verbose
+
+  compile-to-wasm:
+    name: Compile to WebAssembly
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - nightly
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: actions/cache@v1
+        with:
+          path: |
+            ~/.cargo
+            target/
+            Cargo.lock
+          key: ${{ runner.os }}-${{ github.job }}-${{ matrix.rust }}
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+          target: wasm32-unknown-unknown
       - name: Compile to WebAssembly
         uses: actions-rs/cargo@v1
         with:
           command: xtask
           args: dist --out-dir target/proc-blocks
+        env:
+          RUST_LOG: xtask=debug
       - name: Save Compiled proc-blocks
         uses: actions/upload-artifact@v2
         with:
@@ -74,7 +101,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
       - name: Invalidate Cloudfront
         run: aws cloudfront create-invalidation --distribution-id=${{ secrets.AWS_DISTRIBUTION_ID }} --paths="/proc-blocks/*"
-        if: github.ref == 'refs/heads/master' && matrix.rust == 'stable'
+        if: github.ref == 'refs/heads/master'
 
   api-docs:
     name: Publish API Docs to GitHub Pages
