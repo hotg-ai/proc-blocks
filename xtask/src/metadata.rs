@@ -410,26 +410,6 @@ impl runtime_v1::RuntimeV1 for Runtime {
         self.node = Some(metadata.lock().unwrap().clone());
     }
 
-    fn drop_argument_metadata(&mut self, state: Self::ArgumentMetadata) {
-        drop(state);
-    }
-
-    fn drop_metadata(&mut self, state: Self::Metadata) {
-        drop(state);
-    }
-
-    fn drop_tensor_hint(&mut self, state: Self::TensorHint) {
-        drop(state);
-    }
-
-    fn drop_tensor_metadata(&mut self, state: Self::TensorMetadata) {
-        drop(state);
-    }
-
-    fn drop_argument_hint(&mut self, state: Self::ArgumentHint) {
-        drop(state);
-    }
-
     fn argument_metadata_add_hint(
         &mut self,
         self_: &Self::ArgumentMetadata,
