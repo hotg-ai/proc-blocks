@@ -167,7 +167,7 @@ pub mod metadata {
             window_overlap.set_default_value("0.6666667");
             window_overlap.set_type_hint(TypeHint::Float);
             let window_overlap_range =
-                interpret_as_number_in_range("0.0000000", "1.0000000");
+                interpret_as_number_in_range("0.0", "1.0");
             window_overlap.add_hint(&window_overlap_range);
             metadata.add_argument(&window_overlap);
 
