@@ -71,7 +71,7 @@ pub mod metadata {
             modulus.set_type_hint(TypeHint::Float);
             modulus.set_default_value("0");
             let modulus_range =
-                interpret_as_number_in_range("0", "MAX_FLOAT64"); //Yes 65526 not 170 followed by another 306 zeros then a decimal point
+                interpret_as_number_in_range("0", "Infinity");
             modulus.add_hint(&modulus_range);
             metadata.add_argument(&modulus);
 
