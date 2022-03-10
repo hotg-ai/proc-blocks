@@ -19,8 +19,3 @@ members = [
     "object_filter",
     "xtask"
 ]
-
-
-[patch."https://github.com/bytecodealliance/wit-bindgen" ]
-wit-bindgen-rust = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "troubleshoot-bad-paths" }
-wit-bindgen-wasmtime = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "troubleshoot-bad-paths" }
