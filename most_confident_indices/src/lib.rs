@@ -78,10 +78,10 @@ fn simplify_dimensions(mut dimensions: &[usize]) -> &[usize] {
 #[cfg(feature = "metadata")]
 pub mod metadata {
     wit_bindgen_rust::import!(
-        "$CARGO_MANIFEST_DIR/../wit-files/rune/runtime-v1.wit"
+        "../wit-files/rune/runtime-v1.wit"
     );
     wit_bindgen_rust::export!(
-        "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+        "../wit-files/rune/rune-v1.wit"
     );
 
     struct RuneV1;

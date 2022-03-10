@@ -7,11 +7,9 @@ use std::{
 };
 use wasmtime::{Engine, Linker, Module, Store};
 
-wit_bindgen_wasmtime::export!(
-    "${CARGO_MANIFEST_DIR}/../wit-files/rune/runtime-v1.wit"
-);
+wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_wasmtime::import!(
-    "$CARGO_MANIFEST_DIR/../wit-files/rune/rune-v1.wit"
+    "../wit-files/rune/rune-v1.wit"
 );
 
 pub fn generate_manifest(
