@@ -1,24 +1,10 @@
 #![cfg_attr(not(feature = "metadata"), no_std)]
-use hotg_rune_proc_blocks::{Tensor, Transform};
 use core::{
     fmt::Debug,
     ops::{Div, Sub},
 };
-
-pub fn normalize<T>(input: &mut [T])
-where
-    T: PartialOrd + Div<Output = T> + Sub<Output = T> + Copy,
-{
-    if let Some((min, max)) = min_max(input.iter()) {
-        if min != max {
-            let range = max - min;
-
-            for item in input {
-                *item = (*item - min) / range;
-            }
-        }
-    }
-}
+use hotg_rune_proc_blocks::{Tensor, Transform};
+use num_traits::ToPrimitive;
 
 /// Normalize the input to the range `[0, 1]`.
 #[derive(
@@ -32,34 +18,27 @@ pub struct Normalize {}
 
 impl<T> Transform<Tensor<T>> for Normalize
 where
-    T: PartialOrd + Div<Output = T> + Sub<Output = T> + Copy,
+    T: ToPrimitive,
 {
-    type Output = Tensor<T>;
+    type Output = Tensor<f32>;
 
-    fn transform(&mut self, mut input: Tensor<T>) -> Tensor<T> {
-        normalize(input.make_elements_mut());
-        input
+    fn transform(&mut self, input: Tensor<T>) -> Tensor<f32> {
+        let (min, max) =
+            min_max(input.elements().iter().map(|e| e.to_f32().unwrap()))
+                .unwrap();
+        let range =max-min;
+        if range ==0.0 {
+            return  Tensor::zeroed(input.dimensions().to_vec());
+        }
+        input.map(|_, element| {
+            let element = element.to_f32().unwrap();
+            (element - min) / range
+        })
     }
 }
 
-impl<T, const N: usize> Transform<[T; N]> for Normalize
-where
-    T: PartialOrd + Div<Output = T> + Sub<Output = T> + Copy,
-{
-    type Output = [T; N];
-
-    fn transform(&mut self, mut input: [T; N]) -> [T; N] {
-        normalize(&mut input);
-        input
-    }
-}
-
-fn min_max<'a, I, T>(items: I) -> Option<(T, T)>
-where
-    I: IntoIterator<Item = &'a T> + 'a,
-    T: PartialOrd + Copy + 'a,
-{
-    items.into_iter().fold(None, |bounds, &item| match bounds {
+fn min_max(items: impl Iterator<Item = f32>) -> Option<(f32, f32)> {
+    items.into_iter().fold(None, |bounds, item| match bounds {
         Some((min, max)) => {
             let min = if item < min { item } else { min };
             let max = if max < item { item } else { max };
@@ -71,12 +50,8 @@ where
 
 #[cfg(feature = "metadata")]
 pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
 
     struct RuneV1;
 
@@ -111,10 +86,9 @@ pub mod metadata {
             metadata.add_input(&input);
 
             let output = TensorMetadata::new("normalized");
-            output.set_description(
-                "normalized tensor in the range [0, 1]",
-            );
-            let hint = supported_shapes(&[ElementType::Float32], Dimensions::Dynamic);
+            output.set_description("normalized tensor in the range [0, 1]");
+            let hint =
+                supported_shapes(&[ElementType::Float32], Dimensions::Dynamic);
             output.add_hint(&hint);
             metadata.add_output(&output);
 
@@ -138,21 +112,23 @@ mod tests {
     }
 
     #[test]
-    fn it_accepts_vectors() {
-        let input = [0.0, 1.0, 2.0];
+    fn it_works_with_integers() {
+        let input: Tensor<i32> = Tensor::from([0, 1, 2]);
         let mut pb = Normalize::default();
 
-        let _ = pb.transform(input);
+        let output: Tensor<f32> = pb.transform(input);
+
+        assert_eq!(output.elements(), &[0.0, 0.5, 1.0]);
     }
 
     #[test]
     fn handle_empty() {
-        let input: [f32; 384] = [0.0; 384];
+        let input = Tensor::from([0.0; 384]);
         let mut pb = Normalize::default();
 
-        let output = pb.transform(input);
+        let output = pb.transform(input.clone());
 
         assert_eq!(output, input);
-        assert_eq!(output.len(), 384);
+        assert_eq!(output.elements().len(), 384);
     }
 }

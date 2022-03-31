@@ -10,7 +10,9 @@ repository = "https://github.com/hotg-ai/proc-blocks"
 
 [dependencies]
 hotg-rune-proc-blocks = "^0.11.0"
+num-traits = "0.2.14"
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", optional = true }
+
 
 [features]
 default = []
