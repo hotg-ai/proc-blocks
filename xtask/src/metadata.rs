@@ -460,28 +460,28 @@ impl runtime_v1::RuntimeV1 for Runtime {
 
     fn graph_context_get_argument(
         &mut self,
-        self_: &Self::GraphContext,
-        name: &str,
+        _self_: &Self::GraphContext,
+        _name: &str,
     ) -> Option<String> {
         unimplemented!()
     }
 
     fn graph_context_add_input_tensor(
         &mut self,
-        self_: &Self::GraphContext,
-        name: &str,
-        element_type: runtime_v1::ElementType,
-        dimensions: runtime_v1::Dimensions<'_>,
+        _self_: &Self::GraphContext,
+        _name: &str,
+        _element_type: runtime_v1::ElementType,
+        _dimensions: runtime_v1::Dimensions<'_>,
     ) {
         unimplemented!()
     }
 
     fn graph_context_add_output_tensor(
         &mut self,
-        self_: &Self::GraphContext,
-        name: &str,
-        element_type: runtime_v1::ElementType,
-        dimensions: runtime_v1::Dimensions<'_>,
+        _self_: &Self::GraphContext,
+        _name: &str,
+        _element_type: runtime_v1::ElementType,
+        _dimensions: runtime_v1::Dimensions<'_>,
     ) {
         unimplemented!()
     }
@@ -490,25 +490,25 @@ impl runtime_v1::RuntimeV1 for Runtime {
 
     fn kernel_context_get_argument(
         &mut self,
-        self_: &Self::KernelContext,
-        name: &str,
+        _self_: &Self::KernelContext,
+        _name: &str,
     ) -> Option<String> {
         unimplemented!()
     }
 
     fn kernel_context_get_input_tensor(
         &mut self,
-        self_: &Self::KernelContext,
-        name: &str,
+        _self_: &Self::KernelContext,
+        _name: &str,
     ) -> Option<runtime_v1::TensorResult> {
         unimplemented!()
     }
 
     fn kernel_context_set_output_tensor(
         &mut self,
-        self_: &Self::KernelContext,
-        name: &str,
-        tensor: runtime_v1::TensorParam<'_>,
+        _self_: &Self::KernelContext,
+        _name: &str,
+        _tensor: runtime_v1::TensorParam<'_>,
     ) {
         unimplemented!()
     }
