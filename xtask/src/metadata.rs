@@ -160,6 +160,7 @@ struct ArgumentMetadata {
     description: Option<String>,
     default_value: Option<String>,
     type_hint: Option<TypeHint>,
+    hints: Option<ArgumentHint>
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -178,6 +179,15 @@ enum TensorHint {
         accepted_element_types: Vec<ElementType>,
         dimensions: Dimensions,
     },
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "type", content = "value")]
+enum ArgumentHint {
+    NumberRange {
+        minValue: String,
+        maxValue: String
+    }
 }
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -343,6 +353,15 @@ impl runtime_v1::RuntimeV1 for Runtime {
         hint: runtime_v1::TypeHint,
     ) {
         self_.lock().unwrap().type_hint = Some(hint.into());
+    }
+
+    fn argument_metadata_set_argument_range(
+        &mut self,
+        self_: &Self::ArgumentMetadata,
+        min_value: &String,
+        max_value: &String
+    ) {
+        self_.lock().unwrap().hint = Some(NumberRange{ minValue: min_value. maxValue: max_value });
     }
 
     fn tensor_metadata_new(&mut self, name: &str) -> Self::TensorMetadata {
