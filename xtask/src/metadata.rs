@@ -8,9 +8,7 @@ use std::{
 use wasmtime::{Engine, Linker, Module, Store};
 
 wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
-wit_bindgen_wasmtime::import!(
-    "../wit-files/rune/rune-v1.wit"
-);
+wit_bindgen_wasmtime::import!("../wit-files/rune/rune-v1.wit");
 
 pub fn generate_manifest(
     modules: Vec<CompiledModule>,
@@ -159,7 +157,7 @@ struct ArgumentMetadata {
     name: String,
     description: Option<String>,
     default_value: Option<String>,
-    type_hint: Option<TypeHint>,
+    hints: Vec<ArgumentHint>,
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -199,16 +197,16 @@ enum ElementType {
 impl From<runtime_v1::ElementType> for ElementType {
     fn from(e: runtime_v1::ElementType) -> Self {
         match e {
-            runtime_v1::ElementType::Uint8 => ElementType::U8,
-            runtime_v1::ElementType::Int8 => ElementType::I8,
-            runtime_v1::ElementType::Uint16 => ElementType::U16,
-            runtime_v1::ElementType::Int16 => ElementType::I16,
-            runtime_v1::ElementType::Uint32 => ElementType::U32,
-            runtime_v1::ElementType::Int32 => ElementType::I32,
-            runtime_v1::ElementType::Float32 => ElementType::F32,
-            runtime_v1::ElementType::Int64 => ElementType::I64,
-            runtime_v1::ElementType::Uint64 => ElementType::U64,
-            runtime_v1::ElementType::Float64 => ElementType::F64,
+            runtime_v1::ElementType::U8 => ElementType::U8,
+            runtime_v1::ElementType::I8 => ElementType::I8,
+            runtime_v1::ElementType::U16 => ElementType::U16,
+            runtime_v1::ElementType::I16 => ElementType::I16,
+            runtime_v1::ElementType::U32 => ElementType::U32,
+            runtime_v1::ElementType::I32 => ElementType::I32,
+            runtime_v1::ElementType::F32 => ElementType::F32,
+            runtime_v1::ElementType::I64 => ElementType::I64,
+            runtime_v1::ElementType::U64 => ElementType::U64,
+            runtime_v1::ElementType::F64 => ElementType::F64,
             runtime_v1::ElementType::Utf8 => ElementType::Utf8,
         }
     }
@@ -244,8 +242,41 @@ impl From<runtime_v1::Dimensions<'_>> for Dimensions {
     }
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "type", content = "value")]
+enum ArgumentHint {
+    NonNegativeNumber,
+    StringEnum(Vec<String>),
+    NumberInRange {
+        max: String,
+        min: String,
+    },
+    #[serde(with = "ArgumentTypeRepr")]
+    SupportedArgumentType(runtime_v1::ArgumentType),
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+#[serde(remote = "runtime_v1::ArgumentType")]
+enum ArgumentTypeRepr {
+    UnsignedInteger,
+    Integer,
+    Float,
+    String,
+    LongString,
+}
+
+#[derive(Debug)]
+struct GraphContext;
+
+#[derive(Debug)]
+struct KernelContext;
+
 impl runtime_v1::RuntimeV1 for Runtime {
+    type ArgumentHint = ArgumentHint;
     type ArgumentMetadata = Mutex<ArgumentMetadata>;
+    type GraphContext = GraphContext;
+    type KernelContext = KernelContext;
     type Metadata = Mutex<Metadata>;
     type TensorHint = TensorHint;
     type TensorMetadata = Mutex<TensorMetadata>;
@@ -337,12 +368,12 @@ impl runtime_v1::RuntimeV1 for Runtime {
         self_.lock().unwrap().default_value = Some(default_value.to_string());
     }
 
-    fn argument_metadata_set_type_hint(
+    fn argument_metadata_add_hint(
         &mut self,
         self_: &Self::ArgumentMetadata,
-        hint: runtime_v1::TypeHint,
+        hint: &Self::ArgumentHint,
     ) {
-        self_.lock().unwrap().type_hint = Some(hint.into());
+        self_.lock().unwrap().hints.push(hint.clone());
     }
 
     fn tensor_metadata_new(&mut self, name: &str) -> Self::TensorMetadata {
@@ -390,37 +421,95 @@ impl runtime_v1::RuntimeV1 for Runtime {
         }
     }
 
+    fn interpret_as_number_in_range(
+        &mut self,
+        min: &str,
+        max: &str,
+    ) -> Self::ArgumentHint {
+        ArgumentHint::NumberInRange {
+            min: min.to_string(),
+            max: max.to_string(),
+        }
+    }
+
+    fn interpret_as_string_in_enum(
+        &mut self,
+        string_enum: Vec<&str>,
+    ) -> Self::ArgumentHint {
+        ArgumentHint::StringEnum(
+            string_enum.iter().map(|s| s.to_string()).collect(),
+        )
+    }
+
+    fn non_negative_number(&mut self) -> Self::ArgumentHint {
+        ArgumentHint::NonNegativeNumber
+    }
+
+    fn supported_argument_type(
+        &mut self,
+        hint: runtime_v1::ArgumentType,
+    ) -> Self::ArgumentHint {
+        ArgumentHint::SupportedArgumentType(hint)
+    }
+
     fn register_node(&mut self, metadata: &Self::Metadata) {
         self.node = Some(metadata.lock().unwrap().clone());
     }
-}
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-enum TypeHint {
-    Integer,
-    Float,
-    OnelineString,
-    MultilineString,
-}
+    fn graph_context_current(&mut self) -> Option<Self::GraphContext> { None }
 
-impl From<TypeHint> for runtime_v1::TypeHint {
-    fn from(r: TypeHint) -> runtime_v1::TypeHint {
-        match r {
-            TypeHint::Integer => runtime_v1::TypeHint::Integer,
-            TypeHint::Float => runtime_v1::TypeHint::Float,
-            TypeHint::OnelineString => runtime_v1::TypeHint::OnelineString,
-            TypeHint::MultilineString => runtime_v1::TypeHint::MultilineString,
-        }
+    fn graph_context_get_argument(
+        &mut self,
+        _self_: &Self::GraphContext,
+        _name: &str,
+    ) -> Option<String> {
+        unimplemented!()
     }
-}
 
-impl From<runtime_v1::TypeHint> for TypeHint {
-    fn from(t: runtime_v1::TypeHint) -> TypeHint {
-        match t {
-            runtime_v1::TypeHint::Integer => TypeHint::Integer,
-            runtime_v1::TypeHint::Float => TypeHint::Float,
-            runtime_v1::TypeHint::OnelineString => TypeHint::OnelineString,
-            runtime_v1::TypeHint::MultilineString => TypeHint::MultilineString,
-        }
+    fn graph_context_add_input_tensor(
+        &mut self,
+        _self_: &Self::GraphContext,
+        _name: &str,
+        _element_type: runtime_v1::ElementType,
+        _dimensions: runtime_v1::Dimensions<'_>,
+    ) {
+        unimplemented!()
+    }
+
+    fn graph_context_add_output_tensor(
+        &mut self,
+        _self_: &Self::GraphContext,
+        _name: &str,
+        _element_type: runtime_v1::ElementType,
+        _dimensions: runtime_v1::Dimensions<'_>,
+    ) {
+        unimplemented!()
+    }
+
+    fn kernel_context_current(&mut self) -> Option<Self::KernelContext> { None }
+
+    fn kernel_context_get_argument(
+        &mut self,
+        _self_: &Self::KernelContext,
+        _name: &str,
+    ) -> Option<String> {
+        unimplemented!()
+    }
+
+    fn kernel_context_get_input_tensor(
+        &mut self,
+        _self_: &Self::KernelContext,
+        _name: &str,
+    ) -> Option<runtime_v1::TensorResult> {
+        unimplemented!()
+    }
+
+    fn kernel_context_set_output_tensor(
+        &mut self,
+        _self_: &Self::KernelContext,
+        _name: &str,
+        _tensor: runtime_v1::TensorParam<'_>,
+    ) {
+        unimplemented!()
     }
 }
