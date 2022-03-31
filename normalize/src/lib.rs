@@ -1,8 +1,5 @@
 #![cfg_attr(not(feature = "metadata"), no_std)]
-use core::{
-    fmt::Debug,
-    ops::{Div, Sub},
-};
+use core::fmt::Debug;
 use hotg_rune_proc_blocks::{Tensor, Transform};
 use num_traits::ToPrimitive;
 
@@ -26,9 +23,9 @@ where
         let (min, max) =
             min_max(input.elements().iter().map(|e| e.to_f32().unwrap()))
                 .unwrap();
-        let range =max-min;
-        if range ==0.0 {
-            return  Tensor::zeroed(input.dimensions().to_vec());
+        let range = max - min;
+        if range == 0.0 {
+            return Tensor::zeroed(input.dimensions().to_vec());
         }
         input.map(|_, element| {
             let element = element.to_f32().unwrap();
