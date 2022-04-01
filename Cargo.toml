@@ -17,7 +17,8 @@ members = [
     "text_extractor",
     "binary_classification",
     "object_filter",
-    "xtask"
+    "xtask",
+    "support",
 ]
 
 # Temporary override while waiting for a fix to be merged upstream.
