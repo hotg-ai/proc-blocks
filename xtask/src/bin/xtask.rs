@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Error};
 use structopt::StructOpt;
 use tracing_subscriber::EnvFilter;
-use xtask::CompilationMode;
+use xtask::{runtime::Runtime, CompilationMode};
 
 fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::fmt()
@@ -16,7 +16,8 @@ fn main() -> Result<(), Error> {
     tracing::debug!(?cmd, "Starting");
 
     match cmd {
-        Command::Dist(dist) => dist.execute(),
+        Command::Dist(d) => d.execute(),
+        Command::Metadata(m) => m.execute(),
     }
 }
 
@@ -24,6 +25,7 @@ fn main() -> Result<(), Error> {
 pub enum Command {
     /// Compile all proc-blocks to WebAssembly and generate a manifest file.
     Dist(Dist),
+    Metadata(Metadata),
 }
 
 #[derive(Debug, StructOpt)]
@@ -74,6 +76,35 @@ impl Dist {
         bundle
             .write_to_disk(&self.out_dir)
             .context("Unable to write the metadata to disk")?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, StructOpt)]
+pub struct Metadata {
+    /// The WebAssembly module to load.
+    #[structopt(parse(from_os_str))]
+    rune: PathBuf,
+}
+
+impl Metadata {
+    fn execute(self) -> Result<(), Error> {
+        let wasm = std::fs::read(&self.rune).with_context(|| {
+            format!("Unable to read \"{}\"", self.rune.display())
+        })?;
+
+        let mut runtime = Runtime::load(&wasm)
+            .context("Unable to load the WebAssembly module")?;
+
+        let metadata = runtime
+            .metadata()
+            .context("Unable to determine the metadata")?;
+
+        let json = serde_json::to_string_pretty(&metadata)
+            .context("Unable to serialize the metadata to JSON")?;
+
+        println!("{}", json);
 
         Ok(())
     }
