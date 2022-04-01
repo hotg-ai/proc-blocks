@@ -1,10 +1,9 @@
-use std::cmp::Ordering;
-
 use crate::{
-    hotg_proc_blocks::BufferExt,
     rune_v1::{GraphError, KernelError},
     runtime_v1::*,
 };
+use hotg_rune_proc_blocks::BufferExt;
+use std::cmp::Ordering;
 
 wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
@@ -64,22 +63,31 @@ impl rune_v1::RuneV1 for RuneV1 {
         let TensorResult {
             element_type,
             dimensions,
-            mut buffer,
+            buffer,
         } = ctx
             .get_input_tensor("input")
             .ok_or_else(|| KernelError::MissingInput("input".to_string()))?;
 
-        let floats: &mut [f32] = match element_type {
-            ElementType::F32 => buffer.elements_mut::<f32>(),
+        let index = match element_type {
+            ElementType::U8 => arg_max(buffer.elements::<u8>()),
+            ElementType::I8 => arg_max(buffer.elements::<i8>()),
+            ElementType::U16 => arg_max(buffer.elements::<u16>()),
+            ElementType::I16 => arg_max(buffer.elements::<i16>()),
+            ElementType::U32 => arg_max(buffer.elements::<u32>()),
+            ElementType::I32 => arg_max(buffer.elements::<i32>()),
+            ElementType::F32 => arg_max(buffer.elements::<f32>()),
+            ElementType::U64 => arg_max(buffer.elements::<u64>()),
+            ElementType::I64 => arg_max(buffer.elements::<i64>()),
+            ElementType::F64 => arg_max(buffer.elements::<f64>()),
             other => {
                 return Err(KernelError::Other(format!(
                 "The Arg Max proc-block only accepts f32 tensors, found {:?}",
-                other
-            )))
+                other,
+                )))
             },
         };
 
-        let index = match arg_max(floats) {
+        let index = match index {
             Some(ix) => ix,
             None => {
                 return Err(KernelError::Other(
@@ -102,47 +110,16 @@ impl rune_v1::RuneV1 for RuneV1 {
     }
 }
 
-fn arg_max(floats: &[f32]) -> Option<usize> {
-    let (index, _) = floats
+fn arg_max<T>(values: &[T]) -> Option<usize>
+where
+    T: PartialOrd,
+{
+    let (index, _) = values
         .iter()
         .enumerate()
         .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Less))?;
 
     Some(index)
-}
-
-/// Support crate provided by hotg.
-mod hotg_proc_blocks {
-    pub trait BufferExt {
-        fn elements_mut<T: ValueType>(&mut self) -> &mut [T];
-    }
-
-    impl BufferExt for [u8] {
-        fn elements_mut<T: ValueType>(&mut self) -> &mut [T] {
-            unsafe { T::from_bytes_mut(self) }
-        }
-    }
-
-    pub unsafe trait ValueType: Sized {
-        unsafe fn from_bytes_mut(bytes: &mut [u8]) -> &mut [Self];
-    }
-
-    macro_rules! impl_value_type {
-        ($( $type:ty ),* $(,)?) => {
-            $(
-                unsafe impl ValueType for $type {
-                    unsafe fn from_bytes_mut(bytes: &mut [u8]) -> &mut [Self] {
-                        let (start, middle, end) = bytes.align_to_mut::<$type>();
-                        assert!(start.is_empty());
-                        assert!(end.is_empty());
-                        middle
-                    }
-                }
-            )*
-        };
-    }
-
-    impl_value_type!(u8, i8, u16, i16, u32, i32, f32, u64, i64, f64);
 }
 
 #[cfg(test)]
@@ -160,7 +137,8 @@ mod tests {
 
     #[test]
     fn empty_inputs_are_an_error() {
-        let result = arg_max(&[]);
+        let empty: &[f32] = &[];
+        let result = arg_max(empty);
 
         assert!(result.is_none());
     }
