@@ -1,176 +1,112 @@
 use self::rune_v1::{RuneV1, RuneV1Data};
-use crate::CompiledModule;
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap, fs::File, num::NonZeroUsize, path::Path, sync::Mutex,
-};
+use std::{num::NonZeroUsize, sync::Mutex};
 use wasmtime::{Engine, Linker, Module, Store};
 
 wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_wasmtime::import!("../wit-files/rune/rune-v1.wit");
 
-pub fn generate_manifest(
-    modules: Vec<CompiledModule>,
-) -> Result<Manifest, Error> {
-    let mut manifest = Manifest::default();
-
-    for module in modules {
-        let CompiledModule { name, mut module } = module;
-        let _span = tracing::info_span!("Extracting metadata", module = %name)
-            .entered();
-
-        let serialized = module.emit_wasm();
-        let metadata = extract_metadata(&serialized).with_context(|| {
-            format!("Unable to extract metadata from \"{}\"", name)
-        })?;
-        tracing::debug!(
-            %metadata.name,
-            %metadata.version,
-            "Extracted metadata for proc-block",
-        );
-
-        let filename = format!("{}.wasm", name);
-        manifest.serialized.insert(filename.clone(), serialized);
-        manifest.metadata.insert(filename, metadata);
-    }
-
-    Ok(manifest)
+pub struct Runtime {
+    rune: RuneV1<State>,
+    store: Store<State>,
 }
 
-fn extract_metadata(serialized: &[u8]) -> Result<Metadata, Error> {
-    let engine = Engine::default();
+impl Runtime {
+    #[tracing::instrument(skip(wasm))]
+    pub fn load(wasm: &[u8]) -> Result<Self, Error> {
+        let engine = Engine::default();
 
-    tracing::debug!("Loading the WebAssembly module");
+        tracing::debug!("Loading the WebAssembly module");
 
-    let module = Module::new(&engine, serialized)
-        .context("Unable to instantiate the module")?;
-    let mut store = Store::new(&engine, State::default());
+        let module = Module::new(&engine, wasm)
+            .context("Unable to instantiate the module")?;
+        let mut store = Store::new(&engine, State::default());
 
-    tracing::debug!("Setting up the host functions");
+        tracing::debug!("Setting up the host functions");
 
-    let mut linker = Linker::new(&engine);
-    runtime_v1::add_to_linker(&mut linker, |state: &mut State| {
-        (&mut state.runtime, &mut state.tables)
-    })
-    .context("Unable to register the host functions")?;
+        let mut linker = Linker::new(&engine);
+        runtime_v1::add_to_linker(&mut linker, |state: &mut State| {
+            (&mut state.runtime, &mut state.tables)
+        })
+        .context("Unable to register the host functions")?;
 
-    tracing::debug!("Instantiating the WebAssembly module");
+        tracing::debug!("Instantiating the WebAssembly module");
 
-    let (rune, _) = RuneV1::instantiate(
-        &mut store,
-        &module,
-        &mut linker,
-        |state: &mut State| &mut state.rune_v1_data,
-    )
-    .context("Unable to instantiate the WebAssembly module")?;
+        let (rune, _) = RuneV1::instantiate(
+            &mut store,
+            &module,
+            &mut linker,
+            |state: &mut State| &mut state.rune_v1_data,
+        )
+        .context("Unable to instantiate the WebAssembly module")?;
 
-    tracing::debug!("Running the start() function");
+        Ok(Runtime { rune, store })
+    }
 
-    rune.start(&mut store)
-        .context("Unable to run the WebAssembly module's start() function")?;
+    #[tracing::instrument(skip(self))]
+    pub fn metadata(&mut self) -> Result<Metadata, Error> {
+        tracing::debug!("Running the start() function");
 
-    store
-        .data_mut()
-        .runtime
-        .node
-        .take()
-        .context("The WebAssembly module didn't register any metadata")
+        self.rune.start(&mut self.store).context(
+            "Unable to run the WebAssembly module's start() function",
+        )?;
+
+        self.store
+            .data_mut()
+            .runtime
+            .node
+            .take()
+            .context("The WebAssembly module didn't register any metadata")
+    }
 }
 
 #[derive(Default)]
 struct State {
-    runtime: Runtime,
-    tables: runtime_v1::RuntimeV1Tables<Runtime>,
+    runtime: RuntimeV1,
+    tables: runtime_v1::RuntimeV1Tables<RuntimeV1>,
     rune_v1_data: RuneV1Data,
 }
 
 #[derive(Default)]
-pub struct Manifest {
-    metadata: HashMap<String, Metadata>,
-    serialized: HashMap<String, Vec<u8>>,
-}
-
-impl Manifest {
-    pub fn write_to_disk(&self, dir: &Path) -> Result<(), Error> {
-        let _span = tracing::info_span!("Saving");
-
-        std::fs::create_dir_all(dir).with_context(|| {
-            format!("Unable to create the \"{}\" directory", dir.display())
-        })?;
-
-        for (name, wasm) in &self.serialized {
-            let filename = dir.join(&name);
-            std::fs::write(&filename, wasm).with_context(|| {
-                format!("Unable to save to \"{}\"", filename.display())
-            })?;
-        }
-
-        save_json(dir.join("metadata.json"), &self.metadata)
-            .context("Unable to save the metadata")?;
-
-        let names: Vec<_> = self.metadata.keys().collect();
-        save_json(dir.join("manifest.json"), &names)
-            .context("Unable to save the manifest")?;
-
-        Ok(())
-    }
-}
-
-fn save_json(
-    path: impl AsRef<Path>,
-    value: &impl Serialize,
-) -> Result<(), Error> {
-    let path = path.as_ref();
-
-    let f = File::create(path).with_context(|| {
-        format!("Unable to open \"{}\" for writing", path.display())
-    })?;
-
-    serde_json::to_writer_pretty(f, &value)?;
-
-    Ok(())
-}
-
-#[derive(Default)]
-struct Runtime {
+struct RuntimeV1 {
     node: Option<Metadata>,
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
-struct Metadata {
-    name: String,
-    version: String,
-    description: Option<String>,
-    repository: Option<String>,
-    homepage: Option<String>,
-    tags: Vec<String>,
-    arguments: Vec<ArgumentMetadata>,
-    inputs: Vec<TensorMetadata>,
-    outputs: Vec<TensorMetadata>,
+pub struct Metadata {
+    pub name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub repository: Option<String>,
+    pub homepage: Option<String>,
+    pub tags: Vec<String>,
+    pub arguments: Vec<ArgumentMetadata>,
+    pub inputs: Vec<TensorMetadata>,
+    pub outputs: Vec<TensorMetadata>,
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
-struct ArgumentMetadata {
-    name: String,
-    description: Option<String>,
-    default_value: Option<String>,
-    hints: Vec<ArgumentHint>,
+pub struct ArgumentMetadata {
+    pub name: String,
+    pub description: Option<String>,
+    pub default_value: Option<String>,
+    pub hints: Vec<ArgumentHint>,
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
-struct TensorMetadata {
-    name: String,
-    description: Option<String>,
-    hints: Vec<TensorHint>,
+pub struct TensorMetadata {
+    pub name: String,
+    pub description: Option<String>,
+    pub hints: Vec<TensorHint>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-enum TensorHint {
+pub enum TensorHint {
     DisplayAs(String),
     SupportedShape {
         accepted_element_types: Vec<ElementType>,
@@ -180,7 +116,7 @@ enum TensorHint {
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
-enum ElementType {
+pub enum ElementType {
     U8,
     I8,
     U16,
@@ -214,14 +150,14 @@ impl From<runtime_v1::ElementType> for ElementType {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-enum Dimensions {
+pub enum Dimensions {
     Dynamic,
     Fixed(Vec<Dimension>),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-enum Dimension {
+pub enum Dimension {
     Fixed(NonZeroUsize),
     Dynamic,
 }
@@ -244,7 +180,7 @@ impl From<runtime_v1::Dimensions<'_>> for Dimensions {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-enum ArgumentHint {
+pub enum ArgumentHint {
     NonNegativeNumber,
     StringEnum(Vec<String>),
     NumberInRange {
@@ -267,12 +203,12 @@ enum ArgumentTypeRepr {
 }
 
 #[derive(Debug)]
-struct GraphContext;
+pub struct GraphContext;
 
 #[derive(Debug)]
-struct KernelContext;
+pub struct KernelContext;
 
-impl runtime_v1::RuntimeV1 for Runtime {
+impl runtime_v1::RuntimeV1 for RuntimeV1 {
     type ArgumentHint = ArgumentHint;
     type ArgumentMetadata = Mutex<ArgumentMetadata>;
     type GraphContext = GraphContext;
