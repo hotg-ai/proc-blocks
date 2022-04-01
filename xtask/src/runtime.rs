@@ -80,8 +80,7 @@ impl Runtime {
 
         self.rune
             .graph(&mut self.store)
-            .context("Unable to call the graph() function")?
-            .context("Unable to determine the node's inputs and outputs")?;
+            .context("Unable to call the graph() function")??;
 
         let ctx = self.store.data_mut().runtime.graph_ctx.take().unwrap();
         let ctx = ctx.lock().unwrap();
