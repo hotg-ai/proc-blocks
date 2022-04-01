@@ -1,7 +1,16 @@
+use crate::runtime::rune_v1::{
+    BadArgumentReason, GraphError, InvalidArgument, KernelError,
+};
+
 use self::rune_v1::{RuneV1, RuneV1Data};
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
-use std::{num::NonZeroUsize, sync::Mutex};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+    num::NonZeroUsize,
+    sync::{Arc, Mutex},
+};
 use wasmtime::{Engine, Linker, Module, Store};
 
 wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
@@ -59,6 +68,25 @@ impl Runtime {
             .take()
             .context("The WebAssembly module didn't register any metadata")
     }
+
+    #[tracing::instrument(skip(self, args))]
+    pub fn graph(
+        &mut self,
+        args: HashMap<String, String>,
+    ) -> Result<NodeInfo, Error> {
+        let ctx = GraphContext::new(args);
+        self.store.data_mut().runtime.graph_ctx =
+            Some(Arc::new(Mutex::new(ctx)));
+
+        self.rune
+            .graph(&mut self.store)
+            .context("Unable to call the graph() function")?
+            .context("Unable to determine the node's inputs and outputs")?;
+
+        let ctx = self.store.data_mut().runtime.graph_ctx.take().unwrap();
+        let ctx = ctx.lock().unwrap();
+        Ok(ctx.node.clone())
+    }
 }
 
 #[derive(Default)]
@@ -71,6 +99,8 @@ struct State {
 #[derive(Default)]
 struct RuntimeV1 {
     node: Option<Metadata>,
+    graph_ctx: Option<Arc<Mutex<GraphContext>>>,
+    kernel_ctx: Option<Arc<Mutex<KernelContext>>>,
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -114,7 +144,9 @@ pub enum TensorHint {
     },
 }
 
-#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum ElementType {
     U8,
@@ -148,14 +180,14 @@ impl From<runtime_v1::ElementType> for ElementType {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
 pub enum Dimensions {
     Dynamic,
     Fixed(Vec<Dimension>),
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "value")]
 pub enum Dimension {
     Fixed(NonZeroUsize),
@@ -203,16 +235,45 @@ enum ArgumentTypeRepr {
 }
 
 #[derive(Debug)]
-pub struct GraphContext;
+pub struct GraphContext {
+    args: HashMap<String, String>,
+    node: NodeInfo,
+}
+
+impl GraphContext {
+    pub fn new(args: HashMap<String, String>) -> Self {
+        GraphContext {
+            args,
+            node: NodeInfo::default(),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct NodeInfo {
+    pub inputs: Vec<TensorInfo>,
+    pub outputs: Vec<TensorInfo>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TensorInfo {
+    pub name: String,
+    pub element_type: ElementType,
+    pub dimensions: Dimensions,
+}
 
 #[derive(Debug)]
-pub struct KernelContext;
+pub struct KernelContext {
+    args: HashMap<String, String>,
+}
 
 impl runtime_v1::RuntimeV1 for RuntimeV1 {
     type ArgumentHint = ArgumentHint;
     type ArgumentMetadata = Mutex<ArgumentMetadata>;
-    type GraphContext = GraphContext;
-    type KernelContext = KernelContext;
+    type GraphContext = Arc<Mutex<GraphContext>>;
+    type KernelContext = Arc<Mutex<KernelContext>>;
     type Metadata = Mutex<Metadata>;
     type TensorHint = TensorHint;
     type TensorMetadata = Mutex<TensorMetadata>;
@@ -392,44 +453,56 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         self.node = Some(metadata.lock().unwrap().clone());
     }
 
-    fn graph_context_current(&mut self) -> Option<Self::GraphContext> { None }
+    fn graph_context_current(&mut self) -> Option<Self::GraphContext> {
+        self.graph_ctx.clone()
+    }
 
     fn graph_context_get_argument(
         &mut self,
-        _self_: &Self::GraphContext,
-        _name: &str,
+        self_: &Self::GraphContext,
+        name: &str,
     ) -> Option<String> {
-        unimplemented!()
+        self_.lock().unwrap().args.get(name).cloned()
     }
 
     fn graph_context_add_input_tensor(
         &mut self,
-        _self_: &Self::GraphContext,
-        _name: &str,
-        _element_type: runtime_v1::ElementType,
-        _dimensions: runtime_v1::Dimensions<'_>,
+        self_: &Self::GraphContext,
+        name: &str,
+        element_type: runtime_v1::ElementType,
+        dimensions: runtime_v1::Dimensions<'_>,
     ) {
-        unimplemented!()
+        self_.lock().unwrap().node.inputs.push(TensorInfo {
+            name: name.to_string(),
+            element_type: element_type.into(),
+            dimensions: dimensions.into(),
+        })
     }
 
     fn graph_context_add_output_tensor(
         &mut self,
-        _self_: &Self::GraphContext,
-        _name: &str,
-        _element_type: runtime_v1::ElementType,
-        _dimensions: runtime_v1::Dimensions<'_>,
+        self_: &Self::GraphContext,
+        name: &str,
+        element_type: runtime_v1::ElementType,
+        dimensions: runtime_v1::Dimensions<'_>,
     ) {
-        unimplemented!()
+        self_.lock().unwrap().node.outputs.push(TensorInfo {
+            name: name.to_string(),
+            element_type: element_type.into(),
+            dimensions: dimensions.into(),
+        })
     }
 
-    fn kernel_context_current(&mut self) -> Option<Self::KernelContext> { None }
+    fn kernel_context_current(&mut self) -> Option<Self::KernelContext> {
+        self.kernel_ctx.clone()
+    }
 
     fn kernel_context_get_argument(
         &mut self,
-        _self_: &Self::KernelContext,
-        _name: &str,
+        self_: &Self::KernelContext,
+        name: &str,
     ) -> Option<String> {
-        unimplemented!()
+        self_.lock().unwrap().args.get(name).cloned()
     }
 
     fn kernel_context_get_input_tensor(
@@ -449,3 +522,71 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         unimplemented!()
     }
 }
+
+impl Display for GraphError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            GraphError::InvalidArgument(a) => a.fmt(f),
+            GraphError::Other(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl std::error::Error for GraphError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            GraphError::InvalidArgument(a) => a.source(),
+            GraphError::Other(_) => None,
+        }
+    }
+}
+
+impl Display for KernelError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            KernelError::InvalidArgument(a) => a.fmt(f),
+            KernelError::MissingInput(name) => {
+                write!(f, "The \"{}\" input wasn't provided", name)
+            },
+            KernelError::Other(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl std::error::Error for KernelError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            KernelError::InvalidArgument(a) => a.source(),
+            KernelError::MissingInput(_) => None,
+            KernelError::Other(_) => None,
+        }
+    }
+}
+
+impl Display for InvalidArgument {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "The \"{}\" argument was invalid", self.name)
+    }
+}
+
+impl std::error::Error for InvalidArgument {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.reason)
+    }
+}
+
+impl Display for BadArgumentReason {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            BadArgumentReason::NotFound => {
+                write!(f, "The argument wasn't provided")
+            },
+            BadArgumentReason::InvalidValue(reason) => {
+                write!(f, "{}", reason)
+            },
+            BadArgumentReason::Other(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl std::error::Error for BadArgumentReason {}
