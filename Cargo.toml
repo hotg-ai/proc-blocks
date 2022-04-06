@@ -21,8 +21,7 @@ members = [
     "support",
 ]
 
-# Temporary override while waiting for a fix to be merged upstream.
-# See https://github.com/bytecodealliance/wit-bindgen/pull/184
-[patch.'https://github.com/bytecodealliance/wit-bindgen']
-wit-bindgen-rust = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
-wit-bindgen-wasmtime = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
+# Uncomment these lines if you need to override wit-bindgen with hotg's fork.
+#[patch.'https://github.com/bytecodealliance/wit-bindgen']
+#wit-bindgen-rust = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
+#wit-bindgen-wasmtime = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
