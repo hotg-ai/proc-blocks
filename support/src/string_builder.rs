@@ -1,4 +1,4 @@
-/// A builder for serializing a string tensor.
+/// A builder for serializing multiple UTF-8 strings to a flat byte array.
 ///
 /// #Examples
 ///
@@ -24,16 +24,25 @@ pub struct StringBuilder {
 }
 
 impl StringBuilder {
+    /// Construct a [`StringBuilder`] with an empty string.
     pub const fn new() -> Self { StringBuilder::with_buffer(Vec::new()) }
 
+    /// Construct a [`StringBuilder`] using an existing buffer, allowing the
+    /// caller to reuse allocations.
+    ///
+    /// Note that this *doesn't* clear the buffer before it starts writing
+    /// strings to it.
     pub const fn with_buffer(buffer: Vec<u8>) -> Self {
         StringBuilder { buffer }
     }
 
+    /// Consume the [`StringBuilder`], returning the buffer.
     pub fn finish(self) -> Vec<u8> { self.buffer }
 
+    /// Get a readonly reference to the serialized bytes.
     pub fn buffer(&self) -> &[u8] { &self.buffer }
 
+    /// Add a string to the buffer.
     pub fn push(&mut self, string: &str) -> &mut Self {
         let length = u32::try_from(string.len())
             .expect("The string length doesn't fit in a u32");

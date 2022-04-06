@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 mod buffer_ext;
 mod string_builder;
 mod value_type;
