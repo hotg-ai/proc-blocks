@@ -1,17 +1,17 @@
 use crate::{
-    rune_v1::{GraphError, KernelError},
+    proc_block_v1::{GraphError, KernelError},
     runtime_v1::*,
 };
 use hotg_rune_proc_blocks::BufferExt;
 use std::cmp::Ordering;
 
 wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
-wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
-struct RuneV1;
+struct ProcBlockV1;
 
-impl rune_v1::RuneV1 for RuneV1 {
-    fn start() {
+impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
+    fn register_metadata() {
         let metadata = Metadata::new("Arg Max", env!("CARGO_PKG_VERSION"));
         metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
         metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
@@ -36,8 +36,8 @@ impl rune_v1::RuneV1 for RuneV1 {
         register_node(&metadata);
     }
 
-    fn graph() -> Result<(), GraphError> {
-        let ctx = GraphContext::current().ok_or_else(|| {
+    fn graph(id: String) -> Result<(), GraphError> {
+        let ctx = GraphContext::for_node(&id).ok_or_else(|| {
             GraphError::Other("Unable to get the graph context".to_string())
         })?;
 
@@ -55,8 +55,8 @@ impl rune_v1::RuneV1 for RuneV1 {
         Ok(())
     }
 
-    fn kernel() -> Result<(), KernelError> {
-        let ctx = KernelContext::current().ok_or_else(|| {
+    fn kernel(id: String) -> Result<(), KernelError> {
+        let ctx = KernelContext::for_node(&id).ok_or_else(|| {
             KernelError::Other("Unable to get the kernel context".to_string())
         })?;
 

@@ -1,8 +1,8 @@
-use crate::runtime::rune_v1::{
+use crate::runtime::proc_block_v1::{
     BadArgumentReason, GraphError, InvalidArgument, KernelError,
 };
 
-use self::rune_v1::{RuneV1, RuneV1Data};
+use self::proc_block_v1::{ProcBlockV1, ProcBlockV1Data};
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -14,10 +14,10 @@ use std::{
 use wasmtime::{Engine, Linker, Module, Store};
 
 wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
-wit_bindgen_wasmtime::import!("../wit-files/rune/rune-v1.wit");
+wit_bindgen_wasmtime::import!("../wit-files/rune/proc-block-v1.wit");
 
 pub struct Runtime {
-    rune: RuneV1<State>,
+    rune: ProcBlockV1<State>,
     store: Store<State>,
 }
 
@@ -42,7 +42,7 @@ impl Runtime {
 
         tracing::debug!("Instantiating the WebAssembly module");
 
-        let (rune, _) = RuneV1::instantiate(
+        let (rune, _) = ProcBlockV1::instantiate(
             &mut store,
             &module,
             &mut linker,
@@ -55,10 +55,10 @@ impl Runtime {
 
     #[tracing::instrument(skip(self))]
     pub fn metadata(&mut self) -> Result<Metadata, Error> {
-        tracing::debug!("Running the start() function");
+        tracing::debug!("Running the register_metadata() function");
 
-        self.rune.start(&mut self.store).context(
-            "Unable to run the WebAssembly module's start() function",
+        self.rune.register_metadata(&mut self.store).context(
+            "Unable to run the WebAssembly module's register_metadata() function",
         )?;
 
         self.store
@@ -79,7 +79,7 @@ impl Runtime {
             Some(Arc::new(Mutex::new(ctx)));
 
         self.rune
-            .graph(&mut self.store)
+            .graph(&mut self.store, "")
             .context("Unable to call the graph() function")??;
 
         let ctx = self.store.data_mut().runtime.graph_ctx.take().unwrap();
@@ -92,7 +92,7 @@ impl Runtime {
 struct State {
     runtime: RuntimeV1,
     tables: runtime_v1::RuntimeV1Tables<RuntimeV1>,
-    rune_v1_data: RuneV1Data,
+    rune_v1_data: ProcBlockV1Data,
 }
 
 #[derive(Default)]
@@ -452,7 +452,10 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         self.node = Some(metadata.lock().unwrap().clone());
     }
 
-    fn graph_context_current(&mut self) -> Option<Self::GraphContext> {
+    fn graph_context_for_node(
+        &mut self,
+        _name: &str,
+    ) -> Option<Self::GraphContext> {
         self.graph_ctx.clone()
     }
 
@@ -492,7 +495,10 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         })
     }
 
-    fn kernel_context_current(&mut self) -> Option<Self::KernelContext> {
+    fn kernel_context_for_node(
+        &mut self,
+        _name: &str,
+    ) -> Option<Self::KernelContext> {
         self.kernel_ctx.clone()
     }
 
@@ -519,6 +525,17 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         _tensor: runtime_v1::TensorParam<'_>,
     ) {
         unimplemented!()
+    }
+
+    fn is_enabled(&mut self, _metadata: &Self::Metadata) -> bool { true }
+
+    fn log(
+        &mut self,
+        metadata: &Self::Metadata,
+        message: &str,
+        data: runtime_v1::LogValueMap<'_>,
+    ) {
+        tracing::info!(?metadata, ?data, message);
     }
 }
 
