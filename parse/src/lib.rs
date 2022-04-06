@@ -52,6 +52,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let hint = supported_shapes(&supported_types, Dimensions::Fixed(&[0]));
         output.add_hint(&hint);
         metadata.add_output(&output);
+
         register_node(&metadata);
     }
 
@@ -241,15 +242,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 fn transform<T>(inputs: &[&str]) -> Result<Vec<T>, KernelError>
 where
     T: FromStr,
-    <T as FromStr>::Err: Display,
+    T::Err: Display,
 {
     let mut values: Vec<T> = Vec::new();
+
     for input in inputs {
         match input.parse() {
             Ok(v) => values.push(v),
             Err(e) => {
                 return Err(KernelError::Other(format!(
-                    "Unable to parse \"{input}\" bevause of {e}"
+                    "Unable to parse \"{input}\" because of {e}"
                 )))
             },
         }
@@ -272,13 +274,16 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "Unable to parse \"a\" as a f64: ParseFloatError { kind: Invalid }"
-    )]
     fn test_for_invalid_data_type() {
         let bytes = ["1.0", "a"];
-        let output: Vec<f64> = transform(&bytes).unwrap();
-        let should_be = vec![1.0, 2.0];
-        assert_eq!(output, should_be);
+        let err = transform::<f32>(&bytes).unwrap_err();
+
+        match err {
+            KernelError::Other(msg) => assert_eq!(
+                msg,
+                "Unable to parse \"a\" because of invalid float literal"
+            ),
+            other => panic!("Unexpected error: {:?}", other),
+        }
     }
 }
