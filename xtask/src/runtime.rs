@@ -161,6 +161,24 @@ pub enum ElementType {
     Utf8,
 }
 
+impl Display for ElementType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ElementType::U8 => write!(f, "u8"),
+            ElementType::I8 => write!(f, "i8"),
+            ElementType::U16 => write!(f, "u16"),
+            ElementType::I16 => write!(f, "i16"),
+            ElementType::U32 => write!(f, "u32"),
+            ElementType::I32 => write!(f, "i32"),
+            ElementType::F32 => write!(f, "f32"),
+            ElementType::U64 => write!(f, "u64"),
+            ElementType::I64 => write!(f, "i64"),
+            ElementType::F64 => write!(f, "f64"),
+            ElementType::Utf8 => write!(f, "utf-8"),
+        }
+    }
+}
+
 impl From<runtime_v1::ElementType> for ElementType {
     fn from(e: runtime_v1::ElementType) -> Self {
         match e {
@@ -191,6 +209,15 @@ pub enum Dimensions {
 pub enum Dimension {
     Fixed(NonZeroUsize),
     Dynamic,
+}
+
+impl Display for Dimension {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Dimension::Fixed(fixed) => fixed.fmt(f),
+            Dimension::Dynamic => "*".fmt(f),
+        }
+    }
 }
 
 impl From<runtime_v1::Dimensions<'_>> for Dimensions {

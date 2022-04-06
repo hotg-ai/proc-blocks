@@ -15,8 +15,8 @@ jobs:
         rust:
           - nightly
           - stable
-          # MSRV - Required for std::process::Command's get_program() method
-          - 1.57.0
+          # MSRV - Required for using variables with format!() and friends
+          - 1.58.0
     steps:
       - uses: actions/checkout@v2
         with:
