@@ -19,3 +19,42 @@ unsafe impl ValueType for f32 {}
 unsafe impl ValueType for u64 {}
 unsafe impl ValueType for i64 {}
 unsafe impl ValueType for f64 {}
+
+/// Extension traits for slices of [`ValueType`]s.
+pub trait SliceExt {
+    /// Interpet this as a slice of bytes.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use hotg_rune_proc_blocks::SliceExt;
+    ///
+    /// let numbers: [u16; 2] = [0, 1];
+    ///
+    /// let bytes = numbers.as_bytes();
+    ///
+    /// assert_eq!(bytes, &[0x00, 0x00, 0x01, 0x00]);
+    /// ```
+    fn as_bytes(&self) -> &[u8];
+
+    /// Interpet this as a mutable slice of bytes.
+    ///
+    /// This is the mutable version of [`SliceExt::as_bytes()`].
+    fn as_bytes_mut(&mut self) -> &mut [u8];
+}
+
+impl<T: ValueType> SliceExt for [T] {
+    fn as_bytes(&self) -> &[u8] {
+        let length = std::mem::size_of_val(self);
+
+        unsafe { std::slice::from_raw_parts(self.as_ptr().cast(), length) }
+    }
+
+    fn as_bytes_mut(&mut self) -> &mut [u8] {
+        let length = std::mem::size_of_val(self);
+
+        unsafe {
+            std::slice::from_raw_parts_mut(self.as_mut_ptr().cast(), length)
+        }
+    }
+}

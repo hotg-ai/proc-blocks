@@ -25,7 +25,9 @@ pub struct StringBuilder {
 
 impl StringBuilder {
     /// Construct a [`StringBuilder`] with an empty string.
-    pub const fn new() -> Self { StringBuilder::with_buffer(Vec::new()) }
+    pub const fn new() -> Self {
+        StringBuilder::with_buffer(Vec::new())
+    }
 
     /// Construct a [`StringBuilder`] using an existing buffer, allowing the
     /// caller to reuse allocations.
@@ -37,10 +39,14 @@ impl StringBuilder {
     }
 
     /// Consume the [`StringBuilder`], returning the buffer.
-    pub fn finish(self) -> Vec<u8> { self.buffer }
+    pub fn finish(self) -> Vec<u8> {
+        self.buffer
+    }
 
     /// Get a readonly reference to the serialized bytes.
-    pub fn buffer(&self) -> &[u8] { &self.buffer }
+    pub fn buffer(&self) -> &[u8] {
+        &self.buffer
+    }
 
     /// Add a string to the buffer.
     pub fn push(&mut self, string: &str) -> &mut Self {
@@ -55,7 +61,9 @@ impl StringBuilder {
 }
 
 impl Default for StringBuilder {
-    fn default() -> Self { StringBuilder::new() }
+    fn default() -> Self {
+        StringBuilder::new()
+    }
 }
 
 #[cfg(test)]

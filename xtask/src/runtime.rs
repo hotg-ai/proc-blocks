@@ -554,7 +554,9 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         unimplemented!()
     }
 
-    fn is_enabled(&mut self, _metadata: &Self::Metadata) -> bool { true }
+    fn is_enabled(&mut self, _metadata: &Self::Metadata) -> bool {
+        true
+    }
 
     fn log(
         &mut self,

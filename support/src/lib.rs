@@ -5,5 +5,7 @@ mod string_builder;
 mod value_type;
 
 pub use crate::{
-    buffer_ext::BufferExt, string_builder::StringBuilder, value_type::ValueType,
+    buffer_ext::BufferExt,
+    string_builder::StringBuilder,
+    value_type::{SliceExt, ValueType},
 };

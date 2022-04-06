@@ -96,6 +96,8 @@ fn render_tensor_hints(
         render_tensor_hint(w, hint)?;
     }
 
+    writeln!(w)?;
+
     Ok(())
 }
 
@@ -119,10 +121,7 @@ fn render_tensor_hint(
                 },
                 Dimensions::Fixed(fixed) => {
                     let dims = fixed.iter().join("`, `");
-                    writeln!(
-                        w,
-                        "fixed-size tensor with dimensions [`{dims}`]"
-                    )?;
+                    write!(w, "fixed-size tensor with dimensions `[{dims}]`")?;
                 },
             }
 
@@ -198,7 +197,7 @@ fn render_argument_hints(
             ArgumentHint::NonNegativeNumber => write!(w, "- Non-negative")?,
             ArgumentHint::StringEnum(variants) => {
                 let variants = variants.join("`, `");
-                writeln!(w, "- One of [`\"{variants}\"`]")?;
+                writeln!(w, "- One of `\"{variants}\"`")?;
             },
             ArgumentHint::NumberInRange { max, min } => {
                 writeln!(w, "- A value between `{min}` and `{max}`")?
