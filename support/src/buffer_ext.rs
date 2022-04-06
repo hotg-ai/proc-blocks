@@ -4,13 +4,58 @@ use crate::ValueType;
 
 /// Extension traits added to a byte buffer.
 pub trait BufferExt {
-    /// Reinterpret this byte buffer as a slice of `T`'s.
+    /// Reinterpret this byte buffer as a slice of `T`'s, where `T` is a trivial
+    /// value type (`f32`, `u8`, etc.).
+    ///
+    /// For working with strings, see [`BufferExt::strings()`].
+    ///
+    /// # Examples
+    ///
+    /// On a little-endian machine, the binary representation for
+    /// `[1_u16, 256, 65535]` is `[0x1, 0x0, 0x0, 0x1, 0xff, 0xff]`. We can use
+    /// the `elements()` method to reinterpret this binary representation as
+    /// a slice of `u16`s to get back the original numbers.
+    ///
+    /// ```rust
+    /// use hotg_rune_proc_blocks::BufferExt;
+    ///
+    /// let binary_representation: [u8; 6] = [0x1, 0x0, 0x0, 0x1, 0xff, 0xff];
+    ///
+    /// let reinterpreted: &[u16] = binary_representation.elements();
+    ///
+    /// // Note:
+    /// assert_eq!(reinterpreted, &[1, 256, 65535]);
+    /// ```
     fn elements<T: ValueType>(&self) -> &[T];
+
     /// Reinterpret this byte buffer as a mutable slice of `T`'s.
+    ///
+    /// This is the mutable version of [`BufferExt::elements()`].
     fn elements_mut<T: ValueType>(&mut self) -> &mut [T];
 
     /// Interpret this buffer as a sequence of UTF-8 strings, where each string
     /// is prefixed by its length as a little-endian `u16`.
+    ///
+    /// # Examples
+    ///
+    /// The [`BufferExt::strings()`] method can extract strings from the byte
+    /// buffer created by a [`crate::StringBuilder`].
+    ///
+    /// ```rust
+    /// use hotg_rune_proc_blocks::{StringBuilder, BufferExt};
+    ///
+    /// let mut builder = StringBuilder::new();
+    /// builder
+    ///     .push("this")
+    ///     .push("is")
+    ///     .push("a")
+    ///     .push("sentence");
+    /// let bytes: Vec<u8> = builder.finish();
+    ///
+    /// let strings = bytes.strings().unwrap();
+    ///
+    /// assert_eq!(strings, &["this", "is", "a", "sentence"]);
+    /// ```
     fn strings(&self) -> Result<Vec<&str>, ShapeError>;
 
     /// View the buffer as a multi-dimensional array.
