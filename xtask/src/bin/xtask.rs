@@ -43,7 +43,7 @@ enum Command {
     Metadata(Metadata),
     /// Generate API documentation for one or more proc-blocks.
     Doc(Doc),
-    /// 
+    ///
     Graph(Graph),
 }
 
@@ -133,15 +133,17 @@ impl Metadata {
 struct Graph {
     /// The WebAssembly module to load.
     #[structopt(parse(from_os_str))]
-    rune: PathBuf,
+    proc_block: PathBuf,
+    /// The set of key=value pairs that are passed to the proc-block as
+    /// arguments.
     #[structopt(parse(try_from_str))]
     args: Vec<Argument>,
 }
 
 impl Graph {
     fn execute(self) -> Result<(), Error> {
-        let wasm = std::fs::read(&self.rune).with_context(|| {
-            format!("Unable to read \"{}\"", self.rune.display())
+        let wasm = std::fs::read(&self.proc_block).with_context(|| {
+            format!("Unable to read \"{}\"", self.proc_block.display())
         })?;
 
         let mut runtime = Runtime::load(&wasm)
