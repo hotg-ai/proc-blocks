@@ -117,7 +117,7 @@ impl ProcBlocks {
 
         for lib in libs {
             let filename = artifact_dir
-                .join(lib.replace("-", "_"))
+                .join(lib.replace('-', "_"))
                 .with_extension("wasm");
             tracing::debug!(
                 filename = %filename.display(),

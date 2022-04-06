@@ -6,6 +6,9 @@ publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "Find the index of the largest element."
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
