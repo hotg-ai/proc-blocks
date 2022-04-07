@@ -17,7 +17,9 @@ pub struct MostConfidentIndices {
 }
 
 impl MostConfidentIndices {
-    pub fn new(count: usize) -> Self { MostConfidentIndices { count } }
+    pub fn new(count: usize) -> Self {
+        MostConfidentIndices { count }
+    }
 
     fn check_input_dimensions(&self, dimensions: &[usize]) {
         match simplify_dimensions(dimensions) {
@@ -36,7 +38,9 @@ impl MostConfidentIndices {
 }
 
 impl Default for MostConfidentIndices {
-    fn default() -> Self { MostConfidentIndices::new(1) }
+    fn default() -> Self {
+        MostConfidentIndices::new(1)
+    }
 }
 
 impl<T: PartialOrd + Copy> Transform<Tensor<T>> for MostConfidentIndices {
@@ -77,12 +81,8 @@ fn simplify_dimensions(mut dimensions: &[usize]) -> &[usize] {
 
 #[cfg(feature = "metadata")]
 pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
 
     struct RuneV1;
 
@@ -122,7 +122,7 @@ pub mod metadata {
                     ElementType::Int64,
                     ElementType::Float64,
                 ],
-                Dimensions::Fixed(&[0]),
+                Dimensions::Dynamic,
             );
             input.add_hint(&hint);
             metadata.add_input(&input);
