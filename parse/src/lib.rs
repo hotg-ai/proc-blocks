@@ -23,8 +23,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.add_tag("numbers");
 
         let input = TensorMetadata::new("input_string_of_numbers");
-        let hint =
-            supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[0]));
+        let hint = supported_shapes(&[ElementType::Utf8], Dimensions::Dynamic);
         input.add_hint(&hint);
         metadata.add_input(&input);
 
@@ -49,7 +48,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             ElementType::I64,
             ElementType::F64,
         ];
-        let hint = supported_shapes(&supported_types, Dimensions::Fixed(&[0]));
+        let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
         output.add_hint(&hint);
         metadata.add_output(&output);
 
