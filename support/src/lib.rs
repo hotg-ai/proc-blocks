@@ -1,6 +1,9 @@
 #![doc = include_str!("../README.md")]
 
+pub extern crate ndarray;
+
 mod buffer_ext;
+pub mod common;
 mod string_builder;
 mod value_type;
 
