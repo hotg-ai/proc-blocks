@@ -1,10 +1,11 @@
 use crate::{
     proc_block_v1::{
-        BadArgumentReason, GraphError, InvalidArgument, KernelError,
+        BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+        InvalidInput, KernelError,
     },
     runtime_v1::*,
 };
-use hotg_rune_proc_blocks::{BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{common, BufferExt, SliceExt};
 use std::{fmt::Display, str::FromStr};
 
 wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
@@ -27,11 +28,11 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         input.add_hint(&hint);
         metadata.add_input(&input);
 
-        let element_type = ArgumentMetadata::new("element_type");
+        let element_type = ArgumentMetadata::new(common::element_type::NAME);
         element_type.set_description("The type that values get parsed into");
-        element_type.add_hint(&runtime_v1::interpret_as_string_in_enum(&[
-            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
-        ]));
+        element_type.add_hint(&runtime_v1::interpret_as_string_in_enum(
+            common::element_type::NUMERIC,
+        ));
         metadata.add_argument(&element_type);
 
         let output = TensorMetadata::new("parsed_numbers");
@@ -111,9 +112,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             element_type,
             dimensions,
             buffer,
-        } = ctx
-            .get_input_tensor("input")
-            .ok_or_else(|| KernelError::MissingInput("input".to_string()))?;
+        } = ctx.get_input_tensor("input").ok_or_else(|| {
+            KernelError::InvalidInput(InvalidInput {
+                name: "input".to_string(),
+                reason: BadInputReason::NotFound,
+            })
+        })?;
 
         let numbers = match element_type {
             ElementType::Utf8 => buffer
