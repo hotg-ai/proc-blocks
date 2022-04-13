@@ -104,7 +104,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             dimensions,
             buffer,
         } = ctx.get_input_tensor("input").ok_or_else(|| {
-            KernelError::InputInput(InvalidInput {
+            KernelError::InvalidInput(InvalidInput {
                 name: "indices".to_string(),
                 reason: BadInputReason::NotFound,
             })
@@ -162,7 +162,7 @@ where
         .view::<T>(dimensions)
         .and_then(|t| t.into_dimensionality())
         .map_err(|e| {
-            KernelError::InputInput(InvalidInput::invalid_value(
+            KernelError::InvalidInput(InvalidInput::invalid_value(
                 "confidences",
                 e,
             ))
@@ -269,7 +269,7 @@ mod tests {
 
         let error = preprocess_buffer::<u8>(&buffer, &[2, 3]).unwrap_err();
 
-        assert!(matches!(error, KernelError::InputInput(_)));
+        assert!(matches!(error, KernelError::InvalidInput(_)));
     }
 
     #[test]
@@ -278,7 +278,7 @@ mod tests {
 
         let error = preprocess_buffer::<u8>(&buffer, &[1, 6, 1]).unwrap_err();
 
-        assert!(matches!(error, KernelError::InputInput(_)));
+        assert!(matches!(error, KernelError::InvalidInput(_)));
     }
 
     #[test]

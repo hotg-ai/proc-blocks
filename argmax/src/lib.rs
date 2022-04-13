@@ -1,5 +1,5 @@
 use crate::{
-    proc_block_v1::{GraphError, KernelError},
+    proc_block_v1::{BadInputReason, GraphError, InvalidInput, KernelError},
     runtime_v1::*,
 };
 use hotg_rune_proc_blocks::BufferExt;
@@ -64,9 +64,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             element_type,
             dimensions,
             buffer,
-        } = ctx
-            .get_input_tensor("input")
-            .ok_or_else(|| KernelError::MissingInput("input".to_string()))?;
+        } = ctx.get_input_tensor("input").ok_or_else(|| {
+            KernelError::InvalidInput(InvalidInput {
+                name: "input".to_string(),
+                reason: BadInputReason::NotFound,
+            })
+        })?;
 
         let index = match element_type {
             ElementType::U8 => arg_max(buffer.elements::<u8>()),

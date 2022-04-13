@@ -1,5 +1,6 @@
 use crate::runtime::proc_block_v1::{
-    BadArgumentReason, GraphError, InvalidArgument, KernelError,
+    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+    InvalidInput, KernelError,
 };
 
 use self::proc_block_v1::{ProcBlockV1, ProcBlockV1Data};
@@ -554,9 +555,7 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         unimplemented!()
     }
 
-    fn is_enabled(&mut self, _metadata: &Self::Metadata) -> bool {
-        true
-    }
+    fn is_enabled(&mut self, _metadata: &Self::Metadata) -> bool { true }
 
     fn log(
         &mut self,
@@ -572,6 +571,9 @@ impl Display for GraphError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             GraphError::InvalidArgument(a) => a.fmt(f),
+            GraphError::MissingContext => {
+                write!(f, "The context wasn't passed in")
+            },
             GraphError::Other(msg) => write!(f, "{}", msg),
         }
     }
@@ -581,7 +583,7 @@ impl std::error::Error for GraphError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             GraphError::InvalidArgument(a) => a.source(),
-            GraphError::Other(_) => None,
+            GraphError::MissingContext | GraphError::Other(_) => None,
         }
     }
 }
@@ -590,8 +592,9 @@ impl Display for KernelError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             KernelError::InvalidArgument(a) => a.fmt(f),
-            KernelError::MissingInput(name) => {
-                write!(f, "The \"{}\" input wasn't provided", name)
+            KernelError::InvalidInput(i) => i.fmt(f),
+            KernelError::MissingContext => {
+                write!(f, "The context wasn't passed in")
             },
             KernelError::Other(msg) => write!(f, "{}", msg),
         }
@@ -602,9 +605,21 @@ impl std::error::Error for KernelError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             KernelError::InvalidArgument(a) => a.source(),
-            KernelError::MissingInput(_) => None,
-            KernelError::Other(_) => None,
+            KernelError::InvalidInput(i) => i.source(),
+            KernelError::MissingContext | KernelError::Other(_) => None,
         }
+    }
+}
+
+impl Display for InvalidInput {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "The \"{}\" input tensor was invalid", self.name)
+    }
+}
+
+impl std::error::Error for InvalidInput {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.reason)
     }
 }
 
@@ -635,3 +650,22 @@ impl Display for BadArgumentReason {
 }
 
 impl std::error::Error for BadArgumentReason {}
+
+impl Display for BadInputReason {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            BadInputReason::NotFound => {
+                write!(f, "The input tensor wasn't provided")
+            },
+            BadInputReason::InvalidValue(reason) => {
+                write!(f, "{}", reason)
+            },
+            BadInputReason::UnsupportedShape => {
+                write!(f, "Unsupported shape")
+            },
+            BadInputReason::Other(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl std::error::Error for BadInputReason {}

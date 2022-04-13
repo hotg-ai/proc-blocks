@@ -1,6 +1,7 @@
 use crate::{
     proc_block_v1::{
-        BadArgumentReason, GraphError, InvalidArgument, KernelError,
+        BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+        InvalidInput, KernelError,
     },
     runtime_v1::*,
 };
@@ -111,9 +112,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             element_type,
             dimensions,
             buffer,
-        } = ctx
-            .get_input_tensor("input")
-            .ok_or_else(|| KernelError::MissingInput("input".to_string()))?;
+        } = ctx.get_input_tensor("input").ok_or_else(|| {
+            KernelError::InvalidInput(InvalidInput {
+                name: "input".to_string(),
+                reason: BadInputReason::NotFound,
+            })
+        })?;
 
         let numbers = match element_type {
             ElementType::Utf8 => buffer
