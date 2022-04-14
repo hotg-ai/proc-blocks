@@ -4,13 +4,14 @@ version = "0.11.3"
 edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
-description = "Find the index of the largest element."
-
-[lib]
-crate-type = ["cdylib", "rlib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hotg-rune-proc-blocks = { path = "../support" }
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+hotg-rune-proc-blocks = "^0.11.0"
+wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", optional = true }
+ndarray = "0.15.4"
+
+[features]
+default = []
+metadata = ["wit-bindgen-rust"]
