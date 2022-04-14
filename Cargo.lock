@@ -62,8 +62,7 @@ dependencies = [
 name = "argmax"
 version = "0.11.3"
 dependencies = [
- "hotg-rune-proc-blocks 0.11.3",
- "ndarray",
+ "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
 ]
 
