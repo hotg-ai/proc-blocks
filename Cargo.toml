@@ -18,6 +18,8 @@ members = [
     "binary_classification",
     "object_filter",
     "xtask",
+    "mean",
+    "std_dev",
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
