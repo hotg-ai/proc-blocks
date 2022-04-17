@@ -78,8 +78,10 @@ pub mod metadata {
             metadata.add_input(&input);
 
             let output = TensorMetadata::new("mean");
-            let hint =
-                supported_shapes(&supported_types, Dimensions::Fixed(&[1]));
+            let hint = supported_shapes(
+                &[ElementType::Float32],
+                Dimensions::Fixed(&[1]),
+            );
             output.add_hint(&hint);
             metadata.add_output(&output);
 
