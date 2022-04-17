@@ -17,5 +17,13 @@ members = [
     "text_extractor",
     "binary_classification",
     "object_filter",
-    "xtask"
+    "xtask",
 ]
+
+# Uncomment these lines if you need to override wit-bindgen with hotg's fork.
+#[patch.'https://github.com/bytecodealliance/wit-bindgen']
+#wit-bindgen-rust = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
+#wit-bindgen-wasmtime = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
+
+[profile.dev]
+opt-level = 1
