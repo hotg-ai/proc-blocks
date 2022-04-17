@@ -18,7 +18,7 @@ members = [
     "binary_classification",
     "object_filter",
     "xtask",
-    "average",
+    "mean",
     "median",
     "std_dev",
 ]
