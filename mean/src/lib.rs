@@ -53,17 +53,12 @@ pub mod metadata {
         fn start() {
             use runtime_v1::*;
 
-            let metadata = Metadata::new("Modulo", env!("CARGO_PKG_VERSION"));
+            let metadata = Metadata::new("Mean", env!("CARGO_PKG_VERSION"));
             metadata.set_description(
-                "Apply the modulus operator to each element in the tensor.",
+                "Calculate the mean of all the elements in a tensor",
             );
             metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
             metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-
-            let modulus = ArgumentMetadata::new("modulus");
-            modulus.set_type_hint(TypeHint::Float);
-            modulus.set_default_value("0");
-            metadata.add_argument(&modulus);
 
             let input = TensorMetadata::new("input");
             let supported_types = [
@@ -82,8 +77,9 @@ pub mod metadata {
             input.add_hint(&hint);
             metadata.add_input(&input);
 
-            let output = TensorMetadata::new("remainders");
-            let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
+            let output = TensorMetadata::new("mean");
+            let hint =
+                supported_shapes(&supported_types, Dimensions::Fixed(&[1]));
             output.add_hint(&hint);
             metadata.add_output(&output);
 
