@@ -787,10 +787,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "median"
-version = "0.1.0"
-
-[[package]]
 name = "mel"
 version = "0.3.0"
 source = "git+https://github.com/hotg-ai/mel?rev=017694ee3143c11ea9b75ba6cd27fe7c8a69a867#017694ee3143c11ea9b75ba6cd27fe7c8a69a867"
@@ -1415,7 +1411,14 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "std_dev"
-version = "0.1.0"
+version = "0.11.3"
+dependencies = [
+ "hotg-rune-core",
+ "hotg-rune-proc-blocks",
+ "ndarray",
+ "num-traits",
+ "wit-bindgen-rust",
+]
 
 [[package]]
 name = "strsim"

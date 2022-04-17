@@ -19,7 +19,6 @@ members = [
     "object_filter",
     "xtask",
     "mean",
-    "median",
     "std_dev",
 ]
 

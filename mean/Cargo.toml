@@ -15,5 +15,3 @@ wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", op
 [features]
 default = []
 metadata = ["wit-bindgen-rust"]
-
-
