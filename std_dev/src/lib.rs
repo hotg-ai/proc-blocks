@@ -1,41 +1,37 @@
 #![cfg_attr(not(feature = "metadata"), no_std)]
-use core::ops::{Add, Div};
 
-use hotg_rune_core::AsElementType;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use ndarray::ArrayViewD;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::{Float, FromPrimitive, ToPrimitive};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, ProcBlock)]
-pub struct Mean {}
+pub struct StdDev {}
 
-impl Mean {
-    pub fn new() -> Self { Mean {} }
+impl StdDev {
+    pub fn new() -> Self { StdDev {} }
 }
 
-impl<'a, T> Transform<Tensor<T>> for Mean
+impl<'a, T> Transform<Tensor<T>> for StdDev
 where
-    T: Clone
-        + ToPrimitive
-        + Add<Output = T>
-        + Div<Output = T>
-        + Zero
-        + AsElementType,
+    T: Clone + ToPrimitive + FromPrimitive + Float,
 {
     // TODO: Figure out whether the user will *always* want floats out, or
     // whether the output type should match the input.
-    type Output = Tensor<f32>;
+    type Output = Tensor<T>;
 
-    fn transform(&mut self, input: Tensor<T>) -> Tensor<f32> {
-        let tensor = ArrayViewD::from_shape(
-            input.shape().dimensions(),
-            input.elements(),
-        )
-        .expect("Unable to get a tensor view");
+    fn transform(&mut self, input: Tensor<T>) -> Tensor<T> {
+        let mut mean = T::zero();
+        let mut sum_sq = T::zero();
+        let mut i = 0;
+        input.elements().iter().for_each(|&x| {
+            let count = T::from_usize(i + 1)
+                .expect("Converting index to `T` must not fail.");
+            let delta = x - mean;
+            mean = mean + delta / count;
+            sum_sq = (x - mean).mul_add(delta, sum_sq);
+            i += 1;
+        });
 
-        let mean = tensor.map(|v| v.to_f32().unwrap()).std(1.0);
-
-        Tensor::single(mean)
+        Tensor::single(mean.sqrt())
     }
 }
 
@@ -93,8 +89,9 @@ mod tests {
 
     #[test]
     fn mean_of_1d_tensor() {
-        let mut m = Mean::new();
-        let input = Tensor::new_vector(alloc::vec![1_u32, 2, 3, 4, 5, 6]);
+        let mut m = StdDev::new();
+        let input =
+            Tensor::new_vector(alloc::vec![1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
         let got = m.transform(input);
 
@@ -103,9 +100,9 @@ mod tests {
 
     #[test]
     fn mean_of_multidimensional_tensor() {
-        let mut m = Mean::new();
+        let mut m = StdDev::new();
         let input = Tensor::new_row_major(
-            alloc::vec![1_u32, 2, 3, 4, 5, 6].into(),
+            alloc::vec![1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0].into(),
             alloc::vec![2, 3],
         );
 
