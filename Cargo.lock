@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "argmax"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "wit-bindgen-rust",
@@ -90,7 +90,7 @@ dependencies = [
 
 [[package]]
 name = "audio_float_conversion"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "pretty_assertions",
@@ -126,7 +126,7 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "binary_classification"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "wit-bindgen-rust",
@@ -481,7 +481,7 @@ dependencies = [
 
 [[package]]
 name = "fft"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "hound",
@@ -623,7 +623,7 @@ checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
 
 [[package]]
 name = "image-normalization"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
@@ -691,7 +691,7 @@ dependencies = [
 
 [[package]]
 name = "label"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "libm",
@@ -777,7 +777,7 @@ dependencies = [
 
 [[package]]
 name = "mean"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-core",
  "hotg-rune-proc-blocks",
@@ -833,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "modulo"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
@@ -848,7 +848,7 @@ checksum = "7843ec2de400bcbc6a6328c958dc38e5359da6e93e72e37bc5246bf1ae776389"
 
 [[package]]
 name = "most_confident_indices"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "wit-bindgen-rust",
@@ -883,7 +883,7 @@ dependencies = [
 
 [[package]]
 name = "noise-filtering"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "libm",
@@ -893,7 +893,7 @@ dependencies = [
 
 [[package]]
 name = "normalize"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
@@ -987,7 +987,7 @@ dependencies = [
 
 [[package]]
 name = "object_filter"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "libm",
@@ -1017,7 +1017,7 @@ dependencies = [
 
 [[package]]
 name = "parse"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "wit-bindgen-rust",
@@ -1293,7 +1293,7 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "segment_output"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "wit-bindgen-rust",
@@ -1381,7 +1381,7 @@ checksum = "f2dd574626839106c320a323308629dcb1acfc96e32a8cba364ddc61ac23ee83"
 
 [[package]]
 name = "softmax"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "libm",
@@ -1411,7 +1411,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "std_dev"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-core",
  "hotg-rune-proc-blocks",
@@ -1492,7 +1492,7 @@ dependencies = [
 
 [[package]]
 name = "text_extractor"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "wit-bindgen-rust",
@@ -1553,7 +1553,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokenizers"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "anyhow",
  "hotg-rune-proc-blocks",
@@ -1677,7 +1677,7 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
 name = "utf8_decode"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "hotg-rune-proc-blocks",
  "wit-bindgen-rust",
@@ -2076,7 +2076,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.1.0"
+version = "0.11.4"
 dependencies = [
  "anyhow",
  "cargo_metadata",
