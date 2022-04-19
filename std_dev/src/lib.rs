@@ -27,12 +27,10 @@ where
         .expect("Unable to get a tensor view");
         let mean = tensor.mean().unwrap_or_else(T::one);
         let mut sum_sq = T::zero();
-        let mut i = T::zero();
         tensor.for_each(|&t| {
             sum_sq = sum_sq + (t - mean).powi(2);
-            i = i.add(T::one());
         });
-        Tensor::single((sum_sq/i).sqrt())
+        Tensor::single((sum_sq / T::from_usize(tensor.len()).unwrap()).sqrt())
     }
 }
 
