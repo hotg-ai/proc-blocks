@@ -20,6 +20,7 @@ members = [
     "xtask",
     "mean",
     "std_dev",
+    "regex_matcher"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
