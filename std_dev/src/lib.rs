@@ -1,8 +1,9 @@
 #![cfg_attr(not(feature = "metadata"), no_std)]
 
+use hotg_rune_core::AsElementType;
 use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use num_traits::{Float, FromPrimitive, ToPrimitive};
-
+use ndarray::ArrayViewD;
+use num_traits::{Float, FromPrimitive};
 #[derive(Debug, Default, Clone, Copy, PartialEq, ProcBlock)]
 pub struct StdDev {}
 
@@ -12,26 +13,26 @@ impl StdDev {
 
 impl<'a, T> Transform<Tensor<T>> for StdDev
 where
-    T: Clone + ToPrimitive + FromPrimitive + Float,
+    T: Float + AsElementType + FromPrimitive
 {
     // TODO: Figure out whether the user will *always* want floats out, or
     // whether the output type should match the input.
     type Output = Tensor<T>;
 
     fn transform(&mut self, input: Tensor<T>) -> Tensor<T> {
-        let mut mean = T::zero();
+        let tensor = ArrayViewD::from_shape(
+            input.shape().dimensions(),
+            input.elements(),
+        )
+        .expect("Unable to get a tensor view");
+        let mean = tensor.mean().unwrap_or_else(T::one);
         let mut sum_sq = T::zero();
-        let mut i = 0;
-        input.elements().iter().for_each(|&x| {
-            let count = T::from_usize(i + 1)
-                .expect("Converting index to `T` must not fail.");
-            let delta = x - mean;
-            mean = mean + delta / count;
-            sum_sq = (x - mean).mul_add(delta, sum_sq);
-            i += 1;
+        let mut i = T::zero();
+        tensor.for_each(|&t| {
+            sum_sq = sum_sq + (t - mean).powi(2);
+            i = i.add(T::one());
         });
-
-        Tensor::single(mean.sqrt())
+        Tensor::single((sum_sq/i).sqrt())
     }
 }
 
@@ -90,26 +91,26 @@ mod tests {
     extern crate alloc;
 
     #[test]
-    fn mean_of_1d_tensor() {
+    fn stddev_of_1d_tensor() {
         let mut m = StdDev::new();
         let input =
-            Tensor::new_vector(alloc::vec![1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0]);
+            Tensor::new_vector(alloc::vec![70.0_f32, 96.0, 58.0, 74.0, 38.0, 69.0, 76.0, 44.0, 23.0, 82.0]);
 
         let got = m.transform(input);
 
-        assert_eq!(got, Tensor::single(1.8708287));
+        assert_eq!(got, Tensor::single(21.061813));
     }
 
     #[test]
-    fn mean_of_multidimensional_tensor() {
+    fn stddev_of_multidimensional_tensor() {
         let mut m = StdDev::new();
         let input = Tensor::new_row_major(
-            alloc::vec![1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0].into(),
+            alloc::vec![70.0_f32, 96.0, 58.0, 74.0, 38.0, 0.0].into(),
             alloc::vec![2, 3],
         );
 
         let got = m.transform(input);
 
-        assert_eq!(got, Tensor::single(1.8708287));
+        assert_eq!(got, Tensor::single(30.50683));
     }
 }
