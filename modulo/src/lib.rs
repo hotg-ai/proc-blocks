@@ -1,97 +1,173 @@
-#![cfg_attr(not(feature = "metadata"), no_std)]
-use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
+#![allow(dead_code)]
+
+wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+
+use std::fmt::Display;
+
+use hotg_rune_proc_blocks::BufferExt;
+use crate::{
+    proc_block_v1::{BadArgumentReason, GraphError, InvalidArgument, InvalidInput, BadInputReason, KernelError},
+    runtime_v1::{
+        ArgumentMetadata, Dimensions, ElementType, GraphContext, KernelContext, Metadata,
+        TensorMetadata, TensorParam, TensorResult,
+    },
+};
 use num_traits::{FromPrimitive, ToPrimitive};
 
-pub fn modulo<T>(modulus: f32, values: &mut [T])
-where
-    T: ToPrimitive + FromPrimitive,
-{
-    for item in values {
-        let float = item.to_f32().unwrap();
-        *item = T::from_f32(float % modulus).unwrap();
+pub struct ProcBlockV1;
+
+impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
+    fn register_metadata() {
+        let metadata = Metadata::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
+
+        let modulo = ArgumentMetadata::new("modulo");
+        modulo.add_hint(&runtime_v1::non_negative_number());
+        metadata.add_argument(&modulo);
+        let element_type = ArgumentMetadata::new("element_type");
+        element_type.set_description("The type of tensor this proc-block will accept");
+        element_type.set_default_value("f64");
+        element_type.add_hint(&runtime_v1::interpret_as_string_in_enum(&[
+            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
+        ]));
+        metadata.add_argument(&element_type);
+
+        let input = TensorMetadata::new("input");
+        metadata.add_input(&input);
+
+        let output = TensorMetadata::new("output");
+        metadata.add_output(&output);
+
+        runtime_v1::register_node(&metadata);
     }
-}
 
-#[derive(Debug, Clone, Copy, PartialEq, ProcBlock)]
-pub struct Modulo {
-    modulus: f32,
-}
+    fn graph(node_id: String) -> Result<(), GraphError> {
+        let ctx = GraphContext::for_node(&node_id)
+            .ok_or_else(|| GraphError::Other("Unable to load the graph context".to_string()))?;
 
-impl Modulo {
-    pub fn new() -> Self { Modulo { modulus: 1.0 } }
-}
+        // make sure the modulus is valid
+        let _ = get_modulus(|n| ctx.get_argument(n)).map_err(GraphError::InvalidArgument)?;
 
-impl Default for Modulo {
-    fn default() -> Self { Modulo::new() }
-}
+        let element_type = match ctx.get_argument("element_type").as_deref() {
+            Some("u8") => ElementType::U8,
+            Some("i8") => ElementType::I8,
+            Some("u16") => ElementType::U16,
+            Some("i16") => ElementType::I16,
+            Some("u32") => ElementType::U32,
+            Some("i32") => ElementType::I32,
+            Some("f32") => ElementType::F32,
+            Some("u64") => ElementType::U64,
+            Some("i64") => ElementType::I64,
+            Some("f64") | None => ElementType::F64,
+            Some(_) => {
+                return Err(GraphError::InvalidArgument(InvalidArgument {
+                    name: "element_type".to_string(),
+                    reason: BadArgumentReason::InvalidValue("Unsupported element type".to_string()),
+                }))
+            }
+        };
 
-impl<'a, T> Transform<Tensor<T>> for Modulo
-where
-    T: ToPrimitive + FromPrimitive,
-{
-    type Output = Tensor<T>;
+        ctx.add_input_tensor("input", element_type, Dimensions::Dynamic);
+        ctx.add_output_tensor("output", element_type, Dimensions::Dynamic);
 
-    fn transform(&mut self, input: Tensor<T>) -> Tensor<T> {
-        let modulus = self.modulus;
-
-        input.map(|_, item| {
-            let float = item.to_f32().unwrap();
-            T::from_f32(float % modulus).unwrap()
-        })
+        Ok(())
     }
-}
 
-#[cfg(feature = "metadata")]
-pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+    fn kernel(node_id: String) -> Result<(), KernelError> {
+        let ctx = KernelContext::for_node(&node_id)
+            .ok_or_else(|| KernelError::Other("Unable to load the kernel context".to_string()))?;
 
-    struct RuneV1;
+        let modulus = get_modulus(|n| ctx.get_argument(n)).map_err(KernelError::InvalidArgument)?;
 
-    impl rune_v1::RuneV1 for RuneV1 {
-        fn start() {
-            use runtime_v1::*;
+        let TensorResult {
+            dimensions,
+            element_type,
+            mut buffer,
+        } = ctx
+            .get_input_tensor("input")
+            .ok_or_else(|| KernelError::InvalidInput(InvalidInput {
+                name: "input".to_string(),
+                reason: BadInputReason::NotFound,
+            }))?;
 
-            let metadata = Metadata::new("Modulo", env!("CARGO_PKG_VERSION"));
-            metadata.set_description(
-                "Apply the modulus operator to each element in the tensor.",
-            );
-            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+        // Note: The "element_type" argument is only used while constructing the
+        // ML pipeline. We see its effect at runtime in the form of the tensor
+        // data variant that gets used.
 
-            let modulus = ArgumentMetadata::new("modulus");
-            modulus.set_type_hint(TypeHint::Float);
-            modulus.set_default_value("0");
-            metadata.add_argument(&modulus);
-
-            let input = TensorMetadata::new("input");
-            let supported_types = [
-                ElementType::Uint8,
-                ElementType::Int8,
-                ElementType::Uint16,
-                ElementType::Int16,
-                ElementType::Uint32,
-                ElementType::Int32,
-                ElementType::Float32,
-                ElementType::Uint64,
-                ElementType::Int64,
-                ElementType::Float64,
-            ];
-            let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
-            input.add_hint(&hint);
-            metadata.add_input(&input);
-
-            let output = TensorMetadata::new("remainders");
-            let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
-            output.add_hint(&hint);
-            metadata.add_output(&output);
-
-            register_node(&metadata);
+        match element_type {
+            ElementType::U8 => modulus_in_place(buffer.elements_mut::<u8>(), modulus)?,
+            ElementType::I8 => modulus_in_place(buffer.elements_mut::<i8>(), modulus)?,
+            ElementType::U16 => modulus_in_place(buffer.elements_mut::<u16>(), modulus)?,
+            ElementType::I16 => modulus_in_place(buffer.elements_mut::<i16>(), modulus)?,
+            ElementType::U32 => modulus_in_place(buffer.elements_mut::<u32>(), modulus)?,
+            ElementType::I32 => modulus_in_place(buffer.elements_mut::<i32>(), modulus)?,
+            ElementType::F32 => modulus_in_place(buffer.elements_mut::<f32>(), modulus)?,
+            ElementType::U64 => modulus_in_place(buffer.elements_mut::<u64>(), modulus)?,
+            ElementType::I64 => modulus_in_place(buffer.elements_mut::<i64>(), modulus)?,
+            ElementType::F64 => modulus_in_place(buffer.elements_mut::<f64>(), modulus)?,
+            ElementType::Utf8 => {
+                return Err(KernelError::Other(
+                    "String tensors aren't supported".to_string(),
+                ))
+            }
         }
+
+        ctx.set_output_tensor(
+            "output",
+            TensorParam {
+                element_type,
+                dimensions: &dimensions,
+                buffer: &buffer,
+            },
+        );
+
+        Ok(())
+    }
+}
+
+fn modulus_in_place<T>(values: &mut [T], modulus: f64) -> Result<(), KernelError>
+where
+    T: ToPrimitive + FromPrimitive + Copy + Display,
+{
+    for value in values {
+        let as_float = value.to_f64().ok_or_else(|| error(*value))?;
+        let after_modulus = as_float % modulus;
+        *value = T::from_f64(after_modulus).ok_or_else(|| error(*value))?;
+    }
+
+    Ok(())
+}
+
+fn error(value: impl Display) -> KernelError {
+    KernelError::Other(format!("Unable to convert `{}` to/from a double", value))
+}
+
+fn get_modulus(get_argument: impl FnOnce(&str) -> Option<String>) -> Result<f64, InvalidArgument> {
+    let value = match get_argument("modulus") {
+        Some(s) => s,
+        None => {
+            return Err(InvalidArgument {
+                name: "modulus".to_string(),
+                reason: BadArgumentReason::NotFound,
+            })
+        }
+    };
+
+    let value = value.parse::<f64>().map_err(|e| InvalidArgument {
+        name: "modulus".to_string(),
+        reason: BadArgumentReason::InvalidValue(e.to_string()),
+    })?;
+
+    if value > 0.0 {
+        Ok(value)
+    } else {
+        Err(InvalidArgument {
+            name: "modulus".to_string(),
+            reason: BadArgumentReason::InvalidValue(
+                "The modulus must be a positive, non-zero number".to_string(),
+            ),
+        })
     }
 }
 
@@ -100,14 +176,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mod_360() {
-        let number = 42 + 360;
-        let mut m = Modulo::new();
-        m.set_modulus("360").unwrap();
-        let input = Tensor::single(number);
+    fn apply_modulus() {
+        let mut values = [0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0];
 
-        let got = m.transform(input);
+        modulus_in_place(&mut values, 2.0).unwrap();
 
-        assert_eq!(got, Tensor::single(42_i64));
+        assert_eq!(values, [0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0]);
     }
 }
