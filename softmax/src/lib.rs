@@ -6,9 +6,10 @@ use crate::{
     },
 };
 
-use hotg_rune_proc_blocks::{ndarray::ArrayViewMut1, BufferExt, ValueType};
-
+use hotg_rune_proc_blocks::{ndarray::ArrayViewMut1, BufferExt, ValueType, ndarray};
 use num_traits::Float;
+use num_traits::Zero;
+
 
 wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
@@ -21,8 +22,9 @@ where
 {
     input.mapv_inplace(|x| x.exp());
 
-    if let Some(sum) = input.mean() {
-        input.mapv_inplace(|x| x / sum);
+    let sum = input.sum();
+    if !num_traits::Zero::is_zero(&sum){
+        input.mapv_inplace(|x| x / sum );
     }
 }
 
@@ -130,5 +132,58 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         );
 
         Ok(())
+    }
+}
+
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_softmax_unfiorm() {
+        let mut input = ndarray::arr1(&[1.0, 1.0, 1.0, 1.0]);
+        let softmax_correct = ndarray::arr1(&[0.25, 0.25, 0.25, 0.25]);
+
+        softmax(input.view_mut());
+        assert_eq!(input, softmax_correct);
+    }
+
+    #[test]
+    fn test_softmax_single() {
+        let mut input = ndarray::arr1(&[1.0, 0.0]);
+        let softmax_correct = ndarray::arr1(&[0.7310585786300049, 0.26894142136999510]);
+        softmax(input.view_mut());
+
+        assert_eq!(input, softmax_correct);
+    }
+
+    #[test]
+    fn test_softmax() {
+
+        let mut input = ndarray::arr1(&[1.0, 2.0, 3.0]);
+        let softmax_correct = ndarray::arr1(&[0.09003057317038046, 0.24472847105479767, 0.6652409557748219]);
+
+        softmax(input.view_mut());
+        assert_eq!(input, softmax_correct);
+    }
+
+    #[test]
+    fn test_softmax_zeros() {
+
+        let mut input = ndarray::arr1(&[0.0, 0.0]);
+        let softmax_correct = ndarray::arr1(&[0.5, 0.5]);
+
+        softmax(input.view_mut());
+        assert_eq!(input, softmax_correct);
+    }
+
+    #[test]
+    fn test_softmax_zero() {
+
+        let mut input = ndarray::arr1(&[0.0]);
+        let softmax_correct = ndarray::arr1(&[1.0]);
+
+        softmax(input.view_mut());
+        assert_eq!(input, softmax_correct);
     }
 }
