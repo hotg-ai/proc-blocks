@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 ndarray = "0.15.4"
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
