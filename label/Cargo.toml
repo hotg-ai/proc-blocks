@@ -5,14 +5,12 @@ edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-libm = {version = "0.2.1", default-features = false}
-hotg-rune-proc-blocks = "^0.11.0"
+hotg-rune-proc-blocks = { path = "../support" }
 line-span = "0.1.3"
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", optional = true }
-
-[features]
-default = []
-metadata = ["wit-bindgen-rust"]
+wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
