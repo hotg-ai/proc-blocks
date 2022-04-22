@@ -4,6 +4,8 @@ version = "0.11.3"
 edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
+description = "Find the normalised exponential function (softmax)."
+homepage = "https://hotg.ai/"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

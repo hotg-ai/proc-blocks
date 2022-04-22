@@ -23,7 +23,7 @@ where
     input.mapv_inplace(|x| x.exp());
 
     let sum = input.sum();
-    if !num_traits::Zero::is_zero(&sum) {
+    if !sum.is_zero() {
         input.mapv_inplace(|x| x / sum);
     }
 }
@@ -80,9 +80,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 
     fn graph(id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&id).ok_or_else(|| {
-            GraphError::Other("Unable to get the graph context".to_string())
-        })?;
+        let ctx =
+            GraphContext::for_node(&id).ok_or(GraphError::MissingContext)?;
 
         ctx.add_input_tensor("input", ElementType::F32, Dimensions::Dynamic);
 
@@ -96,10 +95,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 
     fn kernel(id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&id).ok_or_else(|| {
-            KernelError::Other("Unable to get the kernel context".to_string())
-        })?;
-
+        let ctx =
+            KernelContext::for_node(&id).ok_or(KernelError::MissingContext)?;
         let TensorResult {
             element_type,
             dimensions,
@@ -184,6 +181,16 @@ mod tests {
     fn test_softmax_zero() {
         let mut input = ndarray::arr1(&[0.0]);
         let softmax_correct = ndarray::arr1(&[1.0]);
+
+        softmax(input.view_mut());
+        assert_eq!(input, softmax_correct);
+    }
+
+    #[test]
+    fn test_softmax_empty() {
+        let empty: &[f32] = &[];
+        let mut input = ndarray::Array::from_vec(empty.to_vec());
+        let softmax_correct = ndarray::Array::from_vec(empty.to_vec());
 
         softmax(input.view_mut());
         assert_eq!(input, softmax_correct);
