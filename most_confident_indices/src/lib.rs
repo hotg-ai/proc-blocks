@@ -81,7 +81,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_input_tensor(
             "confidences",
             element_type,
-            Dimensions::Fixed(&[0]),
+            Dimensions::Dynamic,
         );
         ctx.add_output_tensor(
             "indices",
