@@ -22,11 +22,11 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         let mean = TensorMetadata::new("mean");
         mean.set_description("The mean");
-        meta.add_input(&mean);
+        meta.add_output(&mean);
 
         let std_dev = TensorMetadata::new("std_dev");
         std_dev.set_description("The standard deviation.");
-        meta.add_input(&std_dev);
+        meta.add_output(&std_dev);
 
         runtime_v1::register_node(&meta);
     }
