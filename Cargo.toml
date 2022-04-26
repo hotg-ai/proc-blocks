@@ -19,6 +19,7 @@ members = [
     "object_filter",
     "xtask",
     "support",
+    "stats"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
