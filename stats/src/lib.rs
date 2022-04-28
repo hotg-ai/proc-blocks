@@ -24,10 +24,14 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         let mean = TensorMetadata::new("mean");
         mean.set_description("The mean");
+        let hint = supported_shapes(&[ElementType::F64], Dimensions::Dynamic);
+        mean.add_hint(&hint);
         meta.add_output(&mean);
 
         let std_dev = TensorMetadata::new("std_dev");
         std_dev.set_description("The standard deviation.");
+        let hint = supported_shapes(&[ElementType::F64], Dimensions::Dynamic);
+        std_dev.add_hint(&hint);
         meta.add_output(&std_dev);
 
         runtime_v1::register_node(&meta);
