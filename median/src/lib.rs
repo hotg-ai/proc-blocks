@@ -14,23 +14,27 @@ struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
-        let meta = Metadata::new("Median", env!("CARGO_PKG_VERSION"));
-
+        let metadata = Metadata::new("Median", env!("CARGO_PKG_VERSION"));
+        metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
+        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+        metadata.add_tag("numeric");
+        metadata.add_tag("stats");
         let samples = TensorMetadata::new("samples");
         samples.set_description("All samples to perform an average on");
         let hint = supported_shapes(&[ElementType::F64], Dimensions::Dynamic);
         samples.add_hint(&hint);
-        meta.add_input(&samples);
+        metadata.add_input(&samples);
         
 
         let median = TensorMetadata::new("median");
         median.set_description("The median");
         let hint = supported_shapes(&[ElementType::F64], Dimensions::Dynamic);
         median.add_hint(&hint);
-        meta.add_output(&median);
+        metadata.add_output(&median);
         
 
-        runtime_v1::register_node(&meta);
+        runtime_v1::register_node(&metadata);
     }
 
     fn graph(id: String) -> Result<(), GraphError> {

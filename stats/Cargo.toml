@@ -2,6 +2,8 @@
 name = "stats"
 version = "0.0.0"
 edition = "2021"
+repository = "https://github.com/hotg-ai/proc-blocks"
+description = "Calculate the mean and population std deviation of a vector of f64."
 
 [lib]
 crate-type = ["cdylib", "rlib"]

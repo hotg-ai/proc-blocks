@@ -2,6 +2,8 @@
 name = "median"
 version = "0.0.0"
 edition = "2021"
+repository = "https://github.com/hotg-ai/proc-blocks"
+description = "Calculate the median value of an array of f64."
 
 [lib]
 crate-type = ["cdylib", "rlib"]
