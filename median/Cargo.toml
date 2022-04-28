@@ -1,0 +1,13 @@
+[package]
+name = "median"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen" }
+hotg-rune-proc-blocks = { git = "https://github.com/hotg-ai/proc-blocks" }

@@ -787,6 +787,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "median"
+version = "0.0.0"
+dependencies = [
+ "hotg-rune-proc-blocks 0.1.0 (git+https://github.com/hotg-ai/proc-blocks)",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/wasmerio/wit-bindgen)",
+]
+
+[[package]]
 name = "mel"
 version = "0.3.0"
 source = "git+https://github.com/hotg-ai/mel?rev=017694ee3143c11ea9b75ba6cd27fe7c8a69a867#017694ee3143c11ea9b75ba6cd27fe7c8a69a867"

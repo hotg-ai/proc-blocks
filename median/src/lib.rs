@@ -14,21 +14,21 @@ struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
-        let meta = Metadata::new("Statistics", env!("CARGO_PKG_VERSION"));
+        let meta = Metadata::new("Median", env!("CARGO_PKG_VERSION"));
 
         let samples = TensorMetadata::new("samples");
         samples.set_description("All samples to perform an average on");
         let hint = supported_shapes(&[ElementType::F64], Dimensions::Dynamic);
         samples.add_hint(&hint);
         meta.add_input(&samples);
+        
 
-        let mean = TensorMetadata::new("mean");
-        mean.set_description("The mean");
-        meta.add_output(&mean);
-
-        let std_dev = TensorMetadata::new("std_dev");
-        std_dev.set_description("The standard deviation.");
-        meta.add_output(&std_dev);
+        let median = TensorMetadata::new("median");
+        median.set_description("The median");
+        let hint = supported_shapes(&[ElementType::F64], Dimensions::Dynamic);
+        median.add_hint(&hint);
+        meta.add_output(&median);
+        
 
         runtime_v1::register_node(&meta);
     }
@@ -37,8 +37,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = GraphContext::for_node(&id).unwrap();
 
         ctx.add_input_tensor("samples", ElementType::F64, Dimensions::Fixed(&[0]));
-        ctx.add_output_tensor("mean", ElementType::F64, Dimensions::Fixed(&[1]));
-        ctx.add_output_tensor("std_dev", ElementType::F64, Dimensions::Fixed(&[1]));
+        ctx.add_output_tensor("median", ElementType::F64, Dimensions::Fixed(&[1]));
 
         Ok(())
     }
@@ -60,23 +59,17 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 .unwrap(),
             _ => panic!("Handle invalid element type"),
         };
-        let mean = samples.mean().unwrap();
-        let std_dev = samples.std(1.0);
+        let mut median_slice: Vec<f64> = samples.to_slice().unwrap().to_vec();
+            median_slice.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        let median = (median_slice.len() as f32 / 2.0) as i32 as usize; 
 
         ctx.set_output_tensor(
-            "mean",
+            "median",
             TensorParam {
                 element_type: ElementType::F64,
                 dimensions: &[1],
-                buffer: [mean].as_bytes(),
-            },
-        );
-        ctx.set_output_tensor(
-            "std_dev",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &[1],
-                buffer: [std_dev].as_bytes(),
+                buffer: [samples[median]].as_bytes(),
             },
         );
 
