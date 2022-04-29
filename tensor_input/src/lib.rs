@@ -1,13 +1,9 @@
-use crate::{
-    proc_block_v1::{
-        BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-        InvalidInput, KernelError,
-    },
-    runtime_v1::*,
+use crate::proc_block_v1::{
+    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+    InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::common::element_type;
+use hotg_rune_proc_blocks::{prelude::*, runtime_v1::*};
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;
@@ -20,12 +16,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
         metadata.add_tag("input");
 
-        let arg = ArgumentMetadata::new(element_type::NAME);
-        arg.set_description(element_type::DESCRIPTION);
-        arg.set_default_value("f32");
-        let hint = runtime_v1::interpret_as_string_in_enum(element_type::ALL);
-        arg.add_hint(&hint);
-        metadata.add_argument(&arg);
+        let element_type = ArgumentMetadata::element_type();
+        metadata.add_argument(&element_type);
 
         let output = TensorMetadata::new("output");
         let hint = supported_shapes(
@@ -55,27 +47,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             GraphError::Other("Unable to get the graph context".to_string())
         })?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("u8") => ElementType::U8,
-            Some("i8") => ElementType::I8,
-            Some("u16") => ElementType::U16,
-            Some("i16") => ElementType::I16,
-            Some("u32") => ElementType::U32,
-            Some("i32") => ElementType::I32,
-            Some("f32") => ElementType::F32,
-            Some("u64") => ElementType::U64,
-            Some("i64") => ElementType::I64,
-            Some("f64") | None => ElementType::F64,
-            Some("utf8") => ElementType::Utf8,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }))
-            },
-        };
+        let element_type: ElementType =
+            ctx.parse_argument_with_default("element_type", ElementType::F32)?;
 
         ctx.add_output_tensor(
             "output",
@@ -116,5 +89,36 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         );
 
         Ok(())
+    }
+}
+
+impl ContextErrorExt for GraphError {
+    type InvalidArgument = InvalidArgument;
+
+    fn invalid_argument(inner: InvalidArgument) -> Self {
+        GraphError::InvalidArgument(inner)
+    }
+}
+
+impl InvalidArgumentExt for InvalidArgument {
+    fn other(name: &str, msg: impl std::fmt::Display) -> Self {
+        InvalidArgument {
+            name: name.to_string(),
+            reason: BadArgumentReason::Other(msg.to_string()),
+        }
+    }
+
+    fn invalid_value(name: &str, error: impl std::fmt::Display) -> Self {
+        InvalidArgument {
+            name: name.to_string(),
+            reason: BadArgumentReason::InvalidValue(error.to_string()),
+        }
+    }
+
+    fn not_found(name: &str) -> Self {
+        InvalidArgument {
+            name: name.to_string(),
+            reason: BadArgumentReason::NotFound,
+        }
     }
 }

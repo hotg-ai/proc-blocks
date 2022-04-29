@@ -29,6 +29,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let modulo = ArgumentMetadata::new("modulo");
         modulo.add_hint(&runtime_v1::non_negative_number());
         metadata.add_argument(&modulo);
+
         let element_type = ArgumentMetadata::new("element_type");
         element_type
             .set_description("The type of tensor this proc-block will accept");
