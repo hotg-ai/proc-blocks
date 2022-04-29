@@ -65,7 +65,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         ctx.add_output_tensor(
             "output",
-            element_type,
+            pixel_format.element_type(),
             DimensionsParam::Fixed(&[
                 1,
                 width,
@@ -112,13 +112,13 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum PixelFormat {
     RGB8,
 }
 
 impl PixelFormat {
-    fn channels(self) {
+    fn channels(self) -> u32 {
         match self {
             PixelFormat::RGB8 => 3,
         }
@@ -152,3 +152,42 @@ impl Display for UnknownPixelFormat {
 }
 
 impl Error for UnknownPixelFormat {}
+
+impl ContextErrorExt for GraphError {
+    type InvalidArgument = InvalidArgument;
+
+    fn invalid_argument(inner: InvalidArgument) -> Self {
+        GraphError::InvalidArgument(inner)
+    }
+}
+
+impl ContextErrorExt for KernelError {
+    type InvalidArgument = InvalidArgument;
+
+    fn invalid_argument(inner: InvalidArgument) -> Self {
+        KernelError::InvalidArgument(inner)
+    }
+}
+
+impl InvalidArgumentExt for InvalidArgument {
+    fn other(name: &str, msg: impl std::fmt::Display) -> Self {
+        InvalidArgument {
+            name: name.to_string(),
+            reason: BadArgumentReason::Other(msg.to_string()),
+        }
+    }
+
+    fn invalid_value(name: &str, error: impl std::fmt::Display) -> Self {
+        InvalidArgument {
+            name: name.to_string(),
+            reason: BadArgumentReason::InvalidValue(error.to_string()),
+        }
+    }
+
+    fn not_found(name: &str) -> Self {
+        InvalidArgument {
+            name: name.to_string(),
+            reason: BadArgumentReason::NotFound,
+        }
+    }
+}

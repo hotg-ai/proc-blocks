@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 pub mod runtime_v1 {
     // Note: this also generates a `runtime_v1` module, but it's private and
@@ -6,7 +6,7 @@ pub mod runtime_v1 {
     // runtime_v1 module and re-exported its contents.
     wit_bindgen_rust::import!("../../wit-files/rune/runtime-v1.wit");
 
-    use crate::prelude::{ContextErrorExt, InvalidArgumentExt};
+    use crate::bindings::ContextExt;
 
     pub use self::runtime_v1::*;
 
@@ -115,46 +115,15 @@ pub mod runtime_v1 {
         }
     }
 
-    impl GraphContext {
-        pub fn required_argument<E>(&self, name: &str) -> Result<String, E>
-        where
-            E: ContextErrorExt,
-        {
-            self.get_argument(name).ok_or_else(|| {
-                E::invalid_argument(E::InvalidArgument::not_found(name))
-            })
+    impl ContextExt for GraphContext {
+        fn _get_argument(&self, name: &str) -> Option<String> {
+            self.get_argument(name)
         }
+    }
 
-        pub fn parse_argument<T, E>(&self, name: &str) -> Result<T, E>
-        where
-            T: FromStr,
-            T::Err: Display,
-            E: ContextErrorExt,
-        {
-            self.required_argument(name)?
-                .parse()
-                .map_err(|e| E::InvalidArgument::invalid_value(name, e))
-                .map_err(E::invalid_argument)
-        }
-
-        pub fn parse_argument_with_default<T, E>(
-            &self,
-            name: &str,
-            default: T,
-        ) -> Result<T, E>
-        where
-            T: FromStr,
-            T::Err: Display,
-            E: ContextErrorExt,
-        {
-            let arg = match self.get_argument(name) {
-                Some(a) => a,
-                None => return Ok(default),
-            };
-
-            arg.parse()
-                .map_err(|e| E::InvalidArgument::invalid_value(name, e))
-                .map_err(E::invalid_argument)
+    impl ContextExt for KernelContext {
+        fn _get_argument(&self, name: &str) -> Option<String> {
+            self.get_argument(name)
         }
     }
 }
@@ -169,4 +138,49 @@ pub trait InvalidArgumentExt {
     fn other(name: &str, msg: impl Display) -> Self;
     fn invalid_value(name: &str, error: impl Display) -> Self;
     fn not_found(name: &str) -> Self;
+}
+
+pub trait ContextExt {
+    fn _get_argument(&self, name: &str) -> Option<String>;
+
+    fn required_argument<E>(&self, name: &str) -> Result<String, E>
+    where
+        E: ContextErrorExt,
+    {
+        self._get_argument(name).ok_or_else(|| {
+            E::invalid_argument(E::InvalidArgument::not_found(name))
+        })
+    }
+
+    fn parse_argument<T, E>(&self, name: &str) -> Result<T, E>
+    where
+        T: FromStr,
+        T::Err: Display,
+        E: ContextErrorExt,
+    {
+        self.required_argument(name)?
+            .parse()
+            .map_err(|e| E::InvalidArgument::invalid_value(name, e))
+            .map_err(E::invalid_argument)
+    }
+
+    fn parse_argument_with_default<T, E>(
+        &self,
+        name: &str,
+        default: T,
+    ) -> Result<T, E>
+    where
+        T: FromStr,
+        T::Err: Display,
+        E: ContextErrorExt,
+    {
+        let arg = match self._get_argument(name) {
+            Some(a) => a,
+            None => return Ok(default),
+        };
+
+        arg.parse()
+            .map_err(|e| E::InvalidArgument::invalid_value(name, e))
+            .map_err(E::invalid_argument)
+    }
 }

@@ -21,5 +21,7 @@ pub use bindings::runtime_v1;
 
 pub mod prelude {
     #[cfg(feature = "runtime_v1")]
-    pub use crate::bindings::{ContextErrorExt, InvalidArgumentExt};
+    pub use crate::bindings::{
+        ContextErrorExt, ContextExt, InvalidArgumentExt,
+    };
 }

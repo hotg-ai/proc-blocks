@@ -1,16 +1,13 @@
-use crate::{
-    proc_block_v1::{BadInputReason, GraphError, InvalidInput, KernelError},
-    runtime_v1::{
-        register_node, supported_shapes, DimensionsParam, ElementType,
-        GraphContext, KernelContext, Metadata, TensorMetadata, TensorParam,
-        TensorResult,
-    },
+use crate::proc_block_v1::{
+    BadInputReason, GraphError,
+    InvalidInput, KernelError,
 };
 
-use hotg_rune_proc_blocks::{ndarray::ArrayViewMut1, BufferExt, ValueType};
+use hotg_rune_proc_blocks::{
+    ndarray::ArrayViewMut1, runtime_v1::*, BufferExt, ValueType,
+};
 use num_traits::Float;
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;

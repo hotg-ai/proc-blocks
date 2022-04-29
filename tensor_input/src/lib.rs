@@ -15,6 +15,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
         metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
         metadata.add_tag("input");
+        metadata.add_tag("raw");
 
         let element_type = ArgumentMetadata::element_type();
         metadata.add_argument(&element_type);
