@@ -5,6 +5,7 @@ members = [
     "image-normalization",
     "label",
     "modulo",
+    "mean",
     "most_confident_indices",
     "noise-filtering",
     "normalize",
