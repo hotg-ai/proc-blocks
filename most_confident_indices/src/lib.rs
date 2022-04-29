@@ -53,7 +53,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 ElementType::I64,
                 ElementType::F64,
             ],
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
         input.add_hint(&hint);
         metadata.add_input(&input);
@@ -62,7 +62,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         output
             .set_description("The indices, in order of descending confidence.");
         let hint =
-            supported_shapes(&[ElementType::U32], Dimensions::Fixed(&[0]));
+            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[0]));
         output.add_hint(&hint);
         metadata.add_output(&output);
 
@@ -81,12 +81,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_input_tensor(
             "confidences",
             element_type,
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
         ctx.add_output_tensor(
             "indices",
             element_type,
-            Dimensions::Fixed(&[count]),
+            DimensionsParam::Fixed(&[count]),
         );
 
         Ok(())

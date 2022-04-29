@@ -24,7 +24,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.add_tag("numbers");
 
         let input = TensorMetadata::new("input_string_of_numbers");
-        let hint = supported_shapes(&[ElementType::Utf8], Dimensions::Dynamic);
+        let hint =
+            supported_shapes(&[ElementType::Utf8], DimensionsParam::Dynamic);
         input.add_hint(&hint);
         metadata.add_input(&input);
 
@@ -49,7 +50,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             ElementType::I64,
             ElementType::F64,
         ];
-        let hint = supported_shapes(&supported_types, Dimensions::Dynamic);
+        let hint = supported_shapes(&supported_types, DimensionsParam::Dynamic);
         output.add_hint(&hint);
         metadata.add_output(&output);
 
@@ -64,7 +65,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_input_tensor(
             "input_string_of_numbers",
             ElementType::Utf8,
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
 
         let element_type = match ctx.get_argument("element_type").as_deref() {
@@ -97,7 +98,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_output_tensor(
             "parsed_numbers",
             element_type,
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
 
         Ok(())

@@ -4,8 +4,9 @@ use crate::{
         InvalidInput, KernelError,
     },
     runtime_v1::{
-        ArgumentMetadata, ArgumentType, Dimensions, ElementType, GraphContext,
-        KernelContext, Metadata, TensorMetadata, TensorParam, TensorResult,
+        ArgumentMetadata, ArgumentType, DimensionsParam, ElementType,
+        GraphContext, KernelContext, Metadata, TensorMetadata, TensorParam,
+        TensorResult,
     },
 };
 use hotg_rune_proc_blocks::{ndarray::ArrayViewD, BufferExt};
@@ -45,7 +46,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         indices.set_description("Indices for labels in the wordlist.");
         let hint = runtime_v1::supported_shapes(
             &[ElementType::U32],
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
         indices.add_hint(&hint);
         metadata.add_input(&indices);
@@ -54,7 +55,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         output.set_description("The corresponding labels.");
         let hint = runtime_v1::supported_shapes(
             &[ElementType::Utf8],
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
         output.add_hint(&hint);
         metadata.add_output(&output);
@@ -69,8 +70,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let _ = get_wordlist(|n| ctx.get_argument(n))
             .map_err(GraphError::InvalidArgument)?;
 
-        ctx.add_input_tensor("indices", ElementType::U32, Dimensions::Dynamic);
-        ctx.add_output_tensor("labels", ElementType::Utf8, Dimensions::Dynamic);
+        ctx.add_input_tensor(
+            "indices",
+            ElementType::U32,
+            DimensionsParam::Dynamic,
+        );
+        ctx.add_output_tensor(
+            "labels",
+            ElementType::Utf8,
+            DimensionsParam::Dynamic,
+        );
 
         Ok(())
     }
