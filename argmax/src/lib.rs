@@ -103,7 +103,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.set_output_tensor(
             "max_index",
             TensorParam {
-                element_type,
+                element_type: ElementType::U32,
                 dimensions: &dimensions,
                 buffer: &resulting_tensor,
             },

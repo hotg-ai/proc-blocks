@@ -19,6 +19,8 @@ members = [
     "object_filter",
     "xtask",
     "support",
+    "stats",
+    "median"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
@@ -28,3 +30,8 @@ members = [
 
 [profile.dev]
 opt-level = 1
+
+[profile.release]
+strip = "debuginfo"
+opt-level = "s"
+lto = true
