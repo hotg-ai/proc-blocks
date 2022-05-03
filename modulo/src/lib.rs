@@ -1,21 +1,20 @@
 #![allow(dead_code)]
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 use std::fmt::Display;
 
-use crate::{
-    proc_block_v1::{
-        BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-        InvalidInput, KernelError,
-    },
+use crate::proc_block_v1::{
+    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+    InvalidInput, KernelError,
+};
+use hotg_rune_proc_blocks::{
     runtime_v1::{
-        ArgumentMetadata, DimensionsParam, ElementType, GraphContext,
+        self, ArgumentMetadata, DimensionsParam, ElementType, GraphContext,
         KernelContext, Metadata, TensorMetadata, TensorParam, TensorResult,
     },
+    BufferExt,
 };
-use hotg_rune_proc_blocks::BufferExt;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 pub struct ProcBlockV1;

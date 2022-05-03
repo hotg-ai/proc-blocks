@@ -1,12 +1,14 @@
 use std::{cmp::Ordering, convert::TryInto, fmt::Display};
 
-use crate::{proc_block_v1::*, runtime_v1::*};
+use crate::proc_block_v1::*;
 
 use hotg_rune_proc_blocks::{
-    common, ndarray::ArrayView1, BufferExt, SliceExt, ValueType,
+    common,
+    ndarray::ArrayView1,
+    runtime_v1::{self, *},
+    BufferExt, SliceExt, ValueType,
 };
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;

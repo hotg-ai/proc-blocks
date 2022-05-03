@@ -1,14 +1,14 @@
-use crate::{
-    proc_block_v1::{
-        BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-        InvalidInput, KernelError,
-    },
-    runtime_v1::*,
+use crate::proc_block_v1::{
+    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+    InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{common, BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{
+    common,
+    runtime_v1::{self, *},
+    BufferExt, SliceExt,
+};
 use std::{fmt::Display, str::FromStr};
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 /// A proc block which can parse a string to numbers.

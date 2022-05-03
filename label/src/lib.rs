@@ -1,19 +1,19 @@
-use crate::{
-    proc_block_v1::{
-        BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-        InvalidInput, KernelError,
-    },
+use crate::proc_block_v1::{
+    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+    InvalidInput, KernelError,
+};
+use hotg_rune_proc_blocks::{
+    ndarray::ArrayViewD,
     runtime_v1::{
-        ArgumentMetadata, ArgumentType, DimensionsParam, ElementType,
+        self, ArgumentMetadata, ArgumentType, DimensionsParam, ElementType,
         GraphContext, KernelContext, Metadata, TensorMetadata, TensorParam,
         TensorResult,
     },
+    BufferExt,
 };
-use hotg_rune_proc_blocks::{ndarray::ArrayViewD, BufferExt};
 use line_span::LineSpans;
 use std::{fmt::Debug, ops::Range};
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;

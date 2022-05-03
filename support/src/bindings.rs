@@ -4,7 +4,7 @@ pub mod runtime_v1 {
     // Note: this also generates a `runtime_v1` module, but it's private and
     // can't be exported. As a workaround, we've wrapped it in another
     // runtime_v1 module and re-exported its contents.
-    wit_bindgen_rust::import!("../../wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 
     use crate::bindings::ContextExt;
 

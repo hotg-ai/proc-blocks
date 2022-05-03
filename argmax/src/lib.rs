@@ -1,11 +1,9 @@
-use crate::{
-    proc_block_v1::{BadInputReason, GraphError, InvalidInput, KernelError},
-    runtime_v1::*,
+use crate::proc_block_v1::{
+    BadInputReason, GraphError, InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::BufferExt;
+use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt};
 use std::cmp::Ordering;
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;
