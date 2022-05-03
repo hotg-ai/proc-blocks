@@ -1,9 +1,10 @@
 [package]
 name = "label"
-version = "0.11.3"
+version = "0.12.0"
 edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
+description = "Using a wordlist, retrieve the label that corresponds to each element in a tensor."
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -14,3 +15,7 @@ crate-type = ["cdylib", "rlib"]
 hotg-rune-proc-blocks = { path = "../support" }
 line-span = "0.1.3"
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"

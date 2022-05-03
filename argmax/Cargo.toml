@@ -1,6 +1,6 @@
 [package]
 name = "argmax"
-version = "0.11.3"
+version = "0.12.0"
 edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
@@ -14,3 +14,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 hotg-rune-proc-blocks = { path = "../support" }
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"

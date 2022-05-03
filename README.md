@@ -11,16 +11,63 @@ Runes.
 
 ### Releasing
 
-Whenever the `hotg-rune-proc-blocks` and `hotg-rune-core` crates make a semver
-breaking release you will need to bump their version numbers in each proc
-block's `Cargo.toml` file and fix any compile errors.
+All processing blocks are published to the WebAssembly Package Manager,
+[WAPM][wapm].
 
-Afterwards, use [`cargo-release`][cargo-release] to update all version numbers
-and tag the commit appropriately.
+The Wasmer Docs have a [*Publishing your Package*][wapm-publish] page detailing
+how to write a `wapm.toml` file and use it to publish to WAPM, but for
+convenience you can use [the `cargo wapm` CLI][cargo-wapm] to automate
+everything based on your `Cargo.toml`.
+
+The `cargo wapm` README has detailed installation and usage info, but the
+general idea is to `cd` to a directory and run `cargo wapm --dry-run` to see
+what would be published.
+
+For example,
 
 ```console
-$ cargo release --workspace 0.11.1
+$ cd argmax
+$ cargo wapm --dry-run
+$ tree ../target/wapm/argmax
+../target/wapm/argmax
+├── argmax.wasm
+└── wapm.toml
+
+0 directories, 2 files
+
+$ cat ../target/wapm/argmax/wapm.toml
+[package]
+name = "hotg-ai/argmax"
+version = "0.12.0"
+description = "Find the index of the largest element."
+repository = "https://github.com/hotg-ai/proc-blocks"
+
+[[module]]
+name = "argmax"
+source = "argmax.wasm"
+abi = "none"
 ```
+
+Once you are happy, you can run `cargo wapm` to publish for reals.
+
+The `--workspace` flag can also be used to publish every package in the
+workspace with a `[package.metadata.wapm]` table in their `Cargo.toml`.
+
+> **Note:** the `cargo wapm` tool **does not handle version bumps**, so you will
+> need to use a separate tool for that.
+
+Typically, you will use [`cargo-release`][cargo-release] to update all version
+numbers and tag the commit appropriately before publishing every proc-block in
+the repo.
+
+```console
+$ cargo release --workspace 0.12.0
+$ cargo wapm --workspace
+```
+
+> **Note:** Previously, we would handle releases by uploading `*.wasm` binaries
+> directly to an S3 bucket that the Forge UI would pull binaries from. You may
+> still see references to `cargo xtask dist` around the place.
 
 ### Metadata
 
@@ -156,3 +203,6 @@ do their best to avoid them, and welcome help in analysing and fixing them.
 [crev]: https://github.com/crev-dev/cargo-crev
 [hotg]: https://hotg.dev/
 [cargo-release]: https://crates.io/crates/cargo-release
+[wapm]: https://wapm.io/
+[wapm-publish]: https://docs.wasmer.io/ecosystem/wapm/publishing-your-package
+[cargo-wapm]: https://github.com/hotg-ai/cargo-wapm
