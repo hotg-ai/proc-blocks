@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "argmax"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
@@ -695,7 +695,7 @@ dependencies = [
 
 [[package]]
 name = "label"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "line-span",
@@ -831,7 +831,7 @@ checksum = "7843ec2de400bcbc6a6328c958dc38e5359da6e93e72e37bc5246bf1ae776389"
 
 [[package]]
 name = "most_confident_indices"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
@@ -1000,7 +1000,7 @@ dependencies = [
 
 [[package]]
 name = "parse"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
@@ -1365,7 +1365,7 @@ checksum = "f2dd574626839106c320a323308629dcb1acfc96e32a8cba364ddc61ac23ee83"
 
 [[package]]
 name = "softmax"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "num-traits",

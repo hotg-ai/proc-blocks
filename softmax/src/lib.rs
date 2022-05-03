@@ -6,9 +6,7 @@ use crate::{
     },
 };
 
-use hotg_rune_proc_blocks::{
-    ndarray, ndarray::ArrayViewMut1, BufferExt, ValueType,
-};
+use hotg_rune_proc_blocks::{ndarray::ArrayViewMut1, BufferExt, ValueType};
 use num_traits::Float;
 
 wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
@@ -132,9 +130,10 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
+#[cfg(test)]
 mod tests {
-
     use super::*;
+    use hotg_rune_proc_blocks::ndarray;
 
     #[test]
     fn test_softmax_unfiorm() {
