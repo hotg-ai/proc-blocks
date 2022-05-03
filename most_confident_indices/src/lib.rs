@@ -1,12 +1,14 @@
 use std::{cmp::Ordering, convert::TryInto, fmt::Display};
 
-use crate::{proc_block_v1::*, runtime_v1::*};
+use crate::proc_block_v1::*;
 
 use hotg_rune_proc_blocks::{
-    common, ndarray::ArrayView1, BufferExt, SliceExt, ValueType,
+    common,
+    ndarray::ArrayView1,
+    runtime_v1::{self, *},
+    BufferExt, SliceExt, ValueType,
 };
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;
@@ -53,7 +55,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 ElementType::I64,
                 ElementType::F64,
             ],
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
         input.add_hint(&hint);
         metadata.add_input(&input);
@@ -62,7 +64,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         output
             .set_description("The indices, in order of descending confidence.");
         let hint =
-            supported_shapes(&[ElementType::U32], Dimensions::Fixed(&[0]));
+            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[0]));
         output.add_hint(&hint);
         metadata.add_output(&output);
 
@@ -81,12 +83,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_input_tensor(
             "confidences",
             element_type,
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
         ctx.add_output_tensor(
             "indices",
             element_type,
-            Dimensions::Fixed(&[count]),
+            DimensionsParam::Fixed(&[count]),
         );
 
         Ok(())

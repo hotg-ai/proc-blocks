@@ -603,6 +603,7 @@ name = "hotg-rune-proc-blocks"
 version = "0.1.0"
 dependencies = [
  "ndarray",
+ "wit-bindgen-rust",
 ]
 
 [[package]]
@@ -640,6 +641,14 @@ version = "0.11.3"
 dependencies = [
  "hotg-rune-proc-blocks 0.11.3",
  "num-traits",
+ "wit-bindgen-rust",
+]
+
+[[package]]
+name = "image_input"
+version = "0.1.0"
+dependencies = [
+ "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
 ]
 
@@ -1452,6 +1461,14 @@ dependencies = [
  "redox_syscall",
  "remove_dir_all",
  "winapi",
+]
+
+[[package]]
+name = "tensor_input"
+version = "0.1.0"
+dependencies = [
+ "hotg-rune-proc-blocks 0.1.0",
+ "wit-bindgen-rust",
 ]
 
 [[package]]

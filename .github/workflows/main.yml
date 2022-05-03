@@ -26,7 +26,6 @@ jobs:
           path: |
             ~/.cargo
             target/
-            Cargo.lock
           key: ${{ runner.os }}-${{ github.job }}-${{ matrix.rust }}
       - name: Setup Rust Toolchain
         uses: actions-rs/toolchain@v1
@@ -39,17 +38,17 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --all --verbose
+          args: --all --verbose --locked
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all --verbose
+          args: --all --verbose --locked
       - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all --verbose
+          args: --all --verbose --locked
 
   compile-to-wasm:
     name: Compile to WebAssembly
@@ -125,7 +124,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: doc
-          args: --all --verbose
+          args: --all --verbose --locked
       - name: Redirect top-level GitHub Pages
         run: 'echo ''<meta http-equiv="refresh" content="0; url=proc_blocks/index.html" />'' > target/doc/index.html'
         shell: bash

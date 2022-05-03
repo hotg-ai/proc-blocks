@@ -2,6 +2,9 @@
 
 pub extern crate ndarray;
 
+#[cfg(feature = "runtime_v1")]
+mod bindings;
+
 mod buffer_ext;
 pub mod common;
 mod string_builder;
@@ -12,3 +15,13 @@ pub use crate::{
     string_builder::{string_tensor_from_ndarray, StringBuilder},
     value_type::{SliceExt, ValueType},
 };
+
+#[cfg(feature = "runtime_v1")]
+pub use bindings::runtime_v1;
+
+pub mod prelude {
+    #[cfg(feature = "runtime_v1")]
+    pub use crate::bindings::{
+        ContextErrorExt, ContextExt, InvalidArgumentExt,
+    };
+}

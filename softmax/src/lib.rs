@@ -1,15 +1,13 @@
-use crate::{
-    proc_block_v1::{BadInputReason, GraphError, InvalidInput, KernelError},
-    runtime_v1::{
-        register_node, supported_shapes, Dimensions, ElementType, GraphContext,
-        KernelContext, Metadata, TensorMetadata, TensorParam, TensorResult,
-    },
+use crate::proc_block_v1::{
+    BadInputReason, GraphError,
+    InvalidInput, KernelError,
 };
 
-use hotg_rune_proc_blocks::{ndarray::ArrayViewMut1, BufferExt, ValueType};
+use hotg_rune_proc_blocks::{
+    ndarray::ArrayViewMut1, runtime_v1::*, BufferExt, ValueType,
+};
 use num_traits::Float;
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;
@@ -59,7 +57,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let input = TensorMetadata::new("input");
         let hint = supported_shapes(
             &[ElementType::F32, ElementType::F64],
-            Dimensions::Fixed(&[0]),
+            DimensionsParam::Fixed(&[0]),
         );
         input.add_hint(&hint);
         metadata.add_input(&input);
@@ -69,7 +67,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             .set_description("Vector normalised into probability distribution");
         let hint = supported_shapes(
             &[ElementType::F32, ElementType::F64],
-            Dimensions::Fixed(&[0]),
+            DimensionsParam::Fixed(&[0]),
         );
         soft_max.add_hint(&hint);
         metadata.add_output(&soft_max);
@@ -81,12 +79,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx =
             GraphContext::for_node(&id).ok_or(GraphError::MissingContext)?;
 
-        ctx.add_input_tensor("input", ElementType::F32, Dimensions::Dynamic);
+        ctx.add_input_tensor(
+            "input",
+            ElementType::F32,
+            DimensionsParam::Dynamic,
+        );
 
         ctx.add_output_tensor(
             "soft_max",
             ElementType::F32,
-            Dimensions::Dynamic,
+            DimensionsParam::Dynamic,
         );
 
         Ok(())

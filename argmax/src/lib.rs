@@ -1,11 +1,9 @@
-use crate::{
-    proc_block_v1::{BadInputReason, GraphError, InvalidInput, KernelError},
-    runtime_v1::*,
+use crate::proc_block_v1::{
+    BadInputReason, GraphError, InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::BufferExt;
+use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt};
 use std::cmp::Ordering;
 
-wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 struct ProcBlockV1;
@@ -22,14 +20,14 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         let input = TensorMetadata::new("input");
         let hint =
-            supported_shapes(&[ElementType::F32], Dimensions::Fixed(&[0]));
+            supported_shapes(&[ElementType::F32], DimensionsParam::Fixed(&[0]));
         input.add_hint(&hint);
         metadata.add_input(&input);
 
         let max = TensorMetadata::new("max_index");
         max.set_description("The index of the element with the highest value");
         let hint =
-            supported_shapes(&[ElementType::U32], Dimensions::Fixed(&[1]));
+            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[1]));
         max.add_hint(&hint);
         metadata.add_output(&max);
 
@@ -44,12 +42,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_input_tensor(
             "input",
             ElementType::F32,
-            Dimensions::Fixed(&[0]),
+            DimensionsParam::Fixed(&[0]),
         );
         ctx.add_output_tensor(
             "max_index",
             ElementType::U32,
-            Dimensions::Fixed(&[1]),
+            DimensionsParam::Fixed(&[1]),
         );
 
         Ok(())
@@ -103,7 +101,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.set_output_tensor(
             "max_index",
             TensorParam {
-                element_type,
+                element_type: ElementType::U32,
                 dimensions: &dimensions,
                 buffer: &resulting_tensor,
             },

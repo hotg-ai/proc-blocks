@@ -221,11 +221,11 @@ impl Display for Dimension {
     }
 }
 
-impl From<runtime_v1::Dimensions<'_>> for Dimensions {
-    fn from(d: runtime_v1::Dimensions<'_>) -> Self {
+impl From<runtime_v1::DimensionsParam<'_>> for Dimensions {
+    fn from(d: runtime_v1::DimensionsParam<'_>) -> Self {
         match d {
-            runtime_v1::Dimensions::Dynamic => Dimensions::Dynamic,
-            runtime_v1::Dimensions::Fixed(dims) => Dimensions::Fixed(
+            runtime_v1::DimensionsParam::Dynamic => Dimensions::Dynamic,
+            runtime_v1::DimensionsParam::Fixed(dims) => Dimensions::Fixed(
                 dims.iter()
                     .map(|d| match NonZeroUsize::new(d.get() as usize) {
                         Some(d) => Dimension::Fixed(d),
@@ -302,6 +302,7 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
     type GraphContext = Arc<Mutex<GraphContext>>;
     type KernelContext = Arc<Mutex<KernelContext>>;
     type Metadata = Mutex<Metadata>;
+    type Model = ();
     type TensorHint = TensorHint;
     type TensorMetadata = Mutex<TensorMetadata>;
 
@@ -434,7 +435,7 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
     fn supported_shapes(
         &mut self,
         supported_element_type: Vec<runtime_v1::ElementType>,
-        dimensions: runtime_v1::Dimensions<'_>,
+        dimensions: runtime_v1::DimensionsParam<'_>,
     ) -> Self::TensorHint {
         TensorHint::SupportedShape {
             accepted_element_types: supported_element_type
@@ -500,7 +501,7 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         self_: &Self::GraphContext,
         name: &str,
         element_type: runtime_v1::ElementType,
-        dimensions: runtime_v1::Dimensions<'_>,
+        dimensions: runtime_v1::DimensionsParam<'_>,
     ) {
         self_.lock().unwrap().node.inputs.push(TensorInfo {
             name: name.to_string(),
@@ -514,7 +515,7 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         self_: &Self::GraphContext,
         name: &str,
         element_type: runtime_v1::ElementType,
-        dimensions: runtime_v1::Dimensions<'_>,
+        dimensions: runtime_v1::DimensionsParam<'_>,
     ) {
         self_.lock().unwrap().node.outputs.push(TensorInfo {
             name: name.to_string(),
@@ -564,6 +565,52 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         data: runtime_v1::LogValueMap<'_>,
     ) {
         tracing::info!(?metadata, ?data, message);
+    }
+
+    fn kernel_context_get_global_input(
+        &mut self,
+        _self_: &Self::KernelContext,
+        _name: &str,
+    ) -> Option<runtime_v1::TensorResult> {
+        todo!()
+    }
+
+    fn kernel_context_set_global_output(
+        &mut self,
+        _self_: &Self::KernelContext,
+        _name: &str,
+        _tensor: runtime_v1::TensorParam<'_>,
+    ) {
+        todo!()
+    }
+
+    fn model_load(
+        &mut self,
+        _model_format: &str,
+        _model: &[u8],
+        _arguments: Vec<(&str, &str)>,
+    ) -> Result<Self::Model, runtime_v1::ModelLoadError> {
+        todo!()
+    }
+
+    fn model_infer(
+        &mut self,
+        _self_: &Self::Model,
+        _inputs: Vec<runtime_v1::TensorParam<'_>>,
+    ) -> Result<Vec<runtime_v1::TensorResult>, runtime_v1::ModelInferError>
+    {
+        todo!()
+    }
+
+    fn model_inputs(&mut self, _self_: &Self::Model) -> Vec<runtime_v1::Shape> {
+        todo!()
+    }
+
+    fn model_outputs(
+        &mut self,
+        _self_: &Self::Model,
+    ) -> Vec<runtime_v1::Shape> {
+        todo!()
     }
 }
 
