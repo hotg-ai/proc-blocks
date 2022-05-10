@@ -136,7 +136,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         matched.set_description("A true/false tensor that specifies if the text matches the matching regex");
         let hint = supported_shapes(&[ElementType::U8], Dimensions::Dynamic);
         matched.add_hint(&hint);
-        metadata.add_input(&matched);
+        metadata.add_output(&matched);
 
         runtime_v1::register_node(&metadata);
     }

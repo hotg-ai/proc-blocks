@@ -8,6 +8,9 @@ description = "Given a body of text and a regex, extract all parts of the text t
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen" }
 hotg-rune-proc-blocks = { git = "https://github.com/hotg-ai/proc-blocks" }
