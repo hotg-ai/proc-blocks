@@ -9,6 +9,7 @@ members = [
     "noise-filtering",
     "normalize",
     "utf8_decode",
+    "regex_matcher",
     "parse",
     "segment_output",
     "tokenizers",

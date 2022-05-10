@@ -1,0 +1,14 @@
+[package]
+name = "regex_matcher"
+version = "0.11.9"
+edition = "2018"
+publish = false
+repository = "https://github.com/hotg-ai/proc-blocks"
+description = "Given a body of text and a regex, extract all parts of the text that match the regex."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen" }
+hotg-rune-proc-blocks = { git = "https://github.com/hotg-ai/proc-blocks" }
+
