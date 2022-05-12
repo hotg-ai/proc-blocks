@@ -52,7 +52,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             DimensionsParam::Fixed(&[1, 0]),
         );
         ctx.add_output_tensor(
-            "max_index",
+            "output",
             ElementType::F32,
             DimensionsParam::Fixed(&[1, 0]),
         );
@@ -102,7 +102,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let resulting_tensor = output.as_bytes();
 
         ctx.set_output_tensor(
-            "max_index",
+            "output",
             TensorParam {
                 element_type: ElementType::F32,
                 dimensions: &dimensions,
