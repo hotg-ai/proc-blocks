@@ -92,7 +92,7 @@ dependencies = [
 name = "audio_float_conversion"
 version = "0.11.3"
 dependencies = [
- "hotg-rune-proc-blocks 0.11.3",
+ "hotg-rune-proc-blocks 0.1.0",
  "pretty_assertions",
  "wit-bindgen-rust",
 ]
