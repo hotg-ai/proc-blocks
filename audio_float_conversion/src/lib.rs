@@ -1,7 +1,9 @@
 use crate::proc_block_v1::{
     BadInputReason, GraphError, InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{
+    ndarray::ArrayView1, runtime_v1::*, BufferExt, SliceExt,
+};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -41,10 +43,10 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         register_node(&metadata);
     }
+
     fn graph(id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&id).ok_or_else(|| {
-            GraphError::Other("Unable to get the graph context".to_string())
-        })?;
+        let ctx =
+            GraphContext::for_node(&id).ok_or(GraphError::MissingContext)?;
 
         ctx.add_input_tensor(
             "input",
@@ -59,10 +61,10 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         Ok(())
     }
+
     fn kernel(id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&id).ok_or_else(|| {
-            KernelError::Other("Unable to get the kernel context".to_string())
-        })?;
+        let ctx =
+            KernelContext::for_node(&id).ok_or(KernelError::MissingContext)?;
 
         let TensorResult {
             element_type,
@@ -75,11 +77,19 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             })
         })?;
 
-        check_input_dimensions(&dimensions);
-
-        let output = match element_type {
+        let tensor: ArrayView1<i16> = match element_type {
             ElementType::I16 => {
-                audio_float_conversion(buffer.elements::<i16>())
+                let tensor = buffer.view::<i16>(&dimensions)
+                    .map_err(|e| KernelError::InvalidInput(InvalidInput {
+                        name: "input".to_string(),
+                        reason: BadInputReason::Other(e.to_string()),
+                    }))?;
+
+                    tensor.into_dimensionality()
+                    .map_err(|_| KernelError::InvalidInput(InvalidInput {
+                        name: "input".to_string(),
+                        reason: BadInputReason::UnsupportedShape,
+                    }))?
             },
 
             other => {
@@ -90,23 +100,14 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             },
         };
 
-        let output = match output {
-            Some(ix) => ix,
-            None => {
-                return Err(KernelError::Other(
-                    "The input tensor was empty".to_string(),
-                ))
-            },
-        };
-
-        let resulting_tensor = output.as_bytes();
+        let output = audio_float_conversion(tensor);
 
         ctx.set_output_tensor(
             "output",
             TensorParam {
                 element_type: ElementType::F32,
                 dimensions: &dimensions,
-                buffer: &resulting_tensor,
+                buffer: output.as_bytes(),
             },
         );
 
@@ -114,21 +115,11 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn check_input_dimensions(dimensions: &[u32]) {
-    assert_eq!(
-        (!(dimensions.len() == 2 && dimensions[0] == 1)
-            || !(dimensions.len() == 1)),
-        true,
-        "This proc block only supports 1D outputs (requested output: {:?})",
-        dimensions
-    );
-}
-fn audio_float_conversion(values: &[i16]) -> Option<Vec<f32>> {
-    let mut output = Vec::new();
-    for i in 0..values.len() {
-        output.push((values[i] as f32 / I16_MAX_AS_FLOAT).clamp(-1.0, 1.0));
-    }
-    Some(output)
+fn audio_float_conversion(values: ArrayView1<'_, i16>) -> Vec<f32> {
+    values
+        .iter()
+        .map(|&value| (value as f32 / I16_MAX_AS_FLOAT).clamp(-1.0, 1.0))
+        .collect()
 }
 
 #[cfg(test)]
@@ -136,13 +127,16 @@ mod tests {
     use super::*;
     extern crate alloc;
     use alloc::vec;
+    use hotg_rune_proc_blocks::ndarray::array;
 
     #[test]
     fn handle_empty() {
-        let input = [0; 15];
-        let got = audio_float_conversion(&input).unwrap();
-        let dim = got.len();
-        assert_eq!(dim, 15);
+        let input = array![0, 0, 0, 0, 0, 0];
+        let should_be = vec![0.0_f32, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+        let got = audio_float_conversion(input.view());
+
+        assert_eq!(got, should_be);
     }
 
     #[test]
@@ -150,20 +144,20 @@ mod tests {
         let max = i16::MAX;
         let min = i16::MIN;
 
-        let input = [0, max / 2, min / 2];
+        let input = array![0, max / 2, min / 2];
 
-        let got = audio_float_conversion(&input).unwrap();
+        let got = audio_float_conversion(input.view());
 
         assert_eq!(got, vec![0.0, 0.49998474, -0.50001526]);
     }
     #[test]
-    fn does_clutch_work() {
+    fn clamp_to_bounds() {
         let max = i16::MAX;
         let min = i16::MIN;
 
-        let input = [max, min, min + 1];
+        let input = array![max, min, min + 1];
 
-        let got = audio_float_conversion(&input).unwrap();
+        let got = audio_float_conversion(input.view());
 
         assert_eq!(got, vec![1.0, -1.0, -1.0]);
     }
