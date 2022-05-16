@@ -4,6 +4,7 @@ version = "0.12.0"
 edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
+description = "Converted values from i16 data type to a floating-point value."
 
 [lib]
 crate-type = ["cdylib", "rlib"]
