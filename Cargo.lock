@@ -981,8 +981,9 @@ dependencies = [
 name = "object_filter"
 version = "0.11.3"
 dependencies = [
- "hotg-rune-proc-blocks 0.11.3",
+ "hotg-rune-proc-blocks 0.1.0",
  "libm",
+ "num-traits",
  "wit-bindgen-rust",
 ]
 

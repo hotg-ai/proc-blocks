@@ -1,12 +1,19 @@
-#![cfg_attr(not(feature = "metadata"), no_std)]
+use crate::proc_block_v1::*;
+use hotg_rune_proc_blocks::{
+    runtime_v1::{self, *},
+    BufferExt, SliceExt,
+};
+use libm::fabsf;
+use num_traits::ToPrimitive;
 
 #[macro_use]
 extern crate alloc;
 
 use alloc::vec::Vec;
 use core::cmp::Ordering;
-use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
-use libm::fabsf;
+use std::fmt::Display;
+
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 /// A proc-block which takes 3-d tensor `[1, num_detection, detection_box(x, y,
 /// w, h) + confidence_scores + total_detection_classes]` and filter the
@@ -17,49 +24,178 @@ use libm::fabsf;
 /// giving a 2-d tensor with dimension `[*, 6]` (where * is total number of
 /// detected objects,  and 6 -> `[ x-coordinate, y-coordinate, h, w,
 /// confidence_value, label_index]`) as output.
-#[derive(Debug, Clone, PartialEq, ProcBlock)]
-pub struct ObjectFilter {
-    threshold: f32,
-}
+struct ProcBlockV1;
 
-impl ObjectFilter {
-    pub const fn new() -> Self { ObjectFilter { threshold: 0.7 } }
-}
+impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
+    fn register_metadata() {
+        let metadata =
+            Metadata::new("Object Filter", env!("CARGO_PKG_VERSION"));
+        metadata.set_description(
+                "Given a set of detected objects and their locations, remove duplicates and any objects below a certain threshold.",
+            );
+        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+        metadata.add_tag("image");
+        metadata.add_tag("classify");
 
-impl Default for ObjectFilter {
-    fn default() -> Self { ObjectFilter::new() }
-}
+        let threshold = ArgumentMetadata::new("threshold");
+        threshold.set_description(
+            "The minimum confidence value for an object to be included.",
+        );
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        threshold.add_hint(&hint);
+        threshold.set_default_value("0.7");
+        metadata.add_argument(&threshold);
 
-impl Transform<Tensor<f32>> for ObjectFilter {
-    type Output = Tensor<f32>;
+        let input = TensorMetadata::new("bounding_boxes");
+        input.set_description("An arbitrary length tensor of detections, where each row starts with `[x, y, height, width, max_confidence, ...]` followed by an arbitrary number of confidence values (one value for each object type being detected).");
+        let hint = supported_shapes(
+            &[ElementType::F32],
+            DimensionsParam::Fixed(&[1, 0, 0]),
+        );
+        input.add_hint(&hint);
+        metadata.add_input(&input);
 
-    fn transform(&mut self, input: Tensor<f32>) -> Tensor<f32> {
-        let dim = input.dimensions();
-        let rectangles = input.view::<3>().expect("a 3-d tensor");
-        let mut objects: Vec<Object> = (0..dim[1])
-            .map(|object_index| {
-                rectangles.slice::<1>(&[0, object_index]).unwrap()
-            })
-            .filter(|view| view[4] > self.threshold)
-            .map(|view| Object::from_row(view.elements()))
-            .collect();
+        let output = TensorMetadata::new("normalized");
+        output.set_description("The filtered objects and their indices as a list of objects, where each row contains `[x, y, height, width, confidence, index]`.");
+        let hint = supported_shapes(
+            &[ElementType::F32],
+            DimensionsParam::Fixed(&[0, 5]),
+        );
+        output.add_hint(&hint);
+        metadata.add_output(&output);
 
-        while let Some((first, second)) = find_duplicate(&objects) {
-            if objects[first].confidence > objects[second].confidence {
-                objects.remove(second);
-            } else {
-                objects.remove(first);
-            }
-        }
-
-        let rows = objects.len();
-        let elements = objects
-            .into_iter()
-            .flat_map(|j| j.into_elements())
-            .collect();
-
-        Tensor::new_row_major(elements, vec![rows, 6])
+        register_node(&metadata);
     }
+
+    fn graph(node_id: String) -> Result<(), GraphError> {
+        let ctx = GraphContext::for_node(&node_id)
+            .ok_or(GraphError::MissingContext)?;
+
+        let threshold = get_threshold(|n| ctx.get_argument(n))
+            .map_err(GraphError::InvalidArgument)?;
+
+        ctx.add_input_tensor(
+            "bounding_boxes",
+            ElementType::F32,
+            DimensionsParam::Dynamic,
+        );
+        ctx.add_output_tensor(
+            "normalized",
+            ElementType::F32,
+            DimensionsParam::Fixed(&[0, 5]),
+        );
+
+        Ok(())
+    }
+
+    fn kernel(node_id: String) -> Result<(), KernelError> {
+        let ctx = KernelContext::for_node(&node_id)
+            .ok_or(KernelError::MissingContext)?;
+
+        let threshold = get_threshold(|n| ctx.get_argument(n))
+            .map_err(KernelError::InvalidArgument)?;
+
+        let TensorResult {
+            element_type,
+            dimensions,
+            buffer,
+        } = ctx.get_input_tensor("bounding_boxes").ok_or_else(|| {
+            KernelError::InvalidInput(InvalidInput {
+                name: "bounding_boxes".to_string(),
+                reason: BadInputReason::NotFound,
+            })
+        })?;
+
+        let output = match element_type {
+            ElementType::F32 => transform(buffer, &dimensions, threshold),
+            other => {
+                return Err(KernelError::Other(format!(
+                "The Object Filter proc-block doesn't support {:?} element type",
+                other,
+                )))
+            },
+        };
+
+        let output = match output {
+            Some(out) => out,
+            None => {
+                return Err(KernelError::Other(
+                    "The input tensor was empty".to_string(),
+                ))
+            },
+        };
+
+        ctx.set_output_tensor(
+            "normalized",
+            TensorParam {
+                element_type: ElementType::U32,
+                dimensions: &dimensions,
+                buffer: &output.as_bytes(),
+            },
+        );
+
+        Ok(())
+    }
+}
+
+fn get_threshold(
+    get_argument: impl FnOnce(&str) -> Option<String>,
+) -> Result<f32, InvalidArgument> {
+    get_argument("threshold")
+        .ok_or_else(|| InvalidArgument::not_found("threshold"))?
+        .parse::<f32>()
+        .map_err(|e| InvalidArgument::invalid_value("threshold", e))
+}
+
+impl InvalidArgument {
+    fn not_found(name: impl Into<String>) -> Self {
+        InvalidArgument {
+            name: name.into(),
+            reason: BadArgumentReason::NotFound,
+        }
+    }
+
+    fn invalid_value(name: impl Into<String>, reason: impl Display) -> Self {
+        InvalidArgument {
+            name: name.into(),
+            reason: BadArgumentReason::InvalidValue(reason.to_string()),
+        }
+    }
+}
+
+impl InvalidInput {
+    fn invalid_value(name: impl Into<String>, reason: impl Display) -> Self {
+        InvalidInput {
+            name: name.into(),
+            reason: BadInputReason::InvalidValue(reason.to_string()),
+        }
+    }
+}
+
+fn transform(input: Vec<u8>, dim: &[u32], threshold: f32) -> Vec<f32> {
+    let rectangles = input.view::<f32>(&dim).expect("a 3-d tensor");
+    let mut objects: Vec<Object> = (0..dim[1])
+        .map(|object_index| rectangles.slice::<1>(&[0, object_index]).unwrap())
+        .filter(|view| view[4] > threshold)
+        .map(|view| Object::from_row(view.elements()))
+        .collect();
+
+    while let Some((first, second)) = find_duplicate(&objects) {
+        if objects[first].confidence > objects[second].confidence {
+            objects.remove(second);
+        } else {
+            objects.remove(first);
+        }
+    }
+
+    let rows = objects.len();
+    let elements = objects
+        .into_iter()
+        .flat_map(|j| j.into_elements())
+        .collect();
+
+    Tensor::new_row_major(elements, vec![rows, 6])
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -130,12 +266,8 @@ fn find_duplicate(objects: &[Object]) -> Option<(usize, usize)> {
 
 #[cfg(feature = "metadata")]
 pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
 
     struct RuneV1;
 
