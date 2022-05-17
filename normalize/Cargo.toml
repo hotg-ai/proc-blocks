@@ -5,15 +5,18 @@ authors = ["The Rune Developers <developers@hotg.ai>"]
 edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
+description = "normalizes the input to the range [0, 1]"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hotg-rune-proc-blocks = "^0.11.0"
 num-traits = "0.2.14"
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", optional = true }
+hotg-rune-proc-blocks = { path = "../support" }
+wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
 
-
-[features]
-default = []
-metadata = ["wit-bindgen-rust"]
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"
