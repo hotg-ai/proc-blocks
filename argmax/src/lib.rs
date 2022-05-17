@@ -82,8 +82,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             ElementType::F64 => arg_max(buffer.elements::<f64>()),
             other => {
                 return Err(KernelError::Other(format!(
-                "The Arg Max proc-block only accepts f32 tensors, found {:?}",
-                other,
+                    "The Arg Max proc-block doesn't support {:?} element type",
+                    other,
                 )))
             },
         };

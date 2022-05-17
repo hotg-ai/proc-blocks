@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use crate::proc_block_v1::*;
 use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
 use num_traits::{Bounded, ToPrimitive};
@@ -58,8 +56,32 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx =
             GraphContext::for_node(&id).ok_or(GraphError::MissingContext)?;
 
-        let element_type = get_element_type(|n| ctx.get_argument(n))
-            .map_err(GraphError::InvalidArgument)?;
+        let element_type = match ctx.get_argument("element_type").as_deref() {
+            Some("u8") => ElementType::U8,
+            Some("i8") => ElementType::I8,
+            Some("u16") => ElementType::U16,
+            Some("i16") => ElementType::I16,
+            Some("u32") => ElementType::U32,
+            Some("i32") => ElementType::I32,
+            Some("f32") => ElementType::F32,
+            Some("u64") => ElementType::U64,
+            Some("i64") => ElementType::I64,
+            Some("f64") => ElementType::F64,
+            Some(_) => {
+                return Err(GraphError::InvalidArgument(InvalidArgument {
+                    name: "element_type".to_string(),
+                    reason: BadArgumentReason::InvalidValue(
+                        "Unsupported element type".to_string(),
+                    ),
+                }));
+            },
+            None => {
+                return Err(GraphError::InvalidArgument(InvalidArgument {
+                    name: "element_type".to_string(),
+                    reason: BadArgumentReason::NotFound,
+                }))
+            },
+        };
 
         ctx.add_input_tensor(
             "image",
@@ -96,7 +118,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             ElementType::U8 => buffer
             .view::<u8>(&dimensions)
             .map_err( |e | KernelError::InvalidInput(InvalidInput {name: "image".to_string(), reason: BadInputReason::Other(e.to_string()),}))?.map( |&t| normalize(t)),
-
             ElementType::I8 => buffer
             .view::<i8>(&dimensions)
             .map_err( |e | KernelError::InvalidInput(InvalidInput {name: "image".to_string(), reason: BadInputReason::Other(e.to_string()),}))?.map( |&t| normalize(t)),
@@ -114,7 +135,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             .map_err( |e | KernelError::InvalidInput(InvalidInput {name: "image".to_string(), reason: BadInputReason::Other(e.to_string()),}))?.map( |&t| normalize(t)),
             other => {
                 return Err(KernelError::Other(format!(
-                "The Audio Float Conversion proc-block only accepts I16 tensors, found {:?}",
+                "The Image Normalization proc-block doesn't support {:?} element type",
                 other,
                 )))
             }
@@ -130,40 +151,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         );
 
         Ok(())
-    }
-}
-
-fn get_element_type(
-    get_argument: impl FnOnce(&str) -> Option<String>,
-) -> Result<ElementType, InvalidArgument> {
-    match get_argument("element_type").as_deref() {
-        Some("u8") => Ok(ElementType::U8),
-        Some("i8") => Ok(ElementType::I8),
-        Some("u16") => Ok(ElementType::U16),
-        Some("i16") => Ok(ElementType::I16),
-        Some("u32") => Ok(ElementType::U32),
-        Some("i32") => Ok(ElementType::I32),
-        Some(other) => Err(InvalidArgument::invalid_value(
-            "element_type",
-            format!("Unsupported element type: {}", other),
-        )),
-        None => Err(InvalidArgument::not_found("element_type")),
-    }
-}
-
-impl InvalidArgument {
-    fn not_found(name: impl Into<String>) -> Self {
-        InvalidArgument {
-            name: name.into(),
-            reason: BadArgumentReason::NotFound,
-        }
-    }
-
-    fn invalid_value(name: impl Into<String>, reason: impl Display) -> Self {
-        InvalidArgument {
-            name: name.into(),
-            reason: BadArgumentReason::InvalidValue(reason.to_string()),
-        }
     }
 }
 
