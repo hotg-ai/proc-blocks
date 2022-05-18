@@ -1,10 +1,14 @@
-use std::convert::TryInto;
+use std::{collections::BTreeSet, convert::TryInto};
 
 use crate::proc_block_v1::{
     BadInputReason, GraphError, InvalidInput, KernelError,
 };
 
-use hotg_rune_proc_blocks::{ndarray::s, runtime_v1::*, BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{
+    ndarray::{s, ArrayBase, ArrayView, ArrayView4},
+    runtime_v1::*,
+    BufferExt, SliceExt,
+};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -95,7 +99,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         })?;
 
         let (segmented_map, indices) = match element_type {
-            ElementType::F32 => transform(buffer, &dimensions),
+            ElementType::F32 => {
+                let tensor =buffer.view::<f32>(&dimensions)
+                .and_then(|t| t.into_dimensionality())
+                .map_err(|e| KernelError::InvalidInput(InvalidInput{ name: "input".to_string(), reason: BadInputReason::InvalidValue(e.to_string()) }))?;
+                transform(tensor)
+            },
             other => {
                 return Err(KernelError::Other(format!(
                 "The softmax proc-block only accepts f32 or f64 tensors, found {:?}",
@@ -126,31 +135,21 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(input: Vec<u8>, dimension: &[u32]) -> (Vec<u32>, Vec<u32>) {
-    let dim = dimension;
-    // todo: check for the dimension
-    // match input.rank() {
-    //     4 => {
-    //         if dim[0] != 1 {
-    //             panic!("the first dimension should be 1")
-    //         }
-    //     },
-    //     _ => panic!("it only accept a rank 4 tensor"),
-    // }
+fn transform(input: ArrayView4<f32>) -> (Vec<u32>, Vec<u32>) {
+    let dim = input.shape();
 
-    let input = input.view::<f32>(&dim).unwrap();
     let mut vec_2d: Vec<Vec<u32>> = Vec::new();
 
     let rows = dim[1] as usize;
     let columns = dim[2] as usize;
 
-    let mut label_index = Vec::new();
+    let mut label_index = BTreeSet::new();
 
     for i in 0..rows {
         vec_2d.push(vec![]);
         for j in 0..columns {
-            let val = input.slice(s![0 as usize, i, j]);
-
+            println!(" i, j {} {}", i, j);
+            let val = input.slice(s![0 as usize, i, j, ..]);
             let (index, _) =
                 val.iter().enumerate().fold((0, 0.0), |max, (ind, &val)| {
                     if val > max.1 {
@@ -160,59 +159,64 @@ fn transform(input: Vec<u8>, dimension: &[u32]) -> (Vec<u32>, Vec<u32>) {
                     }
                 }); // Doing argmax over the array
             vec_2d[i].push(index as u32);
-            label_index.push(index as u32);
+            label_index.insert(index as u32);
         }
     }
+    println!("{:?}", vec_2d);
 
     (
         vec_2d.iter().flat_map(|arr| arr.iter()).cloned().collect(),
-        label_index,
+        label_index.into_iter().collect(),
     )
 }
 
 #[cfg(test)]
 
 mod tests {
+    use hotg_rune_proc_blocks::ndarray::{self, Array3};
+
     use super::*;
 
     #[test]
     fn test_argmax() {
-        let input = [
-            1.7611206, -0.824405, 3.3042068, 4.1308413, 3.8263698, 13.207806,
-            3.4352894, 4.6627636, 4.464175, 1.7611206, 8.24405, 3.3042068,
-            1.7611206, -0.824405, 3.3042068, 4.1308413, 3.8263698, 13.207806,
-            3.4352894, 4.6627636, 4.464175, 1.7611206, 8.24405, 3.3042068,
-            1.7611206, -0.824405, 3.3042068, 4.1308413, 3.8263698, 13.207806,
-            3.4352894, 4.6627636, 4.464175, 1.7611206, 8.24405, 3.3042068,
-            1.7611206, -0.824405, 3.3042068, 4.1308413, 3.8263698, 13.207806,
-            3.4352894, 4.6627636, 4.464175, 1.7611206, 8.24405, 3.3042068,
-            1.7611206, -0.824405, 3.3042068, 4.1308413, 3.8263698, 13.207806,
-            3.4352894, 4.6627636, 4.464175, 1.7611206, 8.24405, 3.3042068,
-        ]
-        .as_bytes()
-        .to_vec();
+        let input: Array3<f32> = ndarray::array![
+            [
+                [1.7611206_f32, -0.824405, 3.3042068],
+                [4.1308413, 3.8263698, 13.207806],
+                [3.4352894, 4.6627636, 4.464175],
+                [1.7611206, 8.24405, 3.3042068],
+            ],
+            [
+                [1.7611206, -0.824405, 3.3042068],
+                [4.1308413, 3.8263698, 13.207806],
+                [3.4352894, 4.6627636, 4.464175],
+                [1.7611206, 8.24405, 3.3042068],
+            ],
+            [
+                [1.7611206, -0.824405, 3.3042068],
+                [4.1308413, 3.8263698, 13.207806],
+                [3.4352894, 4.6627636, 4.464175],
+                [1.7611206, 8.24405, 3.3042068],
+            ],
+            [
+                [1.7611206, -0.824405, 3.3042068],
+                [4.1308413, 3.8263698, 13.207806],
+                [3.4352894, 4.6627636, 4.464175],
+                [1.7611206, 8.24405, 3.3042068],
+            ],
+            [
+                [1.7611206, -0.824405, 3.3042068],
+                [4.1308413, 3.8263698, 13.207806],
+                [3.4352894, 4.6627636, 4.464175],
+                [1.7611206, 8.24405, 3.3042068],
+            ],
+        ];
+        let input = input.broadcast((1, 5, 4, 3)).unwrap();
 
-        let output = transform(input, &[1, 5, 4, 3]);
+        let output = transform(input);
         let should_be: Vec<u32> =
             vec![2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1];
-        // let should_be: Tensor<u32> = should_be.into();
         let label_index: Vec<u32> = vec![1, 2];
         assert_eq!(output, (should_be, label_index));
     }
-
-    // #[test]
-    // #[should_panic = "it only accept a rank 4 tensor"]
-    // fn not_rank_4_tensor() {
-    //     let input = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0].as_bytes().to_vec();
-    // // a rank 3 array     let _output = transform(input, &[1, 2, 3]);
-    // }
-
-    // #[test]
-    // #[should_panic = "the first dimension should be 1"]
-    // fn first_dimension_not_1() {
-    //     let input = [[[[1.0, 2.0]]], [[[3.0, 4.0]]], [[[5.0, 6.0]]]]; //
-    // [3,1,1,2] dimension array     let input: Tensor<f32> = input.into();
-    //     let mut argmax = SegmentOutput::default();
-    //     let _output = argmax.transform(input);
-    // }
 }
