@@ -1,6 +1,5 @@
 use crate::proc_block_v1::{
-    BadInputReason, GraphError,
-    InvalidInput, KernelError,
+    BadInputReason, GraphError, InvalidInput, KernelError,
 };
 
 use hotg_rune_proc_blocks::{
@@ -82,13 +81,13 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_input_tensor(
             "input",
             ElementType::F32,
-            DimensionsParam::Dynamic,
+            DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_output_tensor(
             "soft_max",
             ElementType::F32,
-            DimensionsParam::Dynamic,
+            DimensionsParam::Fixed(&[0]),
         );
 
         Ok(())

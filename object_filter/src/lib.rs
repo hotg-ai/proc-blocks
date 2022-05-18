@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "metadata"), no_std)]
+// #![cfg_attr(not(feature = "metadata"), no_std)]
 
 #[macro_use]
 extern crate alloc;
@@ -130,12 +130,8 @@ fn find_duplicate(objects: &[Object]) -> Option<(usize, usize)> {
 
 #[cfg(feature = "metadata")]
 pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
 
     struct RuneV1;
 
@@ -235,5 +231,21 @@ mod test {
         let duplicate_indices = find_duplicate(&objects).unwrap();
 
         assert_eq!(duplicate_indices, (0, 1));
+    }
+
+    #[test]
+    fn test_slice() {
+        let input = [
+            [[0, 1], [2, 3], [4, 5], [6, 7]],
+            [[8, 9], [10, 11], [12, 13], [14, 15]],
+            [[16, 17], [18, 19], [20, 21], [22, 23]],
+        ];
+        let tensor: Tensor<i32> = input.into();
+
+        let got = tensor.slice::<1>(&[0, 1]).unwrap();
+        println!("{:?}", got);
+
+        assert_eq!(got.dimensions(), [2]);
+        assert_eq!(got.elements(), &input[0][2]);
     }
 }
