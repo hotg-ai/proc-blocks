@@ -1,10 +1,10 @@
 use crate::proc_block_v1::*;
 use hotg_rune_proc_blocks::{
+    ndarray::s,
     runtime_v1::{self, *},
     BufferExt, SliceExt,
 };
 use libm::fabsf;
-use num_traits::ToPrimitive;
 
 #[macro_use]
 extern crate alloc;
@@ -72,9 +72,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
-        let threshold = get_threshold(|n| ctx.get_argument(n))
-            .map_err(GraphError::InvalidArgument)?;
-
         ctx.add_input_tensor(
             "bounding_boxes",
             ElementType::F32,
@@ -117,15 +114,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             },
         };
 
-        let output = match output {
-            Some(out) => out,
-            None => {
-                return Err(KernelError::Other(
-                    "The input tensor was empty".to_string(),
-                ))
-            },
-        };
-
         ctx.set_output_tensor(
             "normalized",
             TensorParam {
@@ -164,21 +152,14 @@ impl InvalidArgument {
     }
 }
 
-impl InvalidInput {
-    fn invalid_value(name: impl Into<String>, reason: impl Display) -> Self {
-        InvalidInput {
-            name: name.into(),
-            reason: BadInputReason::InvalidValue(reason.to_string()),
-        }
-    }
-}
-
 fn transform(input: Vec<u8>, dim: &[u32], threshold: f32) -> Vec<f32> {
     let rectangles = input.view::<f32>(&dim).expect("a 3-d tensor");
     let mut objects: Vec<Object> = (0..dim[1])
-        .map(|object_index| rectangles.slice::<1>(&[0, object_index]).unwrap())
+        .map(|object_index| {
+            rectangles.slice(s![0 as usize, object_index as usize, ..])
+        })
         .filter(|view| view[4] > threshold)
-        .map(|view| Object::from_row(view.elements()))
+        .map(|view| Object::from_row(view.as_slice().unwrap()))
         .collect();
 
     while let Some((first, second)) = find_duplicate(&objects) {
@@ -189,13 +170,13 @@ fn transform(input: Vec<u8>, dim: &[u32], threshold: f32) -> Vec<f32> {
         }
     }
 
-    let rows = objects.len();
     let elements = objects
         .into_iter()
         .flat_map(|j| j.into_elements())
         .collect();
 
-    Tensor::new_row_major(elements, vec![rows, 6])
+    // Array::from_shape_vec((rows, 6), elements).unwrap()
+    return elements;
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -264,66 +245,15 @@ fn find_duplicate(objects: &[Object]) -> Option<(usize, usize)> {
     None
 }
 
-#[cfg(feature = "metadata")]
-pub mod metadata {
-    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
-    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
-
-    struct RuneV1;
-
-    impl rune_v1::RuneV1 for RuneV1 {
-        fn start() {
-            use runtime_v1::*;
-
-            let metadata =
-                Metadata::new("Object Filter", env!("CARGO_PKG_VERSION"));
-            metadata.set_description(
-                "Given a set of detected objects and their locations, remove duplicates and any objects below a certain threshold.",
-            );
-            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-            metadata.add_tag("image");
-            metadata.add_tag("classify");
-
-            let threshold = ArgumentMetadata::new("threshold");
-            threshold.set_description(
-                "The minimum confidence value for an object to be included.",
-            );
-            threshold.set_type_hint(TypeHint::Float);
-            threshold.set_default_value("0.7");
-            metadata.add_argument(&threshold);
-
-            let input = TensorMetadata::new("bounding_boxes");
-            input.set_description("An arbitrary length tensor of detections, where each row starts with `[x, y, height, width, max_confidence, ...]` followed by an arbitrary number of confidence values (one value for each object type being detected).");
-            let hint = supported_shapes(
-                &[ElementType::Float32],
-                Dimensions::Fixed(&[1, 0, 0]),
-            );
-            input.add_hint(&hint);
-            metadata.add_input(&input);
-
-            let output = TensorMetadata::new("normalized");
-            output.set_description("The filtered objects and their indices as a list of objects, where each row contains `[x, y, height, width, confidence, index]`.");
-            let hint = supported_shapes(
-                &[ElementType::Float32],
-                Dimensions::Fixed(&[0, 5]),
-            );
-            output.add_hint(&hint);
-            metadata.add_output(&output);
-
-            register_node(&metadata);
-        }
-    }
-}
-
 #[cfg(test)]
 
 mod test {
+
     use super::*;
 
     #[test]
     fn test_object_filter() {
-        let v: Tensor<f32> = [[[
+        let v = vec![
             0.27335986, 0.43181776, 0.40072349, 0.33026114, 0.75, 0.1849257,
             0.8824799, 0.26666544, 0.10702547, 0.34699273, 0.27335986,
             0.43181776, 0.40072349, 0.33026114, 0.63204721, 0.2141086,
@@ -341,14 +271,13 @@ mod test {
             0.56081945, 0.53853333, 0.43793348, 0.17007934, 0.35080665,
             0.05898283, 0.05127876, 0.29145357, 0.59377787, 0.51103643,
             0.13517603, 0.19269662, 0.47548843, 0.20795399,
-        ]]]
-        .into();
-        let mut objects = ObjectFilter::default();
-        let output = objects.transform(v);
-        let should_be: Tensor<f32> = [[
+        ]
+        .as_bytes()
+        .to_vec();
+        let output = transform(v, &[1, 1, 85], 0.7);
+        let should_be: Vec<f32> = vec![
             0.27335986, 0.43181776, 0.40072349, 0.33026114, 0.8824799, 1.0,
-        ]]
-        .into();
+        ];
         assert_eq!(output, should_be);
     }
 

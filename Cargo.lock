@@ -983,7 +983,6 @@ version = "0.11.3"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "libm",
- "num-traits",
  "wit-bindgen-rust",
 ]
 
