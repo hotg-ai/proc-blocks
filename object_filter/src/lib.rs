@@ -130,12 +130,8 @@ fn find_duplicate(objects: &[Object]) -> Option<(usize, usize)> {
 
 #[cfg(feature = "metadata")]
 pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
 
     struct RuneV1;
 
