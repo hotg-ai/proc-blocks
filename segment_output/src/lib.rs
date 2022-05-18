@@ -5,7 +5,7 @@ use crate::proc_block_v1::{
 };
 
 use hotg_rune_proc_blocks::{
-    ndarray::{s, ArrayBase, ArrayView, ArrayView4},
+    ndarray::{s, ArrayView4},
     runtime_v1::*,
     BufferExt, SliceExt,
 };
