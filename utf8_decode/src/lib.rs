@@ -110,7 +110,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 fn transform(input: &[u8]) -> Vec<String> {
     let underlying_bytes: &[u8] = input.elements();
 
-    let mut useful_bytes = &underlying_bytes[..underlying_bytes.len()];
+    let mut useful_bytes = underlying_bytes;
     if let Some(index) = underlying_bytes.iter().position(|&x| x == 0) {
         useful_bytes = &underlying_bytes[..index];
     }
