@@ -63,6 +63,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let height: u32 = ctx.parse_argument("height")?;
         let pixel_format: PixelFormat = ctx.parse_argument("pixel_format")?;
 
+        ctx.add_input_tensor(
+            "image",
+            pixel_format.element_type(),
+            DimensionsParam::Fixed(&[1, 0, 0, 3]),
+        );
+
         ctx.add_output_tensor(
             "output",
             pixel_format.element_type(),
@@ -86,9 +92,9 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             element_type,
             dimensions,
             buffer,
-        } = ctx.get_global_input(&id).ok_or_else(|| {
+        } = ctx.get_input_tensor("input").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
-                name: id,
+                name: "input".to_string(),
                 reason: BadInputReason::NotFound,
             })
         })?;

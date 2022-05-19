@@ -51,11 +51,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let element_type: ElementType =
             ctx.parse_argument_with_default("element_type", ElementType::F32)?;
 
-        ctx.add_output_tensor(
-            "output",
-            element_type,
-            DimensionsParam::Fixed(&[0]),
-        );
+        ctx.add_input_tensor("input", element_type, DimensionsParam::Dynamic);
+        ctx.add_output_tensor("output", element_type, DimensionsParam::Dynamic);
 
         Ok(())
     }
@@ -69,9 +66,9 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             element_type,
             dimensions,
             buffer,
-        } = ctx.get_global_input(&id).ok_or_else(|| {
+        } = ctx.get_input_tensor("input").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
-                name: id,
+                name: "input".to_string(),
                 reason: BadInputReason::NotFound,
             })
         })?;

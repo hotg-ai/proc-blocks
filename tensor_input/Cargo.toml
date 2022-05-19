@@ -1,6 +1,6 @@
 [package]
 name = "tensor_input"
-version = "0.1.0"
+version = "0.12.0"
 edition = "2021"
 description = "Read an input from the environment."
 
@@ -12,3 +12,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 hotg-rune-proc-blocks = { path = "../support" }
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"
