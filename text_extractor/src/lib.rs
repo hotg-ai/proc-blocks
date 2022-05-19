@@ -122,7 +122,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                     }
                 other => {
                     return Err(KernelError::Other(format!(
-                    "The Object Filter proc-block doesn't support {:?} element type",
+                    "The Text Extractor proc-block doesn't support {:?} element type",
                     other,
                     )))
                 },
