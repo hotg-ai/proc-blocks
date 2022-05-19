@@ -92,7 +92,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             },
         };
 
-        let output = transform(buffer.elements());
+        let output = transform(buffer.elements()).unwrap();
 
         ctx.set_output_tensor(
             "phrases",
@@ -107,20 +107,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(input: &[u8]) -> Vec<String> {
-    let underlying_bytes: &[u8] = input.elements();
-
-    let mut useful_bytes = underlying_bytes;
+fn transform(input: &[u8]) -> Result<Vec<String>, String> {
+    let mut underlying_bytes: &[u8] = input.elements();
     if let Some(index) = underlying_bytes.iter().position(|&x| x == 0) {
-        useful_bytes = &underlying_bytes[..index];
+        underlying_bytes = &underlying_bytes[..index];
     }
 
-    let input_text = core::str::from_utf8(useful_bytes)
-        .expect("Input tensor should be valid UTF8");
-
-    let output_text = vec![input_text.to_string()];
-
-    output_text
+    let input_text =
+        core::str::from_utf8(underlying_bytes).map_err(|e| e.to_string());
+    let output_text = vec![input_text.unwrap().to_string()];
+    Ok(output_text)
 }
 
 #[cfg(test)]
@@ -134,7 +130,7 @@ mod tests {
             .as_bytes()
             .to_vec();
 
-        let output = transform(&bytes);
+        let output = transform(&bytes).unwrap();
         let should_be =
             vec!["Hi, use me to convert your u8 bytes to utf8.".to_string()];
 
