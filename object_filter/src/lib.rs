@@ -75,7 +75,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         ctx.add_input_tensor(
             "bounding_boxes",
             ElementType::F32,
-            DimensionsParam::Dynamic,
+            DimensionsParam::Fixed(&[1, 0, 0]),
         );
         ctx.add_output_tensor(
             "normalized",

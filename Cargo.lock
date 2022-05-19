@@ -979,7 +979,7 @@ dependencies = [
 
 [[package]]
 name = "object_filter"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "libm",
@@ -1482,9 +1482,9 @@ dependencies = [
 
 [[package]]
 name = "text_extractor"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
- "hotg-rune-proc-blocks 0.11.3",
+ "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
 ]
 
