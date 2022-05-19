@@ -17,4 +17,3 @@ wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
 [package.metadata.wapm]
 namespace = "hotg-ai"
 abi = "none"
-

@@ -1,11 +1,13 @@
 use crate::proc_block_v1::*;
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt};
+use hotg_rune_proc_blocks::{
+    ndarray, runtime_v1::*, string_tensor_from_ndarray, BufferExt,
+};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 #[macro_use]
 extern crate alloc;
-use alloc::{borrow::Cow, string::String, vec::Vec};
+use alloc::{string::String, vec::Vec};
 
 struct ProcBlockV1;
 
@@ -155,20 +157,23 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             end_logits.buffer.elements(),
         ));
 
-        // ctx.set_output_tensor(
-        //     "phrases",
-        //     TensorParam {
-        //         element_type: ElementType::Utf8,
-        //         dimensions: &[output.len() as u32],
-        //         buffer: &output.as_bytes(),
-        //     },
-        // );
+        let output: Vec<String> =
+            output.iter().map(|s| s.to_string()).collect();
+
+        ctx.set_output_tensor(
+            "phrases",
+            TensorParam {
+                element_type: ElementType::Utf8,
+                dimensions: &[output.len() as u32],
+                buffer: &string_tensor_from_ndarray(&ndarray::arr1(&output)),
+            },
+        );
 
         Ok(())
     }
 }
 
-fn transform<'a>(inputs: (&[u8], &[u32], &[u32])) -> Vec<Cow<'static, str>> {
+fn transform<'a>(inputs: (&[u8], &[u32], &[u32])) -> Vec<String> {
     let (text, start_logits, end_logits) = inputs;
 
     let underlying_bytes: &[u8] = text.elements();
@@ -200,7 +205,9 @@ fn transform<'a>(inputs: (&[u8], &[u32], &[u32])) -> Vec<Cow<'static, str>> {
         }
     }
 
-    let output_text = vec![Cow::Owned(buffer)];
+    let output_text = vec![(buffer)];
+
+    println!("output {:?}", &output_text);
 
     output_text
 }
@@ -219,7 +226,7 @@ mod tests {
         let end_index = [4_u32];
         let output = transform((&bytes, &start_index, &end_index));
 
-        let should_be = vec![Cow::Borrowed("unaffable")];
+        let should_be = vec!["unaffable".to_string()];
 
         assert_eq!(output, should_be);
     }
