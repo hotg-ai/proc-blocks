@@ -1,74 +1,158 @@
-#![cfg_attr(not(feature = "metadata"), no_std)]
+use crate::proc_block_v1::*;
+use hotg_rune_proc_blocks::{
+    ndarray::{s, ArrayView3},
+    runtime_v1::{self, *},
+    BufferExt, SliceExt,
+};
+
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 #[macro_use]
 extern crate alloc;
-
 use alloc::{borrow::Cow, string::String, vec::Vec};
-use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
-#[derive(Debug, Clone, PartialEq, ProcBlock)]
-pub struct TextExtractor {}
+struct ProcBlockV1;
 
-impl TextExtractor {
-    pub const fn new() -> Self { TextExtractor {} }
-}
-
-impl Default for TextExtractor {
-    fn default() -> Self { TextExtractor::new() }
-}
-
-impl Transform<(Tensor<u8>, Tensor<u32>, Tensor<u32>)> for TextExtractor {
-    type Output = Tensor<Cow<'static, str>>;
-
-    fn transform(
-        &mut self,
-        inputs: (Tensor<u8>, Tensor<u32>, Tensor<u32>),
-    ) -> Tensor<Cow<'static, str>> {
-        let (text, start_logits, end_logits) = inputs;
-
-        let underlying_bytes: &[u8] = text.elements();
-        let input_text = core::str::from_utf8(underlying_bytes)
-            .expect("Input tensor should be valid UTF8");
-
-        let input_text: Vec<&str> = input_text.lines().collect();
-
-        let start_index: u32 = start_logits.elements()[0];
-        let end_index: u32 = end_logits.elements()[0];
-        if end_index <= start_index {
-            panic!(
-                "Start index: {} is greater than or equal to end index: {}",
-                start_index, end_index
+impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
+    fn register_metadata() {
+        let metadata =
+            Metadata::new("Text Extractor", env!("CARGO_PKG_VERSION"));
+        metadata.set_description(
+                "Given a body of text and some start/end indices, extract parts of the text (i.e. words/phrases) specified by those indices.",
             );
-        }
+        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+        metadata.add_tag("nlp");
 
-        let v = &input_text[start_index as usize..end_index as usize + 1];
+        let text = TensorMetadata::new("text");
+        text.set_description("A string of text.");
+        let hint =
+            supported_shapes(&[ElementType::U8], DimensionsParam::Fixed(&[0]));
+        text.add_hint(&hint);
+        metadata.add_input(&text);
 
-        let mut buffer = String::new();
-        for tok in v {
-            if let Some(s) = tok.strip_prefix("##") {
-                buffer.push_str(s);
-            } else {
-                if !buffer.is_empty() {
-                    buffer.push_str(" ");
-                }
-                buffer.push_str(tok);
-            }
-        }
+        let start_logits = TensorMetadata::new("start_logits");
+        start_logits.set_description(
+            "The indices for the start of each word/phrase to extract.",
+        );
+        let hint =
+            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[0]));
+        start_logits.add_hint(&hint);
+        metadata.add_input(&start_logits);
 
-        let output_text = vec![Cow::Owned(buffer)];
+        let end_logits = TensorMetadata::new("end_logits");
+        end_logits.set_description(
+            "The indices for the end of each word/phrase to extract.",
+        );
+        let hint =
+            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[0]));
+        end_logits.add_hint(&hint);
+        metadata.add_input(&end_logits);
 
-        Tensor::new_vector(output_text)
+        let phrases = TensorMetadata::new("phrases");
+        phrases.set_description("The phrases that were extracted.");
+        let hint = supported_shapes(
+            &[ElementType::Utf8],
+            DimensionsParam::Fixed(&[0]),
+        );
+        phrases.add_hint(&hint);
+        metadata.add_output(&phrases);
+
+        register_node(&metadata);
     }
+
+    fn graph(node_id: String) -> Result<(), GraphError> {
+        let ctx = GraphContext::for_node(&node_id)
+            .ok_or(GraphError::MissingContext)?;
+
+        ctx.add_input_tensor(
+            "text",
+            ElementType::U8,
+            DimensionsParam::Fixed(&[0]),
+        );
+
+        ctx.add_input_tensor(
+            "start_logits",
+            ElementType::U32,
+            DimensionsParam::Fixed(&[0]),
+        );
+
+        ctx.add_input_tensor(
+            "end_logits",
+            ElementType::U32,
+            DimensionsParam::Fixed(&[0]),
+        );
+        ctx.add_output_tensor(
+            "phrases",
+            ElementType::Utf8,
+            DimensionsParam::Fixed(&[0]),
+        );
+
+        Ok(())
+    }
+
+    fn kernel(node_id: String) -> Result<(), KernelError> {
+        let ctx = KernelContext::for_node(&node_id)
+            .ok_or(KernelError::MissingContext)?;
+
+        let TensorResult {
+            element_type,
+            dimensions,
+            buffer,
+        } = ctx.get_input_tensor("phrases").ok_or_else(|| {
+            KernelError::InvalidInput(InvalidInput {
+                name: "phrases".to_string(),
+                reason: BadInputReason::NotFound,
+            })
+        })?;
+
+        Ok(())
+    }
+}
+
+fn transform(
+    inputs: (Tensor<u8>, Tensor<u32>, Tensor<u32>),
+) -> Tensor<Cow<'static, str>> {
+    let (text, start_logits, end_logits) = inputs;
+
+    let underlying_bytes: &[u8] = text.elements();
+    let input_text = core::str::from_utf8(underlying_bytes)
+        .expect("Input tensor should be valid UTF8");
+
+    let input_text: Vec<&str> = input_text.lines().collect();
+
+    let start_index: u32 = start_logits.elements()[0];
+    let end_index: u32 = end_logits.elements()[0];
+    if end_index <= start_index {
+        panic!(
+            "Start index: {} is greater than or equal to end index: {}",
+            start_index, end_index
+        );
+    }
+
+    let v = &input_text[start_index as usize..end_index as usize + 1];
+
+    let mut buffer = String::new();
+    for tok in v {
+        if let Some(s) = tok.strip_prefix("##") {
+            buffer.push_str(s);
+        } else {
+            if !buffer.is_empty() {
+                buffer.push_str(" ");
+            }
+            buffer.push_str(tok);
+        }
+    }
+
+    let output_text = vec![Cow::Owned(buffer)];
+
+    Tensor::new_vector(output_text)
 }
 
 #[cfg(feature = "metadata")]
 pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
+    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
 
     struct RuneV1;
 
@@ -87,8 +171,10 @@ pub mod metadata {
 
             let text = TensorMetadata::new("text");
             text.set_description("A string of text.");
-            let hint =
-                supported_shapes(&[ElementType::Uint8], Dimensions::Fixed(&[0]));
+            let hint = supported_shapes(
+                &[ElementType::Uint8],
+                Dimensions::Fixed(&[0]),
+            );
             text.add_hint(&hint);
             metadata.add_input(&text);
 
