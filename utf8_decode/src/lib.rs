@@ -1,76 +1,126 @@
-#![cfg_attr(not(feature = "metadata"), no_std)]
+use crate::proc_block_v1::*;
+use hotg_rune_proc_blocks::{
+    ndarray, runtime_v1::*, string_tensor_from_ndarray, BufferExt,
+};
+
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+
 #[macro_use]
 extern crate alloc;
-
-use alloc::{borrow::Cow, string::ToString};
-use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
+use alloc::string::ToString;
 
 /// A proc block which can convert u8 bytes to utf8
-#[derive(Debug, Default, Clone, PartialEq, ProcBlock)]
-pub struct Utf8Decode {}
+struct ProcBlockV1;
 
-impl Transform<Tensor<u8>> for Utf8Decode {
-    type Output = Tensor<Cow<'static, str>>;
+impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
+    fn register_metadata() {
+        let metadata = Metadata::new("UTF8 Decode", env!("CARGO_PKG_VERSION"));
+        metadata.set_description("Decode a string from UTF-8 bytes.");
+        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+        metadata.add_tag("text");
+        metadata.add_tag("nlp");
+        metadata.add_tag("bytes");
 
-    fn transform(&mut self, input: Tensor<u8>) -> Self::Output {
-        let underlying_bytes: &[u8] = input.elements();
+        let input = TensorMetadata::new("bytes");
+        input.set_description("The string as UTF-8 encoded bytes");
+        let hint =
+            supported_shapes(&[ElementType::U8], DimensionsParam::Fixed(&[0]));
+        input.add_hint(&hint);
+        metadata.add_input(&input);
 
-        let mut useful_bytes = &underlying_bytes[..underlying_bytes.len()];
-        if let Some(index) = underlying_bytes.iter().position(|&x| x == 0) {
-            useful_bytes = &underlying_bytes[..index];
-        }
+        let output = TensorMetadata::new("string");
+        output.set_description("The decoded text.");
+        let hint = supported_shapes(
+            &[ElementType::Utf8],
+            DimensionsParam::Fixed(&[1]),
+        );
+        output.add_hint(&hint);
+        metadata.add_output(&output);
 
-        let input_text = core::str::from_utf8(useful_bytes)
-            .expect("Input tensor should be valid UTF8");
+        register_node(&metadata);
+    }
 
-        let output_text = vec![Cow::Owned(input_text.to_string())];
+    fn graph(node_id: String) -> Result<(), GraphError> {
+        let ctx = GraphContext::for_node(&node_id)
+            .ok_or(GraphError::MissingContext)?;
 
-        Tensor::new_vector(output_text)
+        ctx.add_input_tensor(
+            "bytes",
+            ElementType::U8,
+            DimensionsParam::Fixed(&[0]),
+        );
+
+        ctx.add_output_tensor(
+            "string",
+            ElementType::U8,
+            DimensionsParam::Fixed(&[1]),
+        );
+
+        Ok(())
+    }
+
+    fn kernel(node_id: String) -> Result<(), KernelError> {
+        let ctx = KernelContext::for_node(&node_id)
+            .ok_or(KernelError::MissingContext)?;
+
+        let TensorResult {
+            element_type,
+            dimensions,
+            buffer,
+        } = ctx.get_input_tensor("bytes").ok_or_else(|| {
+            KernelError::InvalidInput(InvalidInput {
+                name: "bytes".to_string(),
+                reason: BadInputReason::NotFound,
+            })
+        })?;
+
+        match element_type {
+            ElementType::U8 => {
+                buffer.view::<u8>(&dimensions).map_err(|e| {
+                    KernelError::InvalidInput(InvalidInput {
+                        name: "bytes".to_string(),
+                        reason: BadInputReason::InvalidValue(e.to_string()),
+                    })
+                })?;
+            },
+            other => {
+                return Err(KernelError::Other(format!(
+                "The Utf8 Decode proc-block doesn't support {:?} element type",
+                other,
+                )))
+            },
+        };
+
+        let output = transform(buffer.elements());
+
+        ctx.set_output_tensor(
+            "phrases",
+            TensorParam {
+                element_type: ElementType::Utf8,
+                dimensions: &[output.len() as u32],
+                buffer: &string_tensor_from_ndarray(&ndarray::arr1(&output)),
+            },
+        );
+
+        Ok(())
     }
 }
 
-#[cfg(feature = "metadata")]
-pub mod metadata {
-    wit_bindgen_rust::import!(
-        "../wit-files/rune/runtime-v1.wit"
-    );
-    wit_bindgen_rust::export!(
-        "../wit-files/rune/rune-v1.wit"
-    );
+fn transform(input: &[u8]) -> Vec<String> {
+    let underlying_bytes: &[u8] = input.elements();
 
-    struct RuneV1;
-
-    impl rune_v1::RuneV1 for RuneV1 {
-        fn start() {
-            use runtime_v1::*;
-
-            let metadata =
-                Metadata::new("UTF8 Decode", env!("CARGO_PKG_VERSION"));
-            metadata.set_description("Decode a string from UTF-8 bytes.");
-            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-            metadata.add_tag("text");
-            metadata.add_tag("nlp");
-
-            let input = TensorMetadata::new("bytes");
-            input.set_description("The string as UTF-8 encoded bytes");
-            let hint = supported_shapes(
-                &[ElementType::Uint8],
-                Dimensions::Fixed(&[0]),
-            );
-            input.add_hint(&hint);
-            metadata.add_input(&input);
-
-            let output = TensorMetadata::new("string");
-            output.set_description("The decoded text.");
-            let hint =
-                supported_shapes(&[ElementType::Utf8], Dimensions::Fixed(&[1]));
-            output.add_hint(&hint);
-            metadata.add_output(&output);
-
-            register_node(&metadata);
-        }
+    let mut useful_bytes = &underlying_bytes[..underlying_bytes.len()];
+    if let Some(index) = underlying_bytes.iter().position(|&x| x == 0) {
+        useful_bytes = &underlying_bytes[..index];
     }
+
+    let input_text = core::str::from_utf8(useful_bytes)
+        .expect("Input tensor should be valid UTF8");
+
+    let output_text = vec![input_text.to_string()];
+
+    output_text
 }
 
 #[cfg(test)]
@@ -80,16 +130,13 @@ mod tests {
 
     #[test]
     fn test_for_utf8_decoding() {
-        let mut cast = Utf8Decode::default();
         let bytes: Vec<u8> = "Hi, use me to convert your u8 bytes to utf8."
             .as_bytes()
             .to_vec();
-        let input = Tensor::new_vector(bytes);
 
-        let output = cast.transform(input);
-        let should_be = Tensor::new_vector(vec![Cow::Borrowed(
-            "Hi, use me to convert your u8 bytes to utf8.",
-        )]);
+        let output = transform(&bytes);
+        let should_be =
+            vec!["Hi, use me to convert your u8 bytes to utf8.".to_string()];
 
         assert_eq!(output, should_be);
     }

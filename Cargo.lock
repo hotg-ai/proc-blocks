@@ -1286,7 +1286,7 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "segment_output"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
@@ -1667,9 +1667,9 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
 name = "utf8_decode"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
- "hotg-rune-proc-blocks 0.11.3",
+ "hotg-rune-proc-blocks 0.1.0",
  "wit-bindgen-rust",
 ]
 
