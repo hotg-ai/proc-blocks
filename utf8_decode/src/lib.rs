@@ -1,6 +1,10 @@
 use crate::proc_block_v1::*;
 use hotg_rune_proc_blocks::{
-    ndarray, runtime_v1::*, string_tensor_from_ndarray, BufferExt,
+    ndarray::{
+        self, array, s, ArrayBase, ArrayView1, Dim, IxDynImpl, ViewRepr,
+    },
+    runtime_v1::*,
+    string_tensor_from_ndarray, BufferExt,
 };
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
@@ -53,7 +57,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         ctx.add_output_tensor(
             "string",
-            ElementType::U8,
+            ElementType::Utf8,
             DimensionsParam::Fixed(&[1]),
         );
 
@@ -75,14 +79,15 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             })
         })?;
 
-        match element_type {
+        let output = match element_type {
             ElementType::U8 => {
-                buffer.view::<u8>(&dimensions).map_err(|e| {
+                let tensor = buffer.view::<u8>(&dimensions).map_err(|e| {
                     KernelError::InvalidInput(InvalidInput {
                         name: "bytes".to_string(),
                         reason: BadInputReason::InvalidValue(e.to_string()),
                     })
                 })?;
+                transform(tensor).unwrap()
             },
             other => {
                 return Err(KernelError::Other(format!(
@@ -92,14 +97,12 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             },
         };
 
-        let output = transform(buffer.elements()).unwrap();
-
         ctx.set_output_tensor(
-            "phrases",
+            "string",
             TensorParam {
                 element_type: ElementType::Utf8,
-                dimensions: &[output.len() as u32],
-                buffer: &string_tensor_from_ndarray(&ndarray::arr1(&output)),
+                dimensions: &[output.dim() as u32],
+                buffer: &output.to_vec(),
             },
         );
 
@@ -107,33 +110,32 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(input: &[u8]) -> Result<Vec<String>, String> {
-    let mut underlying_bytes: &[u8] = input.elements();
-    if let Some(index) = underlying_bytes.iter().position(|&x| x == 0) {
-        underlying_bytes = &underlying_bytes[..index];
+fn transform(input: ArrayView1<u8>) -> Result<ArrayView1<u8>, String> {
+    let mut underlying_bytes = input;
+    if let Ok(index) = underlying_bytes
+        .iter()
+        .position(|&x| x == 0)
+        .ok_or_else(|| "can't find the 0")
+    {
+        underlying_bytes = underlying_bytes.slice(s![..index]);
     }
-
-    let input_text =
-        core::str::from_utf8(underlying_bytes).map_err(|e| e.to_string());
-    let output_text = vec![input_text.unwrap().to_string()];
-    Ok(output_text)
+    Ok(underlying_bytes)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::{vec, vec::Vec};
+    use alloc::vec;
 
     #[test]
     fn test_for_utf8_decoding() {
-        let bytes: Vec<u8> = "Hi, use me to convert your u8 bytes to utf8."
-            .as_bytes()
-            .to_vec();
+        let bytes = ndarray::array![
+            "Hi, use me to convert your u8 bytes to utf8.".as_bytes()
+        ];
+        let bytes = bytes.slice(s![..].clone());
 
-        let output = transform(&bytes).unwrap();
-        let should_be =
-            vec!["Hi, use me to convert your u8 bytes to utf8.".to_string()];
+        let output = transform(bytes).unwrap();
 
-        assert_eq!(output, should_be);
+        assert_eq!(output, bytes);
     }
 }
