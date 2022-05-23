@@ -4,7 +4,7 @@ version = "0.12.0"
 edition = "2018"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
-description = "A proc-block which takes 3-d tensor `[1, num_detection, detection_box(x, y, w, h) + confidence_scores + total_detection_classes]` and filter the detected objects to: 1. remove duplicate detection for a single object 2. remove the objects with low confidence based on a threshold giving a 2-d tensor with dimension `[*, 6]` (where * is total number of detected objects,  and 6 -> `[ x-coordinate, y-coordinate, h, w, confidence_value, label_index]`) as output."
+description = "A proc-block which filter the object detected by an Object Detection model to: 1. remove duplicate detection for a single object 2. remove the objects with low confidence"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
