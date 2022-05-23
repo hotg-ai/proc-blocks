@@ -157,9 +157,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             end_logits.buffer.elements(),
         ));
 
-        let output: Vec<String> =
-            output.iter().map(|s| s.to_string()).collect();
-
         ctx.set_output_tensor(
             "phrases",
             TensorParam {
