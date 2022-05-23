@@ -1543,10 +1543,10 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokenizers"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "anyhow",
- "hotg-rune-proc-blocks 0.11.3",
+ "hotg-rune-proc-blocks 0.1.0",
  "lazy_static",
  "unicode-normalization",
  "wit-bindgen-rust",
