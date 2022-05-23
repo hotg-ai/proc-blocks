@@ -481,7 +481,7 @@ dependencies = [
 
 [[package]]
 name = "fft"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "hound",
@@ -637,7 +637,7 @@ checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
 
 [[package]]
 name = "image-normalization"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "num-traits",
@@ -825,7 +825,7 @@ dependencies = [
 
 [[package]]
 name = "modulo"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "num-traits",
