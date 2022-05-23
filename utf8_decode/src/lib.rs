@@ -1,11 +1,8 @@
 use crate::proc_block_v1::*;
 use hotg_rune_proc_blocks::{
-    ndarray::{
-        self, array, s, ArrayBase, ArrayView1, ArrayViewD, Dim, IxDynImpl,
-        OwnedRepr, ViewRepr,
-    },
+    ndarray::{s, ArrayView1},
     runtime_v1::*,
-    string_tensor_from_ndarray, BufferExt,
+    BufferExt,
 };
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
@@ -91,7 +88,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                             reason: BadInputReason::InvalidValue(e.to_string()),
                         })
                     })?;
-                transform(tensor).unwrap()
+                transform(tensor)
             },
             other => {
                 return Err(KernelError::Other(format!(
@@ -114,32 +111,37 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(input: ArrayView1<u8>) -> Result<ArrayView1<u8>, String> {
-    let mut underlying_bytes = input;
-    if let Ok(index) = underlying_bytes
-        .iter()
-        .position(|&x| x == 0)
-        .ok_or_else(|| "can't find the 0")
-    {
-        underlying_bytes = underlying_bytes.slice(s![..index as usize]);
+fn transform(input: ArrayView1<u8>) -> ArrayView1<u8> {
+    match input.iter().position(|&x| x == 0) {
+        Some(null_terminator) => input.slice_move(s![..null_terminator]),
+        None => input,
     }
-    Ok(underlying_bytes)
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use alloc::vec;
+#[cfg(test)]
+mod tests {
+    use hotg_rune_proc_blocks::ndarray;
 
-//     #[test]
-//     fn test_for_utf8_decoding() {
-//         let bytes = ndarray::array![
-//             "Hi, use me to convert your u8 bytes to utf8.".as_bytes()
-//         ];
-//         let bytes = bytes.slice(s![..].clone());
+    use super::*;
 
-//         let output = transform(bytes).unwrap();
+    #[test]
+    fn test_for_utf8_decoding() {
+        let bytes = ndarray::array![
+            72_u8, 105, 44, 32, 117, 115, 101, 32, 109, 101, 32, 116, 111, 32,
+            99, 111, 110, 118, 101, 114, 116, 32, 121, 111, 117, 114, 32, 117,
+            56, 32, 98, 121, 116, 101, 115, 32, 116, 111, 32, 117, 116, 102,
+            56, 46, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]; // bytes encoding for "Hi, use me to convert your u8 bytes to utf8."
 
-//         assert_eq!(output, bytes);
-//     }
-// }
+        let should_be = ndarray::array![
+            72_u8, 105, 44, 32, 117, 115, 101, 32, 109, 101, 32, 116, 111, 32,
+            99, 111, 110, 118, 101, 114, 116, 32, 121, 111, 117, 114, 32, 117,
+            56, 32, 98, 121, 116, 101, 115, 32, 116, 111, 32, 117, 116, 102,
+            56, 46,
+        ];
+
+        let output = transform(bytes.view());
+
+        assert_eq!(output, should_be);
+    }
+}
