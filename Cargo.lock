@@ -885,7 +885,7 @@ dependencies = [
 
 [[package]]
 name = "normalize"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks 0.1.0",
  "num-traits",
