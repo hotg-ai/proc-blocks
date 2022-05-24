@@ -4,7 +4,6 @@
 
 use alloc::vec::Vec;
 use core::str::FromStr;
-use hotg_rune_proc_blocks::Tensor;
 
 const NOISE_REDUCTION_BITS: usize = 14;
 
@@ -23,23 +22,23 @@ pub struct NoiseReduction {
 }
 
 impl NoiseReduction {
-    pub(crate) fn transform(
-        &self,
-        mut input: Tensor<u32>,
+    pub(crate) fn transform<'a>(
+        &'a self,
+        mut input: &'a [u32],
         state: &mut State,
-    ) -> Tensor<u32> {
+    ) -> &[u32] {
         // make sure we have the right estimate buffer size and panic if we
         // don't. This works because the input and output have the same
         // dimensions.
-        match input.dimensions() {
-            [1, len, ] => state.estimate.resize(*len, 0),
+        match [1, input.len()] {
+            [1, len, ] => state.estimate.resize(len, 0),
             other => panic!(
                 "This transform only supports outputs of the form [1, _], not {:?}",
                 other
             ),
         }
 
-        let signal = input.make_elements_mut();
+        let signal = input.as_mut();
 
         for (i, value) in signal.iter_mut().enumerate() {
             let smoothing = if i % 2 == 0 {
@@ -130,12 +129,11 @@ mod tests {
     #[test]
     fn test_noise_reduction_estimate() {
         let noise_reduction = NoiseReduction::default();
-        let input =
-            Tensor::new_row_major(Arc::new([247311, 508620]), vec![1, 2]);
+        let input = vec![247311, 508620];
         let should_be = vec![6321887, 31248341];
         let mut state = State::default();
 
-        let _ = noise_reduction.transform(input, &mut state);
+        let _ = noise_reduction.transform(&input, &mut state);
 
         assert_eq!(state.estimate, should_be);
     }
@@ -144,13 +142,11 @@ mod tests {
     #[test]
     fn test_noise_reduction() {
         let noise_reduction = NoiseReduction::default();
-        let input =
-            Tensor::new_row_major(Arc::new([247311, 508620]), vec![1, 2]);
-        let should_be =
-            Tensor::new_row_major(Arc::new([241137, 478104]), vec![1, 2]);
+        let input = vec![247311, 508620];
+        let should_be = vec![241137, 478104];
         let mut state = State::default();
 
-        let got = noise_reduction.transform(input, &mut state);
+        let got = noise_reduction.transform(&input, &mut state);
 
         assert_eq!(got, should_be);
     }

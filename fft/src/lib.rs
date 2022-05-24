@@ -98,12 +98,14 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = KernelContext::for_node(&node_id)
             .ok_or(KernelError::MissingContext)?;
 
-        let sampling_rate = get_u32_args(|n| ctx.get_argument(n))
+        let sampling_rate =
+            get_u32_args("sampling_rate", |n| ctx.get_argument(n))
+                .map_err(KernelError::InvalidArgument)?;
+        let bins = get_u32_args("bins", |n| ctx.get_argument(n))
             .map_err(KernelError::InvalidArgument)?;
-        let bins = get_u32_args(|n| ctx.get_argument(n))
-            .map_err(KernelError::InvalidArgument)?;
-        let window_overlap = get_f32_args(|n| ctx.get_argument(n))
-            .map_err(KernelError::InvalidArgument)?;
+        let window_overlap =
+            get_f32_args("window_overlap", |n| ctx.get_argument(n))
+                .map_err(KernelError::InvalidArgument)?;
 
         let TensorResult {
             element_type,
@@ -168,21 +170,23 @@ fn check_input_dimensions(dimensions: &[u32]) {
 }
 
 fn get_u32_args(
+    name: &str,
     get_argument: impl FnOnce(&str) -> Option<String>,
 ) -> Result<u32, InvalidArgument> {
-    get_argument("count")
-        .ok_or_else(|| InvalidArgument::not_found("count"))?
+    get_argument(name)
+        .ok_or_else(|| InvalidArgument::not_found(name))?
         .parse::<u32>()
-        .map_err(|e| InvalidArgument::invalid_value("count", e))
+        .map_err(|e| InvalidArgument::invalid_value(name, e))
 }
 
 fn get_f32_args(
+    name: &str,
     get_argument: impl FnOnce(&str) -> Option<String>,
 ) -> Result<f32, InvalidArgument> {
-    get_argument("count")
-        .ok_or_else(|| InvalidArgument::not_found("count"))?
+    get_argument(name)
+        .ok_or_else(|| InvalidArgument::not_found(name))?
         .parse::<f32>()
-        .map_err(|e| InvalidArgument::invalid_value("count", e))
+        .map_err(|e| InvalidArgument::invalid_value(name, e))
 }
 
 impl InvalidArgument {

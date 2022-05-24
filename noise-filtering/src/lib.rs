@@ -1,4 +1,12 @@
-#![cfg_attr(not(feature = "metadata"), no_std)]
+use std::{convert::TryInto, f64, fmt::Display};
+
+pub use crate::noise_reduction::ScaledU16;
+
+use crate::proc_block_v1::*;
+use hotg_rune_proc_blocks::{
+    runtime_v1::{self, *},
+    BufferExt, SliceExt,
+};
 
 #[macro_use]
 extern crate alloc;
@@ -6,18 +14,255 @@ extern crate alloc;
 mod gain_control;
 mod noise_reduction;
 
-pub use crate::noise_reduction::ScaledU16;
-
 use crate::{gain_control::GainControl, noise_reduction::NoiseReduction};
-use hotg_rune_proc_blocks::{ProcBlock, Tensor, Transform};
 
-#[derive(Debug, Clone, ProcBlock)]
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+
+// It reduces noise and applies a gain control algorithm within each frequency
+// bin.
+struct ProcBlockV1;
+
+impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
+    fn register_metadata() {
+        let metadata =
+            Metadata::new("Noise Filtering", env!("CARGO_PKG_VERSION"));
+        metadata.set_description(
+                "Reduce the amount of high frequency noise in an audio clip and increase its gain.",
+            );
+        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
+        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
+        metadata.add_tag("audio");
+
+        let strength = ArgumentMetadata::new("strength");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        strength.add_hint(&hint);
+        strength.set_default_value("0.95");
+        metadata.add_argument(&strength);
+
+        let offset = ArgumentMetadata::new("offset");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        offset.add_hint(&hint);
+        offset.set_default_value("80");
+        metadata.add_argument(&offset);
+
+        let gain_bits = ArgumentMetadata::new("gain_bits");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Integer);
+        gain_bits.add_hint(&hint);
+        gain_bits.set_default_value("21");
+        metadata.add_argument(&gain_bits);
+
+        let smoothing_bits = ArgumentMetadata::new("smoothing_bits");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Integer);
+        smoothing_bits.add_hint(&hint);
+        smoothing_bits.set_default_value("10");
+        metadata.add_argument(&smoothing_bits);
+
+        let even_smoothing = ArgumentMetadata::new("even_smoothing");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        even_smoothing.add_hint(&hint);
+        even_smoothing.set_default_value("0.025");
+        metadata.add_argument(&even_smoothing);
+
+        let odd_smoothing = ArgumentMetadata::new("odd_smoothing");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        odd_smoothing.add_hint(&hint);
+        odd_smoothing.set_default_value("0.06");
+        metadata.add_argument(&odd_smoothing);
+
+        let min_signal_remaining =
+            ArgumentMetadata::new("min_signal_remaining");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        min_signal_remaining.add_hint(&hint);
+        min_signal_remaining.set_default_value("0.05");
+        metadata.add_argument(&min_signal_remaining);
+
+        let input = TensorMetadata::new("audio");
+        input.set_description("An audio clip");
+        let hint = supported_shapes(
+            &[ElementType::U32],
+            DimensionsParam::Fixed(&[1, 0]),
+        );
+        input.add_hint(&hint);
+        metadata.add_input(&input);
+
+        let output = TensorMetadata::new("filtered");
+        let hint = supported_shapes(
+            &[ElementType::I8],
+            DimensionsParam::Fixed(&[1, 0]),
+        );
+        output.add_hint(&hint);
+        metadata.add_output(&output);
+
+        register_node(&metadata);
+    }
+
+    fn graph(node_id: String) -> Result<(), GraphError> {
+        let ctx = GraphContext::for_node(&node_id)
+            .ok_or(GraphError::MissingContext)?;
+
+        ctx.add_input_tensor(
+            "audio",
+            ElementType::F32,
+            DimensionsParam::Fixed(&[1, 0]),
+        );
+        ctx.add_output_tensor(
+            "filtered",
+            ElementType::F32,
+            DimensionsParam::Fixed(&[1, 0]),
+        );
+
+        Ok(())
+    }
+
+    fn kernel(node_id: String) -> Result<(), KernelError> {
+        let ctx = KernelContext::for_node(&node_id)
+            .ok_or(KernelError::MissingContext)?;
+
+        let strength = get_f32_args("strength", |n| ctx.get_argument(n))
+            .map_err(KernelError::InvalidArgument)?;
+
+        let offset = get_f32_args("offset", |n| ctx.get_argument(n))
+            .map_err(KernelError::InvalidArgument)?;
+
+        let gain_bits = get_u32_args("gain_bits", |n| ctx.get_argument(n))
+            .map_err(KernelError::InvalidArgument)?;
+
+        let smoothing_bits =
+            get_u32_args("smoothing_bits", |n| ctx.get_argument(n))
+                .map_err(KernelError::InvalidArgument)?;
+
+        let even_smoothing =
+            get_scaledu16_args("even_smoothing", |n| ctx.get_argument(n))
+                .map_err(KernelError::InvalidArgument)?;
+
+        let odd_smoothing =
+            get_scaledu16_args("odd_smoothing", |n| ctx.get_argument(n))
+                .map_err(KernelError::InvalidArgument)?;
+
+        let min_signal_remaining =
+            get_scaledu16_args("min_signal_remaining", |n| ctx.get_argument(n))
+                .map_err(KernelError::InvalidArgument)?;
+
+        let config: GainControl = GainControl {
+            strength,
+            offset,
+            gain_bits: gain_bits.try_into().unwrap(),
+        };
+
+        let noise_reduction: NoiseReduction = NoiseReduction {
+            smoothing_bits,
+            even_smoothing,
+            odd_smoothing,
+            min_signal_remaining,
+        };
+
+        let noise_filtering: NoiseFiltering = NoiseFiltering {
+            strength,
+            offset,
+            gain_bits: gain_bits.try_into().unwrap(),
+            gain_control: gain_control::State::new(
+                config,
+                smoothing_bits as u16,
+            ),
+            smoothing_bits,
+            even_smoothing,
+            odd_smoothing,
+            min_signal_remaining,
+            noise_reduction: noise_reduction::State::default(),
+        };
+
+        let TensorResult {
+            element_type,
+            dimensions,
+            buffer,
+        } = ctx.get_input_tensor("audio").ok_or_else(|| {
+            KernelError::InvalidInput(InvalidInput {
+                name: "bounding_boxes".to_string(),
+                reason: BadInputReason::NotFound,
+            })
+        })?;
+
+        let output = match element_type {
+            ElementType::F32 =>{
+                buffer.view::<f32>(&dimensions)
+                    .map_err(|e| KernelError::InvalidInput(InvalidInput {
+                        name: "input".to_string(),
+                        reason: BadInputReason::Other(e.to_string()),
+                    }))?;
+                transform(noise_filtering, buffer.elements())
+            }
+            other => {
+                return Err(KernelError::Other(format!(
+                "The Noise Filtering proc-block doesn't support {:?} element type",
+                other,
+                )))
+            },
+        };
+
+        ctx.set_output_tensor(
+            "filtered",
+            TensorParam {
+                element_type: ElementType::F32,
+                dimensions: &dimensions,
+                buffer: &output.as_bytes(),
+            },
+        );
+
+        Ok(())
+    }
+}
+
+fn get_u32_args(
+    name: &str,
+    get_argument: impl FnOnce(&str) -> Option<String>,
+) -> Result<u32, InvalidArgument> {
+    get_argument(name)
+        .ok_or_else(|| InvalidArgument::not_found(name))?
+        .parse::<u32>()
+        .map_err(|e| InvalidArgument::invalid_value(name, e))
+}
+
+fn get_scaledu16_args(
+    name: &str,
+    get_argument: impl FnOnce(&str) -> Option<String>,
+) -> Result<ScaledU16, InvalidArgument> {
+    get_argument(name)
+        .ok_or_else(|| InvalidArgument::not_found(name))?
+        .parse::<ScaledU16>()
+        .map_err(|e| InvalidArgument::invalid_value(name, e))
+}
+
+fn get_f32_args(
+    name: &str,
+    get_argument: impl FnOnce(&str) -> Option<String>,
+) -> Result<f32, InvalidArgument> {
+    get_argument(name)
+        .ok_or_else(|| InvalidArgument::not_found(name))?
+        .parse::<f32>()
+        .map_err(|e| InvalidArgument::invalid_value(name, e))
+}
+
+impl InvalidArgument {
+    fn not_found(name: impl Into<String>) -> Self {
+        InvalidArgument {
+            name: name.into(),
+            reason: BadArgumentReason::NotFound,
+        }
+    }
+
+    fn invalid_value(name: impl Into<String>, reason: impl Display) -> Self {
+        InvalidArgument {
+            name: name.into(),
+            reason: BadArgumentReason::InvalidValue(reason.to_string()),
+        }
+    }
+}
+
 pub struct NoiseFiltering {
     // gain control options
     strength: f32,
     offset: f32,
     gain_bits: i32,
-    #[proc_block(skip)]
     gain_control: gain_control::State,
 
     // noise filtering options
@@ -25,58 +270,58 @@ pub struct NoiseFiltering {
     even_smoothing: ScaledU16,
     odd_smoothing: ScaledU16,
     min_signal_remaining: ScaledU16,
-    #[proc_block(skip)]
     noise_reduction: noise_reduction::State,
 }
 
-impl Transform<Tensor<u32>> for NoiseFiltering {
-    type Output = Tensor<i8>;
+fn transform(noise_filtering: NoiseFiltering, input: &[u32]) -> Vec<i8> {
+    let NoiseFiltering {
+        strength,
+        offset,
+        gain_bits,
+        ref mut gain_control,
+        smoothing_bits,
+        even_smoothing,
+        odd_smoothing,
+        min_signal_remaining,
+        ref mut noise_reduction,
+    } = noise_filtering;
 
-    fn transform(&mut self, input: Tensor<u32>) -> Tensor<i8> {
-        let NoiseFiltering {
-            strength,
-            offset,
-            gain_bits,
-            ref mut gain_control,
-            smoothing_bits,
-            even_smoothing,
-            odd_smoothing,
-            min_signal_remaining,
-            ref mut noise_reduction,
-        } = *self;
+    let n = NoiseReduction {
+        smoothing_bits,
+        even_smoothing,
+        odd_smoothing,
+        min_signal_remaining,
+    };
+    let cleaned = n.transform(input, noise_reduction);
 
-        let n = NoiseReduction {
-            even_smoothing,
-            min_signal_remaining,
-            odd_smoothing,
-            smoothing_bits,
-        };
-        let cleaned = n.transform(input, noise_reduction);
+    let g = GainControl {
+        gain_bits,
+        offset,
+        strength,
+    };
+    let amplified: Vec<f64> = g
+        .transform(
+            cleaned,
+            &noise_reduction.estimate,
+            smoothing_bits as u16,
+            gain_control,
+        )
+        .iter()
+        .map(|energy| libm::log2((*energy as f64) + 1.0))
+        .collect();
 
-        let g = GainControl {
-            gain_bits,
-            offset,
-            strength,
-        };
-        let amplified = g
-            .transform(
-                cleaned,
-                &noise_reduction.estimate,
-                smoothing_bits as u16,
-                gain_control,
-            )
-            .map(|_, energy| libm::log2((*energy as f64) + 1.0));
+    let (min_value, max_value) = amplified.iter().copied().fold(
+        (f64::INFINITY, f64::NEG_INFINITY),
+        |(lower, upper), current| (lower.min(current), upper.max(current)),
+    );
 
-        let (min_value, max_value) = amplified.elements().iter().copied().fold(
-            (f64::INFINITY, f64::NEG_INFINITY),
-            |(lower, upper), current| (lower.min(current), upper.max(current)),
-        );
-
-        amplified.map(|_, energy| {
+    amplified
+        .iter()
+        .map(|energy| {
             ((255.0 * (energy - min_value) / (max_value - min_value)) - 128.0)
                 as i8
         })
-    }
+        .collect()
 }
 
 impl Default for NoiseFiltering {
@@ -107,84 +352,6 @@ impl Default for NoiseFiltering {
             odd_smoothing,
             min_signal_remaining,
             noise_reduction: noise_reduction::State::default(),
-        }
-    }
-}
-
-#[cfg(feature = "metadata")]
-pub mod metadata {
-    wit_bindgen_rust::import!("../wit-files/rune/runtime-v1.wit");
-    wit_bindgen_rust::export!("../wit-files/rune/rune-v1.wit");
-
-    struct RuneV1;
-
-    impl rune_v1::RuneV1 for RuneV1 {
-        fn start() {
-            use runtime_v1::*;
-
-            let metadata =
-                Metadata::new("Noise Filtering", env!("CARGO_PKG_VERSION"));
-            metadata.set_description(
-                "Reduce the amount of high frequency noise in an audio clip and increase its gain.",
-            );
-            metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-            metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-            metadata.add_tag("audio");
-
-            let strength = ArgumentMetadata::new("strength");
-            strength.set_type_hint(TypeHint::Float);
-            strength.set_default_value("0.95");
-            metadata.add_argument(&strength);
-
-            let offset = ArgumentMetadata::new("offset");
-            offset.set_type_hint(TypeHint::Float);
-            offset.set_default_value("80");
-            metadata.add_argument(&offset);
-
-            let gain_bits = ArgumentMetadata::new("gain_bits");
-            gain_bits.set_type_hint(TypeHint::Integer);
-            gain_bits.set_default_value("21");
-            metadata.add_argument(&gain_bits);
-
-            let smoothing_bits = ArgumentMetadata::new("smoothing_bits");
-            smoothing_bits.set_type_hint(TypeHint::Integer);
-            smoothing_bits.set_default_value("10");
-            metadata.add_argument(&smoothing_bits);
-
-            let even_smoothing = ArgumentMetadata::new("even_smoothing");
-            even_smoothing.set_type_hint(TypeHint::Float);
-            even_smoothing.set_default_value("0.025");
-            metadata.add_argument(&even_smoothing);
-
-            let odd_smoothing = ArgumentMetadata::new("odd_smoothing");
-            odd_smoothing.set_type_hint(TypeHint::Float);
-            odd_smoothing.set_default_value("0.06");
-            metadata.add_argument(&odd_smoothing);
-
-            let min_signal_remaining =
-                ArgumentMetadata::new("min_signal_remaining");
-            min_signal_remaining.set_type_hint(TypeHint::Float);
-            min_signal_remaining.set_default_value("0.05");
-            metadata.add_argument(&min_signal_remaining);
-
-            let input = TensorMetadata::new("audio");
-            input.set_description("An audio clip");
-            let hint = supported_shapes(
-                &[ElementType::Uint32],
-                Dimensions::Fixed(&[1, 0]),
-            );
-            input.add_hint(&hint);
-            metadata.add_input(&input);
-
-            let output = TensorMetadata::new("filtered");
-            let hint = supported_shapes(
-                &[ElementType::Int8],
-                Dimensions::Fixed(&[1, 0]),
-            );
-            output.add_hint(&hint);
-            metadata.add_output(&output);
-
-            register_node(&metadata);
         }
     }
 }
@@ -328,8 +495,9 @@ mod tests {
             33, 22, 26, 29, 24, 10, 9, 18, 14, 8, 12, 13, 8, 15, 5, 13, 7, 6,
             8, 7, 9, 14, 12, 13, 13, 10, 9, 10, 7, 8, 5, 0,
         ];
+
         let expected = vec![
-            -128, -44, -21, -66, -84, -106, -106, -106, -71, -71, -76, -128,
+            -128_i8, -44, -21, -66, -84, -106, -106, -106, -71, -71, -76, -128,
             -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
             -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
             -128, -128, -128, -128, -128, -128, -128, -62, -40, -49, -106, -93,
@@ -487,11 +655,9 @@ mod tests {
             -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
             -128, -128, -128, -128, -128, -128, -128, -128,
         ];
-        let dimensions = vec![1, microspeech_fft.len()];
-        let input = Tensor::new_row_major(microspeech_fft.into(), dimensions);
 
-        let output = pb.transform(input);
+        let output = transform(pb, &microspeech_fft);
 
-        assert_eq!(output.elements(), expected);
+        assert_eq!(output, expected);
     }
 }
