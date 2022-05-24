@@ -182,7 +182,7 @@ mod tests {
         let got = state.transform(&mut input, &noise_estimate);
 
         let should_be = vec![3578, 1533];
-        assert_eq!(got, &should_be);
+        assert_eq!(got, should_be);
     }
 
     #[test]
