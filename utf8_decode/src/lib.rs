@@ -84,7 +84,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                     .and_then(|t| t.into_dimensionality())
                     .map_err(|e| {
                         KernelError::InvalidInput(InvalidInput {
-                            name: "bounding_boxes".to_string(),
+                            name: "bytes".to_string(),
                             reason: BadInputReason::InvalidValue(e.to_string()),
                         })
                     })?;

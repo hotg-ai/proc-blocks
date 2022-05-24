@@ -2,7 +2,6 @@
 //!
 //! [tf]: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/experimental/microfrontend/lib/pcan_gain_control.c
 
-use hotg_rune_proc_blocks::Tensor;
 use alloc::vec::Vec;
 
 pub const WIDE_DYNAMIC_FUNCTION_BITS: usize = 32;
@@ -21,15 +20,15 @@ pub struct GainControl {
 }
 
 impl GainControl {
-    pub(crate) fn transform(
-        &self,
-        input: Tensor<u32>,
+    pub(crate) fn transform<'a>(
+        &'a self,
+        input: &'a mut [u32],
         noise_estimate: &[u32],
         smoothing_bits: u16,
-        state: &mut State,
-    ) -> Tensor<u32> {
+        state: &'a mut State,
+    ) {
         state.update(*self, smoothing_bits);
-        state.transform(input, noise_estimate)
+        state.transform(input, noise_estimate);
     }
 }
 
@@ -95,13 +94,11 @@ impl State {
         }
     }
 
-    pub fn transform(
-        &mut self,
-        mut input: Tensor<u32>,
+    pub fn transform<'a>(
+        &'a mut self,
+        elements: &'a mut [u32],
         noise_estimate: &[u32],
-    ) -> Tensor<u32> {
-        let elements = input.make_elements_mut();
-
+    ) {
         for (i, element) in elements.iter_mut().enumerate() {
             let gain =
                 wide_dynamic_function(noise_estimate[i], &self.gain_lut) as u32;
@@ -109,8 +106,6 @@ impl State {
             let snr = (signal as u64 * gain as u64) >> self.snr_shift;
             *element = shrink(snr as u32);
         }
-
-        input
     }
 }
 
@@ -175,15 +170,15 @@ mod tests {
             offset: 80.0,
             ..Default::default()
         };
-        let input = Tensor::new_vector(vec![241137, 478104]);
+        let mut input = vec![241137, 478104];
         // Note: we get this from a the noise reduction step
         let noise_estimate = vec![6321887, 31248341];
         let mut state = State::new(gain_control, SMOOTHING_BITS);
 
-        let got = state.transform(input, &noise_estimate);
+        state.transform(&mut input, &noise_estimate);
 
-        let should_be = Tensor::new_vector(vec![3578, 1533]);
-        assert_eq!(got, should_be);
+        let should_be = vec![3578, 1533];
+        assert_eq!(input, should_be);
     }
 
     #[test]
