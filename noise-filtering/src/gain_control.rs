@@ -22,13 +22,13 @@ pub struct GainControl {
 impl GainControl {
     pub(crate) fn transform<'a>(
         &'a self,
-        input: &'a [u32],
+        input: &'a mut [u32],
         noise_estimate: &[u32],
         smoothing_bits: u16,
         state: &'a mut State,
-    ) -> &[u32] {
+    ) {
         state.update(*self, smoothing_bits);
-        state.transform(&input, noise_estimate)
+        state.transform(input, noise_estimate);
     }
 }
 
@@ -96,11 +96,9 @@ impl State {
 
     pub fn transform<'a>(
         &'a mut self,
-        input: &'a [u32],
+        elements: &'a mut [u32],
         noise_estimate: &[u32],
-    ) -> &[u32] {
-        let mut elements = input;
-
+    ) {
         for (i, element) in elements.iter_mut().enumerate() {
             let gain =
                 wide_dynamic_function(noise_estimate[i], &self.gain_lut) as u32;
@@ -108,10 +106,6 @@ impl State {
             let snr = (signal as u64 * gain as u64) >> self.snr_shift;
             *element = shrink(snr as u32);
         }
-
-        // let input = elements;
-
-        &input
     }
 }
 
@@ -164,73 +158,73 @@ fn gain_lookup(config: GainControl, input_bits: i32, x: u32) -> i16 {
     (gain + 0.5) as i16
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     /// https://github.com/tensorflow/tensorflow/blob/0f6d728b920e9b0286171bdfec9917d8486ac08b/tensorflow/lite/experimental/microfrontend/lib/pcan_gain_control_test.cc#L43-L63
-//     #[test]
-//     fn test_pcan_gain_control() {
-//         let gain_control = GainControl {
-//             strength: 0.95,
-//             offset: 80.0,
-//             ..Default::default()
-//         };
-//         let input = Tensor::new_vector(vec![241137, 478104]);
-//         // Note: we get this from a the noise reduction step
-//         let noise_estimate = vec![6321887, 31248341];
-//         let mut state = State::new(gain_control, SMOOTHING_BITS);
+    /// https://github.com/tensorflow/tensorflow/blob/0f6d728b920e9b0286171bdfec9917d8486ac08b/tensorflow/lite/experimental/microfrontend/lib/pcan_gain_control_test.cc#L43-L63
+    #[test]
+    fn test_pcan_gain_control() {
+        let gain_control = GainControl {
+            strength: 0.95,
+            offset: 80.0,
+            ..Default::default()
+        };
+        let mut input = vec![241137, 478104];
+        // Note: we get this from a the noise reduction step
+        let noise_estimate = vec![6321887, 31248341];
+        let mut state = State::new(gain_control, SMOOTHING_BITS);
 
-//         let got = state.transform(input, &noise_estimate);
+        state.transform(&mut input, &noise_estimate);
 
-//         let should_be = Tensor::new_vector(vec![3578, 1533]);
-//         assert_eq!(got, should_be);
-//     }
+        let should_be = vec![3578, 1533];
+        assert_eq!(input, should_be);
+    }
 
-//     #[test]
-//     fn initialize_state() {
-//         let config = GainControl {
-//             strength: 0.95,
-//             offset: 80.0,
-//             gain_bits: 21,
-//         };
+    #[test]
+    fn initialize_state() {
+        let config = GainControl {
+            strength: 0.95,
+            offset: 80.0,
+            gain_bits: 21,
+        };
 
-//         let got = State::new(config, SMOOTHING_BITS);
+        let got = State::new(config, SMOOTHING_BITS);
 
-//         let should_be = State {
-//             snr_shift: 10,
-//             gain_lut: vec![
-//                 32636, 32636, 32635, 0, 0, 0, 32635, 1, -2, 0, 32634, 1, -2,
-// 0,                 32633, -5, 2, 0, 32630, -6, 0, 0, 32624, -12, 0, 0, 32612,
-// -23,                 -2, 0, 32587, -48, 0, 0, 32539, -96, 0, 0, 32443, -190,
-// 0, 0,                 32253, -378, 4, 0, 31879, -739, 18, 0, 31158, -1409,
-// 62, 0,                 29811, -2567, 202, 0, 27446, -4301, 562, 0, 23707,
-// -6265, 1230,                 0, 18672, -7458, 1952, 0, 13166, -7030, 2212, 0,
-// 8348, -5342,                 1868, 0, 4874, -3459, 1282, 0, 2697, -2025, 774,
-// 0, 1446,                 -1120, 436, 0, 762, -596, 232, 0, 398, -313, 122, 0,
-// 207, -164,                 64, 0, 107, -85, 34, 0, 56, -45, 18, 0, 29, -22,
-// 8, 0, 15, -13,                 6, 0, 8, -8, 4, 0, 4, -2, 0,
-//             ],
-//             config,
-//         };
+        let should_be = State {
+            snr_shift: 10,
+            gain_lut: vec![
+                32636, 32636, 32635, 0, 0, 0, 32635, 1, -2, 0, 32634, 1, -2, 0,
+                32633, -5, 2, 0, 32630, -6, 0, 0, 32624, -12, 0, 0, 32612, -23,
+                -2, 0, 32587, -48, 0, 0, 32539, -96, 0, 0, 32443, -190, 0, 0,
+                32253, -378, 4, 0, 31879, -739, 18, 0, 31158, -1409, 62, 0,
+                29811, -2567, 202, 0, 27446, -4301, 562, 0, 23707, -6265, 1230,
+                0, 18672, -7458, 1952, 0, 13166, -7030, 2212, 0, 8348, -5342,
+                1868, 0, 4874, -3459, 1282, 0, 2697, -2025, 774, 0, 1446,
+                -1120, 436, 0, 762, -596, 232, 0, 398, -313, 122, 0, 207, -164,
+                64, 0, 107, -85, 34, 0, 56, -45, 18, 0, 29, -22, 8, 0, 15, -13,
+                6, 0, 8, -8, 4, 0, 4, -2, 0,
+            ],
+            config,
+        };
 
-//         assert_eq!(got, should_be);
-//     }
+        assert_eq!(got, should_be);
+    }
 
-//     #[test]
-//     fn known_wide_dynamic_function_results() {
-//         let config = GainControl {
-//             strength: 0.95,
-//             offset: 80.0,
-//             gain_bits: 21,
-//         };
-//         let state = State::new(config, SMOOTHING_BITS);
+    #[test]
+    fn known_wide_dynamic_function_results() {
+        let config = GainControl {
+            strength: 0.95,
+            offset: 80.0,
+            gain_bits: 21,
+        };
+        let state = State::new(config, SMOOTHING_BITS);
 
-//         let inputs = vec![(6321887, 990), (31248341, 219)];
+        let inputs = vec![(6321887, 990), (31248341, 219)];
 
-//         for (input, should_be) in inputs {
-//             let got = wide_dynamic_function(input, &state.gain_lut);
-//             assert_eq!(got, should_be);
-//         }
-//     }
-// }
+        for (input, should_be) in inputs {
+            let got = wide_dynamic_function(input, &state.gain_lut);
+            assert_eq!(got, should_be);
+        }
+    }
+}
