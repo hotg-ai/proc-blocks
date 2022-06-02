@@ -32,52 +32,19 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.add_tag("categorical dependent variable");
 
         let x_train = TensorMetadata::new("x_train");
-        let supported_types = [
-            ElementType::U8,
-            ElementType::I8,
-            ElementType::U16,
-            ElementType::I16,
-            ElementType::U32,
-            ElementType::I32,
-            ElementType::F32,
-            ElementType::U64,
-            ElementType::I64,
-            ElementType::F64,
-        ];
+        let supported_types = 
+            [ElementType::F32]
+        ;
         let hint = supported_shapes(&supported_types, DimensionsParam::Dynamic);
         x_train.add_hint(&hint);
         metadata.add_input(&x_train);
 
         let y_train = TensorMetadata::new("y_train");
-        let supported_types = [
-            ElementType::U8,
-            ElementType::I8,
-            ElementType::U16,
-            ElementType::I16,
-            ElementType::U32,
-            ElementType::I32,
-            ElementType::F32,
-            ElementType::U64,
-            ElementType::I64,
-            ElementType::F64,
-        ];
-        let hint = supported_shapes(&supported_types, DimensionsParam::Dynamic);
+        let hint = supported_shapes(&supported_types, DimensionsParam::Fixed(&[0]));
         y_train.add_hint(&hint);
         metadata.add_input(&y_train);
 
         let x_test = TensorMetadata::new("x_test");
-        let supported_types = [
-            ElementType::U8,
-            ElementType::I8,
-            ElementType::U16,
-            ElementType::I16,
-            ElementType::U32,
-            ElementType::I32,
-            ElementType::F32,
-            ElementType::U64,
-            ElementType::I64,
-            ElementType::F64,
-        ];
         let hint = supported_shapes(&supported_types, DimensionsParam::Dynamic);
         x_test.add_hint(&hint);
         metadata.add_input(&x_test);
@@ -95,7 +62,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             ElementType::I64,
             ElementType::F64,
         ];
-        let hint = supported_shapes(&supported_types, DimensionsParam::Dynamic);
+        let hint = supported_shapes(&supported_types, DimensionsParam::Fixed(&[0]));
         y_test.add_hint(&hint);
         metadata.add_output(&y_test);
     }
@@ -105,16 +72,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             .ok_or(GraphError::MissingContext)?;
 
         let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("u8") => ElementType::U8,
-            Some("i8") => ElementType::I8,
-            Some("u16") => ElementType::U16,
-            Some("i16") => ElementType::I16,
-            Some("u32") => ElementType::U32,
-            Some("i32") => ElementType::I32,
             Some("f32") => ElementType::F32,
-            Some("u64") => ElementType::U64,
-            Some("i64") => ElementType::I64,
-            Some("f64") => ElementType::F64,
             Some(_) => {
                 return Err(GraphError::InvalidArgument(InvalidArgument {
                     name: "element_type".to_string(),
@@ -133,11 +91,11 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         ctx.add_input_tensor("x_train", element_type, DimensionsParam::Dynamic);
 
-        ctx.add_input_tensor("y_train", element_type, DimensionsParam::Dynamic);
+        ctx.add_input_tensor("y_train", element_type, DimensionsParam::Fixed(&[0]));
 
         ctx.add_input_tensor("x_test", element_type, DimensionsParam::Dynamic);
 
-        ctx.add_output_tensor("y_test", element_type, DimensionsParam::Dynamic);
+        ctx.add_output_tensor("y_test", element_type, DimensionsParam::Fixed(&[0]));
 
         Ok(())
     }
@@ -177,6 +135,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform<T>(x_train: &[T], y_train: &[T], x_test: &[T]) -> Vec<f32> {
+fn transform(x_train: &[f32], y_train: &[f32], x_test: &[f32]) -> Vec<f32> {
     todo!()
 }
