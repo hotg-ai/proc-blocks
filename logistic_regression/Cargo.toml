@@ -1,0 +1,21 @@
+[package]
+name = "logistic_regression"
+version = "0.12.0"
+edition = "2018"
+description = "Logistic regression combines linear models with the sigmoid function sigm(x) = 1/(1+exp(-x)) to learn a family of functions that map the feature space to [0,1]."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hotg-rune-proc-blocks = { path = "../support" }
+wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+linfa = "0.3.1"
+linfa-datasets = { version = "0.3.1", features = ["winequality"] }
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"
