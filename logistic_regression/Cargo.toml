@@ -8,9 +8,9 @@ description = "a statistical model that models the probability of one event taki
 [dependencies]
 hotg-rune-proc-blocks = { path = "../support" }
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
-linfa = "0.3.1"
-linfa-logistic = "0.3.1"
-linfa-datasets = { version = "0.3.1", features = ["winequality"] }
+linfa = {git = "https://github.com/hotg-ai/linfa" }
+linfa-logistic = {git = "https://github.com/hotg-ai/linfa"}
+linfa-datasets = {git = "https://github.com/hotg-ai/linfa", features = ["winequality"]}
 
 
 [lib]
