@@ -146,40 +146,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             &x_test.dimensions,
         );
 
-        let y_test_dimension = [x_train.dimensions[0], 1];
-
-        // let y_train = y_train
-        //     .buffer
-        //     .view::<i32>(&y_train.dimensions)
-        //     .and_then(|t| t.into_dimensionality())
-        //     .map_err(|e| {
-        //         KernelError::InvalidInput(InvalidInput {
-        //             name: "bytes".to_string(),
-        //             reason: BadInputReason::InvalidValue(e.to_string()),
-        //         })
-        //     })?;
-
-        // let x_train = x_train
-        //     .buffer
-        //     .view::<f64>(&x_train.dimensions)
-        //     .and_then(|t| t.into_dimensionality())
-        //     .map_err(|e| {
-        //         KernelError::InvalidInput(InvalidInput {
-        //             name: "bytes".to_string(),
-        //             reason: BadInputReason::InvalidValue(e.to_string()),
-        //         })
-        //     })?;
-
-        // let x_test = x_test
-        //     .buffer
-        //     .view::<f64>(&x_test.dimensions)
-        //     .and_then(|t| t.into_dimensionality())
-        //     .map_err(|e| {
-        //         KernelError::InvalidInput(InvalidInput {
-        //             name: "bytes".to_string(),
-        //             reason: BadInputReason::InvalidValue(e.to_string()),
-        //         })
-        //     })?;
+        let y_test_dimension = [x_test.dimensions[0]];
 
         ctx.set_output_tensor(
             "y_test",
