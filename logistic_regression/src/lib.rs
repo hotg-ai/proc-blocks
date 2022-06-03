@@ -1,4 +1,4 @@
-use linfa::traits::{Fit, Predict};
+use linfa::{traits::{Fit, Predict}, Dataset};
 use linfa_datasets::winequality;
 use linfa_logistic::LogisticRegression;
 
@@ -9,7 +9,7 @@ use crate::proc_block_v1::{
 use hotg_rune_proc_blocks::{
     common,
     runtime_v1::{self, *},
-    BufferExt, SliceExt, ndarray::{ArrayBase, ArrayView1, ViewRepr, IxDynImpl, Dim, stack, Axis},
+    BufferExt, SliceExt, ndarray::{ArrayBase, ArrayView1, ViewRepr, IxDynImpl, Dim, stack, Axis, Array3, ArrayView, ArrayViewD},
 };
 use std::{fmt::Display, str::FromStr};
 
@@ -142,9 +142,9 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(x_train: ArrayBase<ViewRepr<&f32>, Dim<IxDynImpl>>, y_train: ArrayBase<ViewRepr<&f32>, Dim<IxDynImpl>>, x_test: ArrayBase<ViewRepr<&f32>, Dim<IxDynImpl>>) -> Vec<f32> {
-    let training_data = stack![Axis(1), x_train, y_train];
-    
+fn transform(x_train: ArrayViewD<'_, f32>, y_train: ArrayView1<f32>, x_test: ArrayViewD<'_, f32>) -> Vec<f32> {
+    let training_data = Dataset::new(x_train, y_train);
+
     let model = LogisticRegression::default().fit(&training_data).unwrap();
     let prediction = model.predict(&x_test);
 
