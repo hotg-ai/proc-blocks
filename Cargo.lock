@@ -861,7 +861,7 @@ checksum = "806de604a37f6d73a83c850af7b3ba33a44f330d12fd5e4ac216645b54da912b"
 [[package]]
 name = "linfa"
 version = "0.5.0"
-source = "git+https://github.com/hotg-ai/linfa#e875b34b31fc3c8460a9b7c78b5e99a0d65d8d6e"
+source = "git+https://github.com/hotg-ai/linfa#761dd9b4e3d8037162b2d291e4369733e05a8ef0"
 dependencies = [
  "anyhow",
  "approx 0.4.0",
@@ -875,7 +875,7 @@ dependencies = [
 [[package]]
 name = "linfa-datasets"
 version = "0.5.0"
-source = "git+https://github.com/hotg-ai/linfa#e875b34b31fc3c8460a9b7c78b5e99a0d65d8d6e"
+source = "git+https://github.com/hotg-ai/linfa#761dd9b4e3d8037162b2d291e4369733e05a8ef0"
 dependencies = [
  "csv",
  "flate2",
@@ -887,7 +887,7 @@ dependencies = [
 [[package]]
 name = "linfa-logistic"
 version = "0.5.0"
-source = "git+https://github.com/hotg-ai/linfa#e875b34b31fc3c8460a9b7c78b5e99a0d65d8d6e"
+source = "git+https://github.com/hotg-ai/linfa#761dd9b4e3d8037162b2d291e4369733e05a8ef0"
 dependencies = [
  "argmin",
  "linfa",
@@ -918,6 +918,7 @@ dependencies = [
 name = "logistic_regression"
 version = "0.12.0"
 dependencies = [
+ "getrandom",
  "hotg-rune-proc-blocks",
  "linfa",
  "linfa-datasets",
@@ -1252,9 +1253,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.10.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87f3e037eac156d1775da914196f0f37741a274155e34a0b7e427c35d2a2ecb9"
+checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
 
 [[package]]
 name = "opaque-debug"

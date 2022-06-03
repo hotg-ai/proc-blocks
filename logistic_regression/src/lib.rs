@@ -1,5 +1,6 @@
 use linfa::{
-    traits::{Fit, Predict},DatasetView,
+    traits::{Fit, Predict},
+    DatasetView,
 };
 use linfa_logistic::LogisticRegression;
 
@@ -8,13 +9,17 @@ use crate::proc_block_v1::{
     InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{
-    ndarray::{Array1,  ArrayView1,
-        ArrayView2,
-    },
+    ndarray::{Array1, ArrayView1, ArrayView2},
     runtime_v1::*,
     BufferExt, SliceExt,
 };
 
+// Note: getrandom is pulled in by the linfa_logistic crate
+getrandom::register_custom_getrandom!(unsupported_rng);
+
+fn unsupported_rng(_buffer: &mut [u8]) -> Result<(), getrandom::Error> {
+    Err(getrandom::Error::UNSUPPORTED)
+}
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -36,7 +41,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
 
         let x_train = TensorMetadata::new("x_train");
         let supported_types = [ElementType::F64];
-        let hint = supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
+        let hint =
+            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
         x_train.add_hint(&hint);
         metadata.add_input(&x_train);
 
@@ -47,7 +53,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.add_input(&y_train);
 
         let x_test = TensorMetadata::new("x_test");
-        let hint = supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
+        let hint =
+            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
         x_test.add_hint(&hint);
         metadata.add_input(&x_test);
 
@@ -81,7 +88,11 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             },
         };
 
-        ctx.add_input_tensor("x_train", element_type, DimensionsParam::Fixed(&[0, 0]));
+        ctx.add_input_tensor(
+            "x_train",
+            element_type,
+            DimensionsParam::Fixed(&[0, 0]),
+        );
 
         ctx.add_input_tensor(
             "y_train",
@@ -89,7 +100,11 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             DimensionsParam::Fixed(&[0]),
         );
 
-        ctx.add_input_tensor("x_test", element_type, DimensionsParam::Fixed(&[0, 0]));
+        ctx.add_input_tensor(
+            "x_test",
+            element_type,
+            DimensionsParam::Fixed(&[0, 0]),
+        );
 
         ctx.add_output_tensor(
             "y_test",
@@ -117,7 +132,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
-
 
         let x_test = ctx.get_input_tensor("x_test").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
@@ -194,8 +208,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn check_model(){
-        let dataset = linfa_datasets::winequality().map_targets(|x| if *x > 6 { 0 } else { 1 });
+    fn check_model() {
+        let dataset = linfa_datasets::winequality().map_targets(|x| {
+            if *x > 6 {
+                0
+            } else {
+                1
+            }
+        });
         let (train, valid) = dataset.split_with_ratio(0.8);
         let y_train = train.targets();
         let x_train = train.records();
@@ -206,6 +226,5 @@ mod tests {
         println!("{:?}", y_pred);
 
         assert_eq!(y_pred, y_test);
-        
     }
 }
