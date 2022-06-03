@@ -1,15 +1,13 @@
-use linfa::{
-    traits::{Fit, Predict},
-    DatasetView,
+// use linfa_logistic::LogisticRegression;
+use smartcore::{
+    linalg::naive::dense_matrix::*, linear::logistic_regression::*,
 };
-use linfa_logistic::LogisticRegression;
 
 use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{
-    ndarray::{Array1, ArrayView1, ArrayView2},
     runtime_v1::*,
     BufferExt, SliceExt,
 };
@@ -140,42 +138,48 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             })
         })?;
 
+        let output = transform(
+            &x_train.buffer.elements(),
+            &x_train.dimensions,
+            &y_train.buffer.elements(),
+            &x_test.buffer.elements(),
+            &x_test.dimensions,
+        );
+
         let y_test_dimension = [x_train.dimensions[0], 1];
 
-        let y_train = y_train
-            .buffer
-            .view::<i32>(&y_train.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "bytes".to_string(),
-                    reason: BadInputReason::InvalidValue(e.to_string()),
-                })
-            })?;
+        // let y_train = y_train
+        //     .buffer
+        //     .view::<i32>(&y_train.dimensions)
+        //     .and_then(|t| t.into_dimensionality())
+        //     .map_err(|e| {
+        //         KernelError::InvalidInput(InvalidInput {
+        //             name: "bytes".to_string(),
+        //             reason: BadInputReason::InvalidValue(e.to_string()),
+        //         })
+        //     })?;
 
-        let x_train = x_train
-            .buffer
-            .view::<f64>(&x_train.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "bytes".to_string(),
-                    reason: BadInputReason::InvalidValue(e.to_string()),
-                })
-            })?;
+        // let x_train = x_train
+        //     .buffer
+        //     .view::<f64>(&x_train.dimensions)
+        //     .and_then(|t| t.into_dimensionality())
+        //     .map_err(|e| {
+        //         KernelError::InvalidInput(InvalidInput {
+        //             name: "bytes".to_string(),
+        //             reason: BadInputReason::InvalidValue(e.to_string()),
+        //         })
+        //     })?;
 
-        let x_test = x_test
-            .buffer
-            .view::<f64>(&x_test.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "bytes".to_string(),
-                    reason: BadInputReason::InvalidValue(e.to_string()),
-                })
-            })?;
-
-        let output = transform(x_train, y_train, x_test);
+        // let x_test = x_test
+        //     .buffer
+        //     .view::<f64>(&x_test.dimensions)
+        //     .and_then(|t| t.into_dimensionality())
+        //     .map_err(|e| {
+        //         KernelError::InvalidInput(InvalidInput {
+        //             name: "bytes".to_string(),
+        //             reason: BadInputReason::InvalidValue(e.to_string()),
+        //         })
+        //     })?;
 
         ctx.set_output_tensor(
             "y_test",
@@ -190,17 +194,36 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform<'a>(
-    x_train: ArrayView2<'a, f64>,
-    y_train: ArrayView1<'a, i32>,
-    x_test: ArrayView2<'_, f64>,
-) -> Array1<i32> {
-    let training_data = DatasetView::new(x_train, y_train);
+fn transform(
+    x_train: &[f64],
+    x_train_dim: &[u32],
+    y_train: &[f64],
+    x_test: &[f64],
+    x_test_dim: &[u32],
+) -> Vec<f64> {
+    // Iris data
+    let x_train = DenseMatrix::from_array(
+        x_train_dim[0] as usize,
+        x_train_dim[1] as usize,
+        x_train,
+    );
 
-    let model = LogisticRegression::default().fit(&training_data).unwrap();
-    let prediction = model.predict(&x_test);
+    let lr = LogisticRegression::fit(
+        &x_train,
+        &y_train.to_vec(),
+        Default::default(),
+    )
+    .unwrap();
 
-    prediction
+    let x_test = DenseMatrix::from_array(
+        x_test_dim[0] as usize,
+        x_test_dim[1] as usize,
+        x_test,
+    );
+
+    let y_hat = lr.predict(&x_test).unwrap();
+
+    y_hat
 }
 
 #[cfg(test)]
@@ -209,22 +232,22 @@ mod tests {
 
     #[test]
     fn check_model() {
-        let dataset = linfa_datasets::winequality().map_targets(|x| {
-            if *x > 6 {
-                0
-            } else {
-                1
-            }
-        });
-        let (train, valid) = dataset.split_with_ratio(0.8);
-        let y_train = train.targets();
-        let x_train = train.records();
-        let x_test = valid.records();
-        let y_test = valid.targets();
-        let y_pred = transform(x_train.view(), y_train.view(), x_test.view());
+        let x_train =
+            [5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4];
+        let y_train: Vec<f64> = vec![0., 0., 1.];
+
+        let dim: Vec<u32> = vec![3, 4];
+
+        let y_pred = transform(
+            &x_train,
+            &dim,
+            &y_train,
+            &x_train,
+            &dim,
+        );
 
         println!("{:?}", y_pred);
 
-        assert_eq!(y_pred, y_test);
+        assert_eq!(y_pred, y_train);
     }
 }

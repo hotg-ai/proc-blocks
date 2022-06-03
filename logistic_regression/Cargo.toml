@@ -8,10 +8,8 @@ description = "a statistical model that models the probability of one event taki
 [dependencies]
 getrandom = { version = "0.2.6", features = ["custom"] }
 hotg-rune-proc-blocks = { path = "../support" }
-linfa = {git = "https://github.com/hotg-ai/linfa" }
-linfa-datasets = {git = "https://github.com/hotg-ai/linfa", features = ["winequality"]}
-linfa-logistic = {git = "https://github.com/hotg-ai/linfa"}
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+smartcore = "0.2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -19,3 +17,4 @@ crate-type = ["cdylib", "rlib"]
 [package.metadata.wapm]
 namespace = "hotg-ai"
 abi = "none"
+
