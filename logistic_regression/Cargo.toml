@@ -1,0 +1,20 @@
+[package]
+name = "logistic_regression"
+version = "0.12.0"
+edition = "2018"
+description = "a statistical model that models the probability of one event taking place by having the log-odds for the event be a linear combination of one or more independent variables."
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+getrandom = { version = "0.2.6", features = ["custom"] }
+hotg-rune-proc-blocks = { path = "../support" }
+wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+smartcore = "0.2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"
+

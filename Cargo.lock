@@ -157,6 +157,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bumpalo"
+version = "3.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37ccbd214614c6783386c1af30caf03192f17891059cecc394b4fb119e363de3"
+
+[[package]]
 name = "camino"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -521,8 +527,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be70c98951c83b8d2f8f60d7065fa6d5146873094452a1008da8c2f1e4205ad"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -668,6 +676,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "js-sys"
+version = "0.3.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "671a26f820db17c2a2750743f1dd03bafd15b98c9f30c7c2628c024c05d73397"
+dependencies = [
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "label"
 version = "0.12.0"
 dependencies = [
@@ -722,6 +739,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6389c490849ff5bc16be905ae24bc913a9c8892e19b2341dbc175e14c341c2b8"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "logistic_regression"
+version = "0.12.0"
+dependencies = [
+ "getrandom",
+ "hotg-rune-proc-blocks",
+ "smartcore",
+ "wit-bindgen-rust",
 ]
 
 [[package]]
@@ -862,10 +889,22 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43db66d1170d347f9a065114077f7dccb00c1b9478c89384490a3425279a4606"
 dependencies = [
+ "num-bigint",
  "num-complex",
  "num-integer",
  "num-iter",
  "num-rational",
+ "num-traits",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f93ab6289c7b344a8a9f60f88d80aa20032336fe78da341afc91c8a2341fc75f"
+dependencies = [
+ "autocfg",
+ "num-integer",
  "num-traits",
 ]
 
@@ -906,6 +945,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d41702bd167c2df5520b384281bc111a4b5efcf7fbc4c9c222c815b07e0a6a6a"
 dependencies = [
  "autocfg",
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -952,9 +992,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.10.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87f3e037eac156d1775da914196f0f37741a274155e34a0b7e427c35d2a2ecb9"
+checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
 
 [[package]]
 name = "opaque-debug"
@@ -1107,6 +1147,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "rand_distr"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32cb0b9bc82b0a0876c2dd994a7e7a2683d3e7390ca40e6886785ef0c7e3ee31"
+dependencies = [
+ "num-traits",
+ "rand",
 ]
 
 [[package]]
@@ -1343,6 +1393,19 @@ name = "smallvec"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2dd574626839106c320a323308629dcb1acfc96e32a8cba364ddc61ac23ee83"
+
+[[package]]
+name = "smartcore"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db8b735ef68af5b50325b68cedc63f54ff7a876c18cc3878954dabe36ecd94e1"
+dependencies = [
+ "getrandom",
+ "num",
+ "num-traits",
+ "rand",
+ "rand_distr",
+]
 
 [[package]]
 name = "softmax"
@@ -1696,6 +1759,60 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd6fbd9a79829dd1ad0cc20627bf1ed606756a7f77edff7b66b7064f9cb327c6"
 
 [[package]]
+name = "wasm-bindgen"
+version = "0.2.80"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27370197c907c55e3f1a9fbe26f44e937fe6451368324e009cba39e139dc08ad"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen-macro",
+]
+
+[[package]]
+name = "wasm-bindgen-backend"
+version = "0.2.80"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53e04185bfa3a779273da532f5025e33398409573f348985af9a1cbf3774d3f4"
+dependencies = [
+ "bumpalo",
+ "lazy_static",
+ "log",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-macro"
+version = "0.2.80"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17cae7ff784d7e83a2fe7611cfe766ecf034111b49deb850a3dc7699c08251f5"
+dependencies = [
+ "quote",
+ "wasm-bindgen-macro-support",
+]
+
+[[package]]
+name = "wasm-bindgen-macro-support"
+version = "0.2.80"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99ec0dc7a4756fffc231aab1b9f2f578d23cd391390ab27f952ae0c9b3ece20b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "wasm-bindgen-backend",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-shared"
+version = "0.2.80"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d554b7f530dee5964d9a9468d95c1f8b8acae4f282807e7d27d4b03099a46744"
+
+[[package]]
 name = "wasmparser"
 version = "0.77.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1931,10 +2048,28 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "wit-bindgen-gen-core"
 version = "0.1.0"
+source = "git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b#e165c0226ad0f00a840ef786079b58d0910dbb6b"
+dependencies = [
+ "anyhow",
+ "wit-parser 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b)",
+]
+
+[[package]]
+name = "wit-bindgen-gen-core"
+version = "0.1.0"
 source = "git+https://github.com/bytecodealliance/wit-bindgen#e165c0226ad0f00a840ef786079b58d0910dbb6b"
 dependencies = [
  "anyhow",
- "wit-parser",
+ "wit-parser 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
+]
+
+[[package]]
+name = "wit-bindgen-gen-rust"
+version = "0.1.0"
+source = "git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b#e165c0226ad0f00a840ef786079b58d0910dbb6b"
+dependencies = [
+ "heck 0.3.3",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b)",
 ]
 
 [[package]]
@@ -1943,7 +2078,7 @@ version = "0.1.0"
 source = "git+https://github.com/bytecodealliance/wit-bindgen#e165c0226ad0f00a840ef786079b58d0910dbb6b"
 dependencies = [
  "heck 0.3.3",
- "wit-bindgen-gen-core",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1952,18 +2087,18 @@ version = "0.1.0"
 source = "git+https://github.com/bytecodealliance/wit-bindgen#e165c0226ad0f00a840ef786079b58d0910dbb6b"
 dependencies = [
  "heck 0.3.3",
- "wit-bindgen-gen-core",
- "wit-bindgen-gen-rust",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
+ "wit-bindgen-gen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
 name = "wit-bindgen-gen-wasmtime"
 version = "0.1.0"
-source = "git+https://github.com/bytecodealliance/wit-bindgen#e165c0226ad0f00a840ef786079b58d0910dbb6b"
+source = "git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b#e165c0226ad0f00a840ef786079b58d0910dbb6b"
 dependencies = [
  "heck 0.3.3",
- "wit-bindgen-gen-core",
- "wit-bindgen-gen-rust",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b)",
+ "wit-bindgen-gen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b)",
 ]
 
 [[package]]
@@ -1983,14 +2118,14 @@ source = "git+https://github.com/bytecodealliance/wit-bindgen#e165c0226ad0f00a84
 dependencies = [
  "proc-macro2",
  "syn",
- "wit-bindgen-gen-core",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
  "wit-bindgen-gen-rust-wasm",
 ]
 
 [[package]]
 name = "wit-bindgen-wasmtime"
 version = "0.1.0"
-source = "git+https://github.com/bytecodealliance/wit-bindgen#e165c0226ad0f00a840ef786079b58d0910dbb6b"
+source = "git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b#e165c0226ad0f00a840ef786079b58d0910dbb6b"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -2002,12 +2137,24 @@ dependencies = [
 [[package]]
 name = "wit-bindgen-wasmtime-impl"
 version = "0.1.0"
-source = "git+https://github.com/bytecodealliance/wit-bindgen#e165c0226ad0f00a840ef786079b58d0910dbb6b"
+source = "git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b#e165c0226ad0f00a840ef786079b58d0910dbb6b"
 dependencies = [
  "proc-macro2",
  "syn",
- "wit-bindgen-gen-core",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b)",
  "wit-bindgen-gen-wasmtime",
+]
+
+[[package]]
+name = "wit-parser"
+version = "0.1.0"
+source = "git+https://github.com/bytecodealliance/wit-bindgen?rev=e165c0226ad0f00a840ef786079b58d0910dbb6b#e165c0226ad0f00a840ef786079b58d0910dbb6b"
+dependencies = [
+ "anyhow",
+ "id-arena",
+ "pulldown-cmark",
+ "unicode-normalization",
+ "unicode-xid",
 ]
 
 [[package]]

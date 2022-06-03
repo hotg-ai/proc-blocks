@@ -22,6 +22,7 @@ members = [
     "utf8_decode",
     "xtask",
     "password_strength",
+    "logistic_regression"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
