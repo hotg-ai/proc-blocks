@@ -1,6 +1,8 @@
+use std::{str::FromStr, fmt::Display, convert::TryInto};
+
 // use linfa_logistic::LogisticRegression;
 use smartcore::{
-    linalg::naive::dense_matrix::*, linear::logistic_regression::*,
+    linalg::naive::dense_matrix::*, svm::{svc::{SVC, SVCParameters}, Kernels},
 };
 
 use crate::proc_block_v1::{
@@ -8,7 +10,7 @@ use crate::proc_block_v1::{
     InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{
-    runtime_v1::*,
+    runtime_v1::{*, self},
     BufferExt, SliceExt,
 };
 
@@ -21,7 +23,7 @@ fn unsupported_rng(_buffer: &mut [u8]) -> Result<(), getrandom::Error> {
     Err(getrandom::Error::UNSUPPORTED)
 }
 
-/// A proc block which can perform linear regression
+/// a binary classifier that uses an optimal hyperplane to separate the points in the input variable space by their class.
 struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
@@ -29,13 +31,51 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let metadata =
             Metadata::new("Logistic Regression", env!("CARGO_PKG_VERSION"));
         metadata.set_description(
-            "a linear approach for modelling the relationship between a scalar response and one or more explanatory variables",
+            "a binary approach for modelling the relationship between a scalar response and one or more explanatory variables",
         );
         metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
         metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("regression");
-        metadata.add_tag("linear modeling");
+        metadata.add_tag("binary classifier");
         metadata.add_tag("analytics");
+
+        let epochs = ArgumentMetadata::new("epochs");
+        epochs.set_description(
+            "Number of epochs",
+        );
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Integer);
+        epochs.add_hint(&hint);
+        epochs.set_default_value("5");
+        metadata.add_argument(&epochs);
+
+        let c = ArgumentMetadata::new("c");
+        epochs.set_description(
+            "Penalizing parameter",
+        );
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        c.add_hint(&hint);
+        c.set_default_value("200.0");
+        metadata.add_argument(&c);
+
+        let tol = ArgumentMetadata::new("tolerance");
+        epochs.set_description(
+            "Tolerance for stopping criterion",
+        );
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        tol.add_hint(&hint);
+        tol.set_default_value("0.001");
+        metadata.add_argument(&tol);
+
+        //todo: how to add an array of string: [linear, rbf, polynomial, polynomial_with_degree, sigmoid, sigmoiod_with_gamma]. 
+        // Have to figure out how to how to change the parameter of polynomial, sigmoid, etc
+
+        // let kernel = ArgumentMetadata::new("kernel");
+        // epochs.set_description(
+        //     "Tolerance for stopping criterion",
+        // );
+        // let hint = runtime_v1::supported_argument_type(ArgumentType::String);
+        // kernel.add_hint(&hint);
+        // kernel.set_default_value("linear");
+        // metadata.add_argument(&kernel);
 
         let x_train = TensorMetadata::new("x_train");
         let supported_types = [ElementType::F64];
@@ -62,7 +102,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[0]));
         y_test.add_hint(&hint);
         metadata.add_output(&y_test);
-
         register_node(&metadata);
     }
 
@@ -119,6 +158,18 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = KernelContext::for_node(&node_id)
             .ok_or(KernelError::MissingContext)?;
 
+        let epoch: u32= get_args("epoch", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
+
+        let c: f64= get_args("c", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
+
+        let tol: f64= get_args("tolerance", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
+
+        // let _kernel: String  = get_args("kernel", |n| ctx.get_argument(n))
+        // .map_err(KernelError::InvalidArgument)?;
+
         let x_train = ctx.get_input_tensor("x_train").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
                 name: "x_train".to_string(),
@@ -145,7 +196,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             &x_train.dimensions,
             &y_train.buffer.elements(),
             &x_test.buffer.elements(),
-            &x_test.dimensions,
+            &x_test.dimensions, c, epoch, tol
         );
 
         let y_test_dimension = [x_test.dimensions[0]];
@@ -163,26 +214,60 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
+
+fn get_args<T>(
+    name: &str,
+    get_argument: impl FnOnce(&str) -> Option<String>,
+) -> Result<T, InvalidArgument>
+where
+    T: FromStr,
+    <T as FromStr>::Err: Display,
+{
+    get_argument(name)
+        .ok_or_else(|| InvalidArgument::not_found(name))?
+        .parse::<T>()
+        .map_err(|e| InvalidArgument::invalid_value(name, e))
+}
+
+impl InvalidArgument {
+    fn not_found(name: impl Into<String>) -> Self {
+        InvalidArgument {
+            name: name.into(),
+            reason: BadArgumentReason::NotFound,
+        }
+    }
+
+    fn invalid_value(name: impl Into<String>, reason: impl Display) -> Self {
+        InvalidArgument {
+            name: name.into(),
+            reason: BadArgumentReason::InvalidValue(reason.to_string()),
+        }
+    }
+}
+
 fn transform(
     x_train: &[f64],
     x_train_dim: &[u32],
     y_train: &[f64],
     x_test: &[f64],
     x_test_dim: &[u32],
+    c: f64, epoch: u32, tol: f64
 ) -> Vec<f64> {
-    // Iris data
+
+    //todo: let user change the kernel. Right now setting it to 'linear'
+    let svc_parameters = SVCParameters::default().with_c(c).with_epoch(epoch.try_into().unwrap()).with_kernel(Kernels::linear()).with_tol(tol);
+
+
     let x_train = DenseMatrix::from_array(
         x_train_dim[0] as usize,
         x_train_dim[1] as usize,
         x_train,
     );
 
-    let lr = LogisticRegression::fit(
+    let model = SVC::fit(
         &x_train,
         &y_train.to_vec(),
-        Default::default(),
-    )
-    .unwrap();
+        svc_parameters).unwrap();
 
     let x_test = DenseMatrix::from_array(
         x_test_dim[0] as usize,
@@ -190,12 +275,12 @@ fn transform(
         x_test,
     );
 
-    let y_hat = lr.predict(&x_test).unwrap();
+    let y_hat = model.predict(&x_test).unwrap();
 
     y_hat
 }
 
-#[cfg(test)]
+
 mod tests {
     use super::*;
 
@@ -207,15 +292,19 @@ mod tests {
 
         let dim: Vec<u32> = vec![3, 4];
 
+        let epoch: u32 = 5;
+        let c: f64 = 200.0;
+        let tol: f64 = 0.001;
+
+
         let y_pred = transform(
             &x_train,
             &dim,
             &y_train,
             &x_train,
-            &dim,
+            &dim,c, epoch, tol
         );
 
-        println!("{:?}", y_pred);
 
         assert_eq!(y_pred, y_train);
     }

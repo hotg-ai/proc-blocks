@@ -1469,6 +1469,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "support_vector_classifier"
+version = "0.12.0"
+dependencies = [
+ "getrandom",
+ "hotg-rune-proc-blocks",
+ "smartcore",
+ "wit-bindgen-rust",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
