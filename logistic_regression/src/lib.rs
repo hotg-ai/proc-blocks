@@ -62,6 +62,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[0]));
         y_test.add_hint(&hint);
         metadata.add_output(&y_test);
+
+        register_node(&metadata);
     }
 
     fn graph(node_id: String) -> Result<(), GraphError> {
