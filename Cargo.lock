@@ -726,8 +726,9 @@ dependencies = [
 
 [[package]]
 name = "logistic_regression"
-version = "0.12.0"
+version = "0.12.2"
 dependencies = [
+ "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust",
