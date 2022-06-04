@@ -284,6 +284,7 @@ fn transform(
     y_hat
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

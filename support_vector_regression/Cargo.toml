@@ -2,6 +2,7 @@
 name = "support_vector_regression"
 version = "0.12.0"
 edition = "2018"
+description = "a supervised learning models with associated learning algorithms that analyze data for regression analysis"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
