@@ -710,6 +710,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "806de604a37f6d73a83c850af7b3ba33a44f330d12fd5e4ac216645b54da912b"
 
 [[package]]
+name = "linear_regression"
+version = "0.12.0"
+dependencies = [
+ "getrandom",
+ "hotg-rune-proc-blocks",
+ "smartcore",
+ "wit-bindgen-rust",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -726,7 +736,7 @@ dependencies = [
 
 [[package]]
 name = "logistic_regression"
-version = "0.12.2"
+version = "0.12.4"
 dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
