@@ -24,7 +24,8 @@ members = [
     "password_strength",
     "logistic_regression",
     "linear_regression",
-    "elastic_net"
+    "elastic_net",
+    "support_vector_classifier"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
