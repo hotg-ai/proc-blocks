@@ -23,7 +23,8 @@ members = [
     "xtask",
     "password_strength",
     "logistic_regression",
-    "linear_regression"
+    "linear_regression",
+    "elastic_net"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
