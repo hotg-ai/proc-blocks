@@ -12,13 +12,6 @@ use hotg_rune_proc_blocks::{
     BufferExt, SliceExt,
 };
 
-// Note: getrandom is pulled in by the linfa_logistic crate
-getrandom::register_custom_getrandom!(unsupported_rng);
-
-fn unsupported_rng(_buffer: &mut [u8]) -> Result<(), getrandom::Error> {
-    Err(getrandom::Error::UNSUPPORTED)
-}
-
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
 /// A proc block which can parse a string to numbers.

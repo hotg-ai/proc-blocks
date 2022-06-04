@@ -6,10 +6,9 @@ description = "a statistical model that models the probability of one event taki
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-getrandom = { version = "0.2.6", features = ["custom"] }
 hotg-rune-proc-blocks = { path = "../support" }
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
-smartcore = "0.2.0"
+smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development" }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
