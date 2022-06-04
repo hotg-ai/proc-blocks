@@ -284,9 +284,6 @@ fn transform(
     y_hat
 }
 
-// comenting out test because it will in after deciaml places everytime so we
-// can't generate a fixed y_pred. BUt I have tested in local and it's working.
-// :)
 #[cfg(test)]
 mod tests {
     use super::*;
