@@ -1,6 +1,6 @@
 [package]
 name = "elastic_net"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2018"
 description = "an extension of linear regression that adds L1 and L2 regularization penalties to the loss function during training"
 

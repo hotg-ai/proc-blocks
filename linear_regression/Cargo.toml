@@ -1,6 +1,6 @@
 [package]
 name = "linear_regression"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2018"
 description = " a linear approach for modelling the relationship between a scalar response and one or more explanatory variables."
 
