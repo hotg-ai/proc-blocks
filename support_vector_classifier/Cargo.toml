@@ -1,6 +1,6 @@
 [package]
 name = "support_vector_classifier"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2018"
 description = "a binary classifier that uses an optimal hyperplane to separate the points in the input variable space by their class."
 

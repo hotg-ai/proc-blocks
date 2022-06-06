@@ -27,7 +27,7 @@ struct ProcBlockV1;
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
         let metadata =
-            Metadata::new("Logistic Regression", env!("CARGO_PKG_VERSION"));
+            Metadata::new("Elastic Net", env!("CARGO_PKG_VERSION"));
         metadata.set_description(
             "a linear approach for modelling the relationship between a scalar response and one or more explanatory variables",
         );
