@@ -1,6 +1,6 @@
 [package]
 name = "support_vector_regression"
-version = "0.12.1"
+version = "0.12.2"
 edition = "2018"
 description = "a supervised learning models with associated learning algorithms that analyze data for regression analysis"
 

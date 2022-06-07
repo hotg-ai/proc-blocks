@@ -159,7 +159,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = KernelContext::for_node(&node_id)
             .ok_or(KernelError::MissingContext)?;
 
-        let epoch: u32 = get_args("epoch", |n| ctx.get_argument(n))
+        let epoch: u32 = get_args("epochs", |n| ctx.get_argument(n))
             .map_err(KernelError::InvalidArgument)?;
 
         let c: f64 = get_args("c", |n| ctx.get_argument(n))
