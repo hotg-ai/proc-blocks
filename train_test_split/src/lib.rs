@@ -1,14 +1,16 @@
 use std::{fmt::Display, str::FromStr};
 
-use smartcore::{model_selection::train_test_split, linalg::BaseMatrix};
-use smartcore::linalg::naive::dense_matrix::DenseMatrix;
+use smartcore::{
+    linalg::{naive::dense_matrix::DenseMatrix, BaseMatrix},
+    model_selection::train_test_split,
+};
 
 use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{
-    runtime_v1::{*, self},
+    runtime_v1::{self, *},
     BufferExt, SliceExt,
 };
 
@@ -28,9 +30,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
         let metadata =
             Metadata::new("Train-Test-Split", env!("CARGO_PKG_VERSION"));
-        metadata.set_description(
-            "a random split into training and test sets",
-        );
+        metadata.set_description("a random split into training and test sets");
         metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
         metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
         metadata.add_tag("split");
@@ -44,7 +44,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         x.add_hint(&hint);
         metadata.add_input(&x);
 
-
         // todo: have to make it dynamic size because y could be 1-d or 2-d
         let y = TensorMetadata::new("targets");
         let supported_types = [ElementType::F64];
@@ -54,7 +53,9 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.add_input(&y);
 
         let test_size = ArgumentMetadata::new("test_size");
-        test_size.set_description("the proportion of the dataset to include in the test split");
+        test_size.set_description(
+            "the proportion of the dataset to include in the test split",
+        );
         let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
         test_size.add_hint(&hint);
         test_size.set_default_value("0.2");
@@ -123,7 +124,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             DimensionsParam::Fixed(&[0]),
         );
 
-
         ctx.add_output_tensor(
             "x_train",
             element_type,
@@ -176,7 +176,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             &x.buffer.elements(),
             &x.dimensions,
             (&y.buffer.elements()).to_vec(),
-            test_size
+            test_size,
         );
 
         ctx.set_output_tensor(
@@ -253,25 +253,25 @@ fn transform(
     x: &[f64],
     x_dim: &[u32],
     y: Vec<f64>,
-    test_size: f32
-) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>, (usize, usize), (usize, usize)) {
-   
-    let x = DenseMatrix::from_array(
-        x_dim[0] as usize,
-        x_dim[1] as usize,
-        x,
-    );
+    test_size: f32,
+) -> (
+    Vec<f64>,
+    Vec<f64>,
+    Vec<f64>,
+    Vec<f64>,
+    (usize, usize),
+    (usize, usize),
+) {
+    let x = DenseMatrix::from_array(x_dim[0] as usize, x_dim[1] as usize, x);
 
-    let (x_train, x_test, y_train, y_test) = train_test_split(&x, &y, test_size, true);
+    let (x_train, x_test, y_train, y_test) =
+        train_test_split(&x, &y, test_size, true);
     let train_dim = x_train.shape();
     let test_dim = x_test.shape();
     let x_train: Vec<f64> = x_train.iter().map(|f| f).collect();
     let x_test: Vec<f64> = x_test.iter().map(|f| f).collect();
 
-    println!("{:?}",x_train);
-
     (x_train, x_test, y_train, y_test, train_dim, test_dim)
-
 }
 
 #[cfg(test)]
@@ -280,40 +280,35 @@ mod tests {
 
     #[test]
     fn check_test_dim() {
-        let x =
-            [5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4, 5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4];
+        let x = [
+            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4, 5.1,
+            3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4,
+        ];
         let y: Vec<f64> = vec![0., 0., 1., 0., 0., 1.];
 
         let dim: Vec<u32> = vec![6, 4];
 
-        let (_x_train, _x_test, _y_train, _y_test, _train_dim, test_dim)= transform(
-            &x,
-            &dim,
-            y,
-            0.2
-        );
+        let (_x_train, _x_test, _y_train, _y_test, _train_dim, test_dim) =
+            transform(&x, &dim, y, 0.2);
 
-        let should_be = (1,4);
+        let should_be = (1, 4);
 
         assert_eq!(test_dim, should_be);
     }
     #[test]
     fn check_train_dim() {
-        let x =
-            [5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4, 5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4];
+        let x = [
+            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4, 5.1,
+            3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4,
+        ];
         let y: Vec<f64> = vec![0., 0., 1., 0., 0., 1.];
 
         let dim: Vec<u32> = vec![6, 4];
 
-        let (_x_train, _x_test, _y_train, _y_test, train_dim, _test_dim)= transform(
-            &x,
-            &dim,
-            y,
-            0.2
-        );
+        let (_x_train, _x_test, _y_train, _y_test, train_dim, _test_dim) =
+            transform(&x, &dim, y, 0.2);
 
-        let should_be = (5,4);
+        let should_be = (5, 4);
         assert_eq!(train_dim, should_be);
     }
-
 }
