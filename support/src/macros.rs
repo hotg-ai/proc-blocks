@@ -25,6 +25,15 @@ macro_rules! generate_support {
                 })
             }
 
+            pub fn get_input_tensor<'t>(tensors: &'t [Tensor], name: &str) -> Result<&'t Tensor, KernelError> {
+                tensors.iter()
+                    .find(|t| t.name == name)
+                    .ok_or_else(|| KernelError::InvalidInput(InvalidInput {
+                            name: name.to_string(),
+                            reason: InvalidInputReason::NotFound,
+                        }))
+            }
+
             impl Display for KernelError {
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                     match self {

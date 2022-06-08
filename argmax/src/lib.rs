@@ -1,73 +1,73 @@
-use crate::proc_block_v1::{
-    BadInputReason, GraphError, InvalidInput, KernelError,
-};
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt};
+use crate::proc_block_v2::*;
+use hotg_rune_proc_blocks::{BufferExt, SliceExt};
 use std::cmp::Ordering;
+use wit_bindgen_rust::Handle;
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v2.wit");
 
-struct ProcBlockV1;
+hotg_rune_proc_blocks::generate_support!(crate::proc_block_v2);
 
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata = Metadata::new("Arg Max", env!("CARGO_PKG_VERSION"));
-        metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("max");
-        metadata.add_tag("index");
-        metadata.add_tag("numeric");
+struct ProcBlockV2;
 
-        let input = TensorMetadata::new("input");
-        let hint =
-            supported_shapes(&[ElementType::F32], DimensionsParam::Fixed(&[0]));
-        input.add_hint(&hint);
-        metadata.add_input(&input);
-
-        let max = TensorMetadata::new("max_index");
-        max.set_description("The index of the element with the highest value");
-        let hint =
-            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[1]));
-        max.add_hint(&hint);
-        metadata.add_output(&max);
-
-        register_node(&metadata);
-    }
-
-    fn graph(id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&id).ok_or_else(|| {
-            GraphError::Other("Unable to get the graph context".to_string())
-        })?;
-
-        ctx.add_input_tensor(
-            "input",
-            ElementType::F32,
-            DimensionsParam::Fixed(&[0]),
-        );
-        ctx.add_output_tensor(
-            "max_index",
-            ElementType::U32,
-            DimensionsParam::Fixed(&[1]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&id).ok_or_else(|| {
-            KernelError::Other("Unable to get the kernel context".to_string())
-        })?;
-
-        let TensorResult {
-            element_type,
-            dimensions,
-            buffer,
-        } = ctx.get_input_tensor("input").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
+impl proc_block_v2::ProcBlockV2 for ProcBlockV2 {
+    fn metadata() -> Metadata {
+        Metadata {
+            name: "Arg Max".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            tags: vec![
+                "max".to_string(),
+                "index".to_string(),
+                "numeric".to_string(),
+            ],
+            description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
+            repository: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
+            homepage: Some(env!("CARGO_PKG_HOMEPAGE").to_string()),
+            arguments: Vec::new(),
+            inputs: vec![TensorMetadata {
                 name: "input".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
+                description: None,
+                hints: Vec::new(),
+            }],
+            outputs: vec![TensorMetadata {
+                name: "max_index".to_string(),
+                description: Some(
+                    "The index of the element with the highest value"
+                        .to_string(),
+                ),
+                hints: Vec::new(),
+            }],
+        }
+    }
+}
+
+pub struct Node;
+
+impl proc_block_v2::Node for Node {
+    fn new(_args: Vec<Argument>) -> Result<Handle<Self>, ArgumentError> {
+        Ok(Handle::new(Node))
+    }
+
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![TensorConstraint {
+                name: "input".to_string(),
+                element_type: !ElementTypeConstraint::UTF8,
+                dimensions: Dimensions::Fixed(vec![0]),
+            }],
+            outputs: vec![TensorConstraint {
+                name: "max_index".to_string(),
+                element_type: ElementTypeConstraint::U32,
+                dimensions: Dimensions::Fixed(vec![1]),
+            }],
+        }
+    }
+
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, KernelError> {
+        let Tensor {
+            element_type,
+            buffer,
+            ..
+        } = support::get_input_tensor(&inputs, "input")?;
 
         let index = match element_type {
             ElementType::U8 => arg_max(buffer.elements::<u8>()),
@@ -89,25 +89,20 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         };
 
         let index = match index {
-            Some(ix) => ix,
+            Some(ix) => [ix as u32],
             None => {
                 return Err(KernelError::Other(
                     "The input tensor was empty".to_string(),
                 ))
             },
         };
-        let resulting_tensor = (index as u32).to_le_bytes();
 
-        ctx.set_output_tensor(
-            "max_index",
-            TensorParam {
-                element_type: ElementType::U32,
-                dimensions: &dimensions,
-                buffer: &resulting_tensor,
-            },
-        );
-
-        Ok(())
+        Ok(vec![Tensor {
+            name: "max_index".to_string(),
+            element_type: ElementType::U32,
+            dimensions: vec![1],
+            buffer: index.as_bytes().to_vec(),
+        }])
     }
 }
 

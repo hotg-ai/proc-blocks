@@ -2,9 +2,6 @@
 
 pub extern crate ndarray;
 
-#[cfg(feature = "runtime_v1")]
-mod bindings;
-
 mod buffer_ext;
 pub mod common;
 mod macros;
@@ -18,18 +15,8 @@ pub use crate::{
     string_builder::{string_tensor_from_ndarray, StringBuilder},
     value_type::{SliceExt, ValueType},
 };
-
-#[cfg(feature = "runtime_v1")]
-pub use bindings::runtime_v1;
 use once_cell::sync::Lazy;
 use rand::{prelude::SmallRng, Rng, SeedableRng};
-
-pub mod prelude {
-    #[cfg(feature = "runtime_v1")]
-    pub use crate::bindings::{
-        ContextErrorExt, ContextExt, InvalidArgumentExt,
-    };
-}
 
 // Note: getrandom is pulled in by the linfa_logistic crate
 getrandom::register_custom_getrandom!(unsupported_rng);

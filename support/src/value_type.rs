@@ -58,3 +58,9 @@ impl<T: ValueType> SliceExt for [T] {
         }
     }
 }
+
+impl<T: ValueType, const N: usize> SliceExt for [T; N] {
+    fn as_bytes(&self) -> &[u8] { self[..].as_bytes() }
+
+    fn as_bytes_mut(&mut self) -> &mut [u8] { self[..].as_bytes_mut() }
+}
