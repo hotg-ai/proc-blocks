@@ -1,718 +1,85 @@
-use crate::runtime::proc_block_v1::{
-    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-    InvalidInput, KernelError,
-};
-
-use self::proc_block_v1::{ProcBlockV1, ProcBlockV1Data};
 use anyhow::{Context, Error};
-use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt::{self, Display, Formatter},
-    num::NonZeroUsize,
-    sync::{Arc, Mutex},
+use wasmer::{ImportObject, Module, Store, WasmerEnv};
+
+use crate::{
+    proc_block_v2::{Argument, Metadata, Node, ProcBlockV2, TensorConstraints},
+    runtime_v2::{self, LogMetadata, LogValueMap},
 };
-use wasmtime::{Engine, Linker, Module, Store};
+use std::collections::HashMap;
 
-wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
-wit_bindgen_wasmtime::import!("../wit-files/rune/proc-block-v1.wit");
+pub struct ProcBlockModule(ProcBlockV2);
 
-pub struct Runtime {
-    rune: ProcBlockV1<State>,
-    store: Store<State>,
-}
-
-impl Runtime {
-    #[tracing::instrument(skip(wasm))]
+impl ProcBlockModule {
     pub fn load(wasm: &[u8]) -> Result<Self, Error> {
-        let engine = Engine::default();
+        let store = Store::default();
 
-        tracing::debug!("Loading the WebAssembly module");
+        let module = Module::new(&store, wasm)
+            .context("Unable to compile the WebAssembly module")?;
 
-        let module = Module::new(&engine, wasm)
-            .context("Unable to instantiate the module")?;
-        let mut store = Store::new(&engine, State::default());
+        let mut imports = ImportObject::new();
+        runtime_v2::add_to_imports(&store, &mut imports, HostFunctions);
 
-        tracing::debug!("Setting up the host functions");
+        let (glue, _instance) =
+            ProcBlockV2::instantiate(&store, &module, &mut imports)
+                .context("Unable to instantiate the WebAssembly module")?;
 
-        let mut linker = Linker::new(&engine);
-        runtime_v1::add_to_linker(&mut linker, |state: &mut State| {
-            (&mut state.runtime, &mut state.tables)
-        })
-        .context("Unable to register the host functions")?;
-
-        tracing::debug!("Instantiating the WebAssembly module");
-
-        let (rune, _) = ProcBlockV1::instantiate(
-            &mut store,
-            &module,
-            &mut linker,
-            |state: &mut State| &mut state.rune_v1_data,
-        )
-        .context("Unable to instantiate the WebAssembly module")?;
-
-        Ok(Runtime { rune, store })
+        Ok(ProcBlockModule(glue))
     }
 
-    #[tracing::instrument(skip(self))]
-    pub fn metadata(&mut self) -> Result<Metadata, Error> {
-        tracing::debug!("Running the register_metadata() function");
-
-        self.rune.register_metadata(&mut self.store).context(
-            "Unable to run the WebAssembly module's register_metadata() function",
-        )?;
-
-        self.store
-            .data_mut()
-            .runtime
-            .node
-            .take()
-            .context("The WebAssembly module didn't register any metadata")
+    pub fn metadata(&self) -> Result<Metadata, Error> {
+        let meta = self.0.metadata()?;
+        Ok(meta)
     }
 
-    #[tracing::instrument(skip(self, args))]
     pub fn graph(
-        &mut self,
-        args: HashMap<String, String>,
-    ) -> Result<NodeInfo, Error> {
-        let ctx = GraphContext::new(args);
-        self.store.data_mut().runtime.graph_ctx =
-            Some(Arc::new(Mutex::new(ctx)));
+        &self,
+        args: &HashMap<String, String>,
+    ) -> Result<TensorConstraints, Error> {
+        let node = self.instantiate(args)?;
+        let constraints = self.0.node_tensor_constraints(&node)?;
 
-        self.rune
-            .graph(&mut self.store, "")
-            .context("Unable to call the graph() function")??;
+        Ok(constraints)
+    }
 
-        let ctx = self.store.data_mut().runtime.graph_ctx.take().unwrap();
-        let ctx = ctx.lock().unwrap();
-        Ok(ctx.node.clone())
+    pub fn instantiate(
+        &self,
+        args: &HashMap<String, String>,
+    ) -> Result<Node, Error> {
+        let args: Vec<_> = args
+            .into_iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .map(|(name, value)| Argument { name, value })
+            .collect();
+
+        let instance = self.0.node_new(&args)??;
+
+        Ok(instance)
     }
 }
 
-#[derive(Default)]
-struct State {
-    runtime: RuntimeV1,
-    tables: runtime_v1::RuntimeV1Tables<RuntimeV1>,
-    rune_v1_data: ProcBlockV1Data,
-}
+#[derive(Debug, Default, Clone, WasmerEnv)]
+struct HostFunctions;
 
-#[derive(Default)]
-struct RuntimeV1 {
-    node: Option<Metadata>,
-    graph_ctx: Option<Arc<Mutex<GraphContext>>>,
-    kernel_ctx: Option<Arc<Mutex<KernelContext>>>,
-}
+impl crate::runtime_v2::RuntimeV2 for HostFunctions {
+    fn abort(&mut self, msg: &str) {
+        #[derive(Debug, thiserror::Error)]
+        #[error("Abort: {_0}")]
+        struct Abort(String);
 
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Metadata {
-    pub name: String,
-    pub version: String,
-    pub description: Option<String>,
-    pub repository: Option<String>,
-    pub homepage: Option<String>,
-    pub tags: Vec<String>,
-    pub arguments: Vec<ArgumentMetadata>,
-    pub inputs: Vec<TensorMetadata>,
-    pub outputs: Vec<TensorMetadata>,
-}
-
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ArgumentMetadata {
-    pub name: String,
-    pub description: Option<String>,
-    pub default_value: Option<String>,
-    pub hints: Vec<ArgumentHint>,
-}
-
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct TensorMetadata {
-    pub name: String,
-    pub description: Option<String>,
-    pub hints: Vec<TensorHint>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-pub enum TensorHint {
-    DisplayAs(String),
-    SupportedShape {
-        accepted_element_types: Vec<ElementType>,
-        dimensions: Dimensions,
-    },
-}
-
-#[derive(
-    Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize,
-)]
-#[serde(rename_all = "kebab-case")]
-pub enum ElementType {
-    U8,
-    I8,
-    U16,
-    I16,
-    U32,
-    I32,
-    F32,
-    U64,
-    I64,
-    F64,
-    Utf8,
-}
-
-impl Display for ElementType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ElementType::U8 => write!(f, "u8"),
-            ElementType::I8 => write!(f, "i8"),
-            ElementType::U16 => write!(f, "u16"),
-            ElementType::I16 => write!(f, "i16"),
-            ElementType::U32 => write!(f, "u32"),
-            ElementType::I32 => write!(f, "i32"),
-            ElementType::F32 => write!(f, "f32"),
-            ElementType::U64 => write!(f, "u64"),
-            ElementType::I64 => write!(f, "i64"),
-            ElementType::F64 => write!(f, "f64"),
-            ElementType::Utf8 => write!(f, "utf-8"),
-        }
-    }
-}
-
-impl From<runtime_v1::ElementType> for ElementType {
-    fn from(e: runtime_v1::ElementType) -> Self {
-        match e {
-            runtime_v1::ElementType::U8 => ElementType::U8,
-            runtime_v1::ElementType::I8 => ElementType::I8,
-            runtime_v1::ElementType::U16 => ElementType::U16,
-            runtime_v1::ElementType::I16 => ElementType::I16,
-            runtime_v1::ElementType::U32 => ElementType::U32,
-            runtime_v1::ElementType::I32 => ElementType::I32,
-            runtime_v1::ElementType::F32 => ElementType::F32,
-            runtime_v1::ElementType::I64 => ElementType::I64,
-            runtime_v1::ElementType::U64 => ElementType::U64,
-            runtime_v1::ElementType::F64 => ElementType::F64,
-            runtime_v1::ElementType::Utf8 => ElementType::Utf8,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-pub enum Dimensions {
-    Dynamic,
-    Fixed(Vec<Dimension>),
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-pub enum Dimension {
-    Fixed(NonZeroUsize),
-    Dynamic,
-}
-
-impl Display for Dimension {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Dimension::Fixed(fixed) => fixed.fmt(f),
-            Dimension::Dynamic => "*".fmt(f),
-        }
-    }
-}
-
-impl From<runtime_v1::DimensionsParam<'_>> for Dimensions {
-    fn from(d: runtime_v1::DimensionsParam<'_>) -> Self {
-        match d {
-            runtime_v1::DimensionsParam::Dynamic => Dimensions::Dynamic,
-            runtime_v1::DimensionsParam::Fixed(dims) => Dimensions::Fixed(
-                dims.iter()
-                    .map(|d| match NonZeroUsize::new(d.get() as usize) {
-                        Some(d) => Dimension::Fixed(d),
-                        None => Dimension::Dynamic,
-                    })
-                    .collect(),
-            ),
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case", tag = "type", content = "value")]
-pub enum ArgumentHint {
-    NonNegativeNumber,
-    StringEnum(Vec<String>),
-    NumberInRange {
-        max: String,
-        min: String,
-    },
-    #[serde(with = "ArgumentTypeRepr")]
-    SupportedArgumentType(runtime_v1::ArgumentType),
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-#[serde(remote = "runtime_v1::ArgumentType")]
-enum ArgumentTypeRepr {
-    UnsignedInteger,
-    Integer,
-    Float,
-    String,
-    LongString,
-}
-
-#[derive(Debug)]
-pub struct GraphContext {
-    args: HashMap<String, String>,
-    node: NodeInfo,
-}
-
-impl GraphContext {
-    pub fn new(args: HashMap<String, String>) -> Self {
-        GraphContext {
-            args,
-            node: NodeInfo::default(),
-        }
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct NodeInfo {
-    pub inputs: Vec<TensorInfo>,
-    pub outputs: Vec<TensorInfo>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct TensorInfo {
-    pub name: String,
-    pub element_type: ElementType,
-    pub dimensions: Dimensions,
-}
-
-#[derive(Debug)]
-pub struct KernelContext {
-    args: HashMap<String, String>,
-}
-
-impl runtime_v1::RuntimeV1 for RuntimeV1 {
-    type ArgumentHint = ArgumentHint;
-    type ArgumentMetadata = Mutex<ArgumentMetadata>;
-    type GraphContext = Arc<Mutex<GraphContext>>;
-    type KernelContext = Arc<Mutex<KernelContext>>;
-    type Metadata = Mutex<Metadata>;
-    type Model = ();
-    type TensorHint = TensorHint;
-    type TensorMetadata = Mutex<TensorMetadata>;
-
-    fn metadata_new(&mut self, name: &str, version: &str) -> Self::Metadata {
-        Mutex::new(Metadata {
-            name: name.to_string(),
-            version: version.to_string(),
-            ..Default::default()
-        })
-    }
-
-    fn metadata_set_description(
-        &mut self,
-        self_: &Self::Metadata,
-        description: &str,
-    ) {
-        self_.lock().unwrap().description = Some(description.to_string());
-    }
-
-    fn metadata_set_repository(&mut self, self_: &Self::Metadata, url: &str) {
-        self_.lock().unwrap().repository = Some(url.to_string());
-    }
-
-    fn metadata_set_homepage(&mut self, self_: &Self::Metadata, url: &str) {
-        self_.lock().unwrap().homepage = Some(url.to_string());
-    }
-
-    fn metadata_add_tag(&mut self, self_: &Self::Metadata, tag: &str) {
-        self_.lock().unwrap().tags.push(tag.to_string());
-    }
-
-    fn metadata_add_argument(
-        &mut self,
-        self_: &Self::Metadata,
-        arg: &Self::ArgumentMetadata,
-    ) {
-        self_
-            .lock()
-            .unwrap()
-            .arguments
-            .push(arg.lock().unwrap().clone());
-    }
-
-    fn metadata_add_input(
-        &mut self,
-        self_: &Self::Metadata,
-        metadata: &Self::TensorMetadata,
-    ) {
-        self_
-            .lock()
-            .unwrap()
-            .inputs
-            .push(metadata.lock().unwrap().clone());
-    }
-
-    fn metadata_add_output(
-        &mut self,
-        self_: &Self::Metadata,
-        metadata: &Self::TensorMetadata,
-    ) {
-        self_
-            .lock()
-            .unwrap()
-            .outputs
-            .push(metadata.lock().unwrap().clone());
-    }
-
-    fn argument_metadata_new(&mut self, name: &str) -> Self::ArgumentMetadata {
-        Mutex::new(ArgumentMetadata {
-            name: name.to_string(),
-            ..Default::default()
-        })
-    }
-
-    fn argument_metadata_set_description(
-        &mut self,
-        self_: &Self::ArgumentMetadata,
-        description: &str,
-    ) {
-        self_.lock().unwrap().description = Some(description.to_string());
-    }
-
-    fn argument_metadata_set_default_value(
-        &mut self,
-        self_: &Self::ArgumentMetadata,
-        default_value: &str,
-    ) {
-        self_.lock().unwrap().default_value = Some(default_value.to_string());
-    }
-
-    fn argument_metadata_add_hint(
-        &mut self,
-        self_: &Self::ArgumentMetadata,
-        hint: &Self::ArgumentHint,
-    ) {
-        self_.lock().unwrap().hints.push(hint.clone());
-    }
-
-    fn tensor_metadata_new(&mut self, name: &str) -> Self::TensorMetadata {
-        Mutex::new(TensorMetadata {
-            name: name.to_string(),
-            ..Default::default()
-        })
-    }
-
-    fn tensor_metadata_set_description(
-        &mut self,
-        self_: &Self::TensorMetadata,
-        description: &str,
-    ) {
-        self_.lock().unwrap().description = Some(description.to_string());
-    }
-
-    fn tensor_metadata_add_hint(
-        &mut self,
-        self_: &Self::TensorMetadata,
-        hint: &Self::TensorHint,
-    ) {
-        self_.lock().unwrap().hints.push(hint.clone());
-    }
-
-    fn interpret_as_image(&mut self) -> Self::TensorHint {
-        TensorHint::DisplayAs("image".to_string())
-    }
-
-    fn interpret_as_audio(&mut self) -> Self::TensorHint {
-        TensorHint::DisplayAs("audio".to_string())
-    }
-
-    fn supported_shapes(
-        &mut self,
-        supported_element_type: Vec<runtime_v1::ElementType>,
-        dimensions: runtime_v1::DimensionsParam<'_>,
-    ) -> Self::TensorHint {
-        TensorHint::SupportedShape {
-            accepted_element_types: supported_element_type
-                .into_iter()
-                .map(ElementType::from)
-                .collect(),
-            dimensions: dimensions.into(),
+        // Safety: This will only ever be called by the WebAssembly guest
+        unsafe {
+            wasmer::raise_user_trap(Box::new(Abort(msg.to_string())));
         }
     }
 
-    fn interpret_as_number_in_range(
-        &mut self,
-        min: &str,
-        max: &str,
-    ) -> Self::ArgumentHint {
-        ArgumentHint::NumberInRange {
-            min: min.to_string(),
-            max: max.to_string(),
-        }
-    }
-
-    fn interpret_as_string_in_enum(
-        &mut self,
-        string_enum: Vec<&str>,
-    ) -> Self::ArgumentHint {
-        ArgumentHint::StringEnum(
-            string_enum.iter().map(|s| s.to_string()).collect(),
-        )
-    }
-
-    fn non_negative_number(&mut self) -> Self::ArgumentHint {
-        ArgumentHint::NonNegativeNumber
-    }
-
-    fn supported_argument_type(
-        &mut self,
-        hint: runtime_v1::ArgumentType,
-    ) -> Self::ArgumentHint {
-        ArgumentHint::SupportedArgumentType(hint)
-    }
-
-    fn register_node(&mut self, metadata: &Self::Metadata) {
-        self.node = Some(metadata.lock().unwrap().clone());
-    }
-
-    fn graph_context_for_node(
-        &mut self,
-        _name: &str,
-    ) -> Option<Self::GraphContext> {
-        self.graph_ctx.clone()
-    }
-
-    fn graph_context_get_argument(
-        &mut self,
-        self_: &Self::GraphContext,
-        name: &str,
-    ) -> Option<String> {
-        self_.lock().unwrap().args.get(name).cloned()
-    }
-
-    fn graph_context_add_input_tensor(
-        &mut self,
-        self_: &Self::GraphContext,
-        name: &str,
-        element_type: runtime_v1::ElementType,
-        dimensions: runtime_v1::DimensionsParam<'_>,
-    ) {
-        self_.lock().unwrap().node.inputs.push(TensorInfo {
-            name: name.to_string(),
-            element_type: element_type.into(),
-            dimensions: dimensions.into(),
-        })
-    }
-
-    fn graph_context_add_output_tensor(
-        &mut self,
-        self_: &Self::GraphContext,
-        name: &str,
-        element_type: runtime_v1::ElementType,
-        dimensions: runtime_v1::DimensionsParam<'_>,
-    ) {
-        self_.lock().unwrap().node.outputs.push(TensorInfo {
-            name: name.to_string(),
-            element_type: element_type.into(),
-            dimensions: dimensions.into(),
-        })
-    }
-
-    fn kernel_context_for_node(
-        &mut self,
-        _name: &str,
-    ) -> Option<Self::KernelContext> {
-        self.kernel_ctx.clone()
-    }
-
-    fn kernel_context_get_argument(
-        &mut self,
-        self_: &Self::KernelContext,
-        name: &str,
-    ) -> Option<String> {
-        self_.lock().unwrap().args.get(name).cloned()
-    }
-
-    fn kernel_context_get_input_tensor(
-        &mut self,
-        _self_: &Self::KernelContext,
-        _name: &str,
-    ) -> Option<runtime_v1::TensorResult> {
-        unimplemented!()
-    }
-
-    fn kernel_context_set_output_tensor(
-        &mut self,
-        _self_: &Self::KernelContext,
-        _name: &str,
-        _tensor: runtime_v1::TensorParam<'_>,
-    ) {
-        unimplemented!()
-    }
-
-    fn is_enabled(&mut self, _metadata: &Self::Metadata) -> bool { true }
+    #[tracing::instrument(skip_all, level = "debug")]
+    fn is_enabled(&mut self, _metadata: LogMetadata<'_>) -> bool { false }
 
     fn log(
         &mut self,
-        metadata: &Self::Metadata,
-        message: &str,
-        data: runtime_v1::LogValueMap<'_>,
+        _metadata: LogMetadata<'_>,
+        _message: &str,
+        _data: LogValueMap<'_>,
     ) {
-        tracing::info!(?metadata, ?data, message);
-    }
-
-    fn kernel_context_get_global_input(
-        &mut self,
-        _self_: &Self::KernelContext,
-        _name: &str,
-    ) -> Option<runtime_v1::TensorResult> {
-        todo!()
-    }
-
-    fn kernel_context_set_global_output(
-        &mut self,
-        _self_: &Self::KernelContext,
-        _name: &str,
-        _tensor: runtime_v1::TensorParam<'_>,
-    ) {
-        todo!()
-    }
-
-    fn model_load(
-        &mut self,
-        _model_format: &str,
-        _model: &[u8],
-        _arguments: Vec<(&str, &str)>,
-    ) -> Result<Self::Model, runtime_v1::ModelLoadError> {
-        todo!()
-    }
-
-    fn model_infer(
-        &mut self,
-        _self_: &Self::Model,
-        _inputs: Vec<runtime_v1::TensorParam<'_>>,
-    ) -> Result<Vec<runtime_v1::TensorResult>, runtime_v1::ModelInferError>
-    {
-        todo!()
-    }
-
-    fn model_inputs(&mut self, _self_: &Self::Model) -> Vec<runtime_v1::Shape> {
-        todo!()
-    }
-
-    fn model_outputs(
-        &mut self,
-        _self_: &Self::Model,
-    ) -> Vec<runtime_v1::Shape> {
-        todo!()
     }
 }
-
-impl Display for GraphError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            GraphError::InvalidArgument(a) => a.fmt(f),
-            GraphError::MissingContext => {
-                write!(f, "The context wasn't passed in")
-            },
-            GraphError::Other(msg) => write!(f, "{}", msg),
-        }
-    }
-}
-
-impl std::error::Error for GraphError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            GraphError::InvalidArgument(a) => a.source(),
-            GraphError::MissingContext | GraphError::Other(_) => None,
-        }
-    }
-}
-
-impl Display for KernelError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            KernelError::InvalidArgument(a) => a.fmt(f),
-            KernelError::InvalidInput(i) => i.fmt(f),
-            KernelError::MissingContext => {
-                write!(f, "The context wasn't passed in")
-            },
-            KernelError::Other(msg) => write!(f, "{}", msg),
-        }
-    }
-}
-
-impl std::error::Error for KernelError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            KernelError::InvalidArgument(a) => a.source(),
-            KernelError::InvalidInput(i) => i.source(),
-            KernelError::MissingContext | KernelError::Other(_) => None,
-        }
-    }
-}
-
-impl Display for InvalidInput {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "The \"{}\" input tensor was invalid", self.name)
-    }
-}
-
-impl std::error::Error for InvalidInput {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&self.reason)
-    }
-}
-
-impl Display for InvalidArgument {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "The \"{}\" argument was invalid", self.name)
-    }
-}
-
-impl std::error::Error for InvalidArgument {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&self.reason)
-    }
-}
-
-impl Display for BadArgumentReason {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            BadArgumentReason::NotFound => {
-                write!(f, "The argument wasn't provided")
-            },
-            BadArgumentReason::InvalidValue(reason) => {
-                write!(f, "{}", reason)
-            },
-            BadArgumentReason::Other(msg) => write!(f, "{}", msg),
-        }
-    }
-}
-
-impl std::error::Error for BadArgumentReason {}
-
-impl Display for BadInputReason {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            BadInputReason::NotFound => {
-                write!(f, "The input tensor wasn't provided")
-            },
-            BadInputReason::InvalidValue(reason) => {
-                write!(f, "{}", reason)
-            },
-            BadInputReason::UnsupportedShape => {
-                write!(f, "Unsupported shape")
-            },
-            BadInputReason::Other(msg) => write!(f, "{}", msg),
-        }
-    }
-}
-
-impl std::error::Error for BadInputReason {}

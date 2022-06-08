@@ -1,6 +1,5 @@
 use crate::{
-    build::CompiledModule,
-    runtime::{Metadata, Runtime},
+    build::CompiledModule, proc_block_v2::Metadata, runtime::ProcBlockModule,
 };
 use anyhow::{Context, Error};
 use serde::Serialize;
@@ -40,7 +39,7 @@ pub fn generate_manifest(
 }
 
 fn extract_metadata(serialized: &[u8]) -> Result<Metadata, Error> {
-    Runtime::load(serialized)?.metadata()
+    ProcBlockModule::load(serialized)?.metadata()
 }
 
 #[derive(Default)]

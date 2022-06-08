@@ -10,16 +10,14 @@ use anyhow::{Context, Error};
 use once_cell::sync::Lazy;
 use structopt::StructOpt;
 use tracing_subscriber::EnvFilter;
-use xtask::{runtime::Runtime, CompilationMode};
+use xtask::{runtime::ProcBlockModule, CompilationMode};
 
 fn main() -> Result<(), Error> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "warn,xtask=debug");
+    }
     tracing_subscriber::fmt::fmt()
-        .with_env_filter(
-            EnvFilter::from_default_env()
-                .add_directive("cranelift_codegen=warn".parse()?)
-                .add_directive("wasmtime_cranelift=warn".parse()?)
-                .add_directive("regalloc=warn".parse()?),
-        )
+        .with_env_filter(EnvFilter::from_default_env())
         .without_time()
         .init();
 
@@ -43,7 +41,6 @@ enum Command {
     Metadata(Metadata),
     /// Generate API documentation for one or more proc-blocks.
     Doc(Doc),
-    ///
     Graph(Graph),
 }
 
@@ -113,7 +110,7 @@ impl Metadata {
             format!("Unable to read \"{}\"", self.proc_block.display())
         })?;
 
-        let mut runtime = Runtime::load(&wasm)
+        let runtime = ProcBlockModule::load(&wasm)
             .context("Unable to load the WebAssembly module")?;
 
         let metadata = runtime
@@ -146,14 +143,14 @@ impl Graph {
             format!("Unable to read \"{}\"", self.proc_block.display())
         })?;
 
-        let mut runtime = Runtime::load(&wasm)
+        let runtime = ProcBlockModule::load(&wasm)
             .context("Unable to load the WebAssembly module")?;
 
         let arguments: HashMap<_, _> =
             self.args.into_iter().map(|a| (a.key, a.value)).collect();
 
         let info = runtime
-            .graph(arguments)
+            .graph(&arguments)
             .context("Unable to infer the input and output tensors")?;
 
         let json = serde_json::to_string_pretty(&info)
@@ -227,7 +224,7 @@ impl Doc {
                 "Read the module into memory"
             );
 
-            let mut r = Runtime::load(&wasm)
+            let r = ProcBlockModule::load(&wasm)
                 .context("Unable to load the proc-block")?;
             let meta = r
                 .metadata()

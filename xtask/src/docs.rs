@@ -1,11 +1,10 @@
 use std::io::Write;
 
 use anyhow::Error;
-use itertools::Itertools;
 
-use crate::runtime::{
-    runtime_v1::ArgumentType, ArgumentHint, ArgumentMetadata, Dimensions,
-    Metadata, TensorHint, TensorMetadata,
+use crate::proc_block_v2::{
+    ArgumentHint, ArgumentMetadata, ArgumentType, Metadata, TensorHint,
+    TensorMetadata,
 };
 
 pub fn document(w: &mut dyn Write, meta: &Metadata) -> Result<(), Error> {
@@ -106,28 +105,11 @@ fn render_tensor_hint(
     hint: &TensorHint,
 ) -> Result<(), Error> {
     match hint {
-        TensorHint::DisplayAs(ty) => {
-            writeln!(w, "- Display as `{ty}`")?;
+        TensorHint::MediaType(ty) => {
+            writeln!(w, "- Display as `{ty:?}`")?;
         },
-        TensorHint::SupportedShape {
-            accepted_element_types,
-            dimensions,
-        } => {
-            write!(w, "- A ")?;
-
-            match dimensions {
-                Dimensions::Dynamic => {
-                    write!(w, "dynamically sized tensor")?;
-                },
-                Dimensions::Fixed(fixed) => {
-                    let dims = fixed.iter().join("`, `");
-                    write!(w, "fixed-size tensor with dimensions `[{dims}]`")?;
-                },
-            }
-
-            let elements = accepted_element_types.iter().join("`, `");
-
-            writeln!(w, " which may contain one of `{elements}`")?;
+        TensorHint::Other(msg) => {
+            writeln!(w, "- {msg}")?;
         },
     }
 
@@ -195,26 +177,26 @@ fn render_argument_hints(
     for hint in hints {
         match hint {
             ArgumentHint::NonNegativeNumber => write!(w, "- Non-negative")?,
-            ArgumentHint::StringEnum(variants) => {
+            ArgumentHint::OneOf(variants) => {
                 let variants = variants.join("`, `");
                 writeln!(w, "- One of `\"{variants}\"`")?;
             },
-            ArgumentHint::NumberInRange { max, min } => {
+            ArgumentHint::Between((max, min)) => {
                 writeln!(w, "- A value between `{min}` and `{max}`")?
             },
-            ArgumentHint::SupportedArgumentType(ArgumentType::Float) => {
+            ArgumentHint::ArgumentType(ArgumentType::Float) => {
                 writeln!(w, "- A float")?
             },
-            ArgumentHint::SupportedArgumentType(ArgumentType::Integer) => {
+            ArgumentHint::ArgumentType(ArgumentType::Integer) => {
                 writeln!(w, "- An integer")?
             },
-            ArgumentHint::SupportedArgumentType(
-                ArgumentType::UnsignedInteger,
-            ) => writeln!(w, "- An unsigned integer")?,
-            ArgumentHint::SupportedArgumentType(ArgumentType::String) => {
+            ArgumentHint::ArgumentType(ArgumentType::UnsignedInteger) => {
+                writeln!(w, "- An unsigned integer")?
+            },
+            ArgumentHint::ArgumentType(ArgumentType::String) => {
                 writeln!(w, "- A string")?
             },
-            ArgumentHint::SupportedArgumentType(ArgumentType::LongString) => {
+            ArgumentHint::ArgumentType(ArgumentType::LongString) => {
                 writeln!(w, "- A multi-line string")?
             },
         }

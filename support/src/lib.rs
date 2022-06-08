@@ -7,6 +7,7 @@ mod bindings;
 
 mod buffer_ext;
 pub mod common;
+mod macros;
 mod string_builder;
 mod value_type;
 
