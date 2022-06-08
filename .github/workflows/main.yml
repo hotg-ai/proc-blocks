@@ -79,10 +79,15 @@ jobs:
         uses: actions-rs/cargo@v1
         continue-on-error: true
         with:
-          command: xtask
-          args: dist --out-dir target/proc-blocks
+          command: build
+          args: --target wasm32-unknown-unknown
         env:
           RUST_LOG: xtask=debug
+      - name: Check all proc-blocks can be loaded
+        uses: actions-rs/cargo@v1
+        with:
+          command: xtask
+          args: doc target/wasm32-unknown-unknown/debug/*.wasm
       - name: Save Compiled proc-blocks
         uses: actions/upload-artifact@v2
         continue-on-error: true
