@@ -5,12 +5,11 @@ pub mod runtime_v2 {
 }
 
 pub mod proc_block_v2 {
-    use std::{
-        num::NonZeroU32,
-    };
+    use std::num::NonZeroU32;
 
     #[doc(inline)]
     pub use proc_block_v2::*;
+    pub use TensorResult as Tensor;
 
     use serde::ser::{Serialize, SerializeSeq, SerializeStruct, Serializer};
 

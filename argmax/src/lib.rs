@@ -1,5 +1,5 @@
 use crate::proc_block_v2::*;
-use hotg_rune_proc_blocks::{BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{ndarray, BufferExt, SliceExt};
 use std::cmp::Ordering;
 use wit_bindgen_rust::Handle;
 
@@ -89,7 +89,7 @@ impl proc_block_v2::Node for Node {
         };
 
         let index = match index {
-            Some(ix) => [ix as u32],
+            Some(ix) => ix as u32,
             None => {
                 return Err(KernelError::Other(
                     "The input tensor was empty".to_string(),
@@ -97,12 +97,7 @@ impl proc_block_v2::Node for Node {
             },
         };
 
-        Ok(vec![Tensor {
-            name: "max_index".to_string(),
-            element_type: ElementType::U32,
-            dimensions: vec![1],
-            buffer: index.as_bytes().to_vec(),
-        }])
+        Ok(vec![Tensor::new("max_index", ndarray::array![index])])
     }
 }
 
