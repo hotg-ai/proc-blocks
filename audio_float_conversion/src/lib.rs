@@ -1,117 +1,81 @@
-use crate::proc_block_v1::{
-    BadInputReason, GraphError, InvalidInput, KernelError,
-};
-use hotg_rune_proc_blocks::{
-    ndarray::ArrayView1, runtime_v1::*, BufferExt, SliceExt,
-};
+use crate::proc_block_v2::*;
+use hotg_rune_proc_blocks::{ndarray::ArrayView1, SliceExt};
+use wit_bindgen_rust::Handle;
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v2.wit");
+
+hotg_rune_proc_blocks::generate_support!(crate::proc_block_v2);
 
 const I16_MAX_AS_FLOAT: f32 = i16::MAX as f32;
 
 #[derive(Debug, Clone, PartialEq)]
-struct ProcBlockV1;
+struct ProcBlockV2;
 
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata =
-            Metadata::new("Audio Float Conversion", env!("CARGO_PKG_VERSION"));
-        metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("audio");
-        metadata.add_tag("float");
+impl proc_block_v2::ProcBlockV2 for ProcBlockV2 {
+    fn metadata() -> Metadata {
+        Metadata {
+            name: "Audio Float Conversion".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+        description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
+        repository: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
+        homepage: Some(env!("CARGO_PKG_HOMEPAGE").to_string()),
+        tags: vec![
+            "audio".to_string(),
+            "float".to_string(),
 
-        let input = TensorMetadata::new("input");
-        let hint = supported_shapes(
-            &[ElementType::I16],
-            DimensionsParam::Fixed(&[1, 0]),
-        );
-        input.add_hint(&hint);
-        metadata.add_input(&input);
-
-        let output = TensorMetadata::new("output");
-        output.set_description(
-            "converted values from i16 data type to a floating-point value.",
-        );
-        let hint = supported_shapes(
-            &[ElementType::F32],
-            DimensionsParam::Fixed(&[1, 0]),
-        );
-        output.add_hint(&hint);
-        metadata.add_output(&output);
-
-        register_node(&metadata);
-    }
-
-    fn graph(id: String) -> Result<(), GraphError> {
-        let ctx =
-            GraphContext::for_node(&id).ok_or(GraphError::MissingContext)?;
-
-        ctx.add_input_tensor(
-            "input",
-            ElementType::I16,
-            DimensionsParam::Fixed(&[1, 0]),
-        );
-        ctx.add_output_tensor(
-            "output",
-            ElementType::F32,
-            DimensionsParam::Fixed(&[1, 0]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(id: String) -> Result<(), KernelError> {
-        let ctx =
-            KernelContext::for_node(&id).ok_or(KernelError::MissingContext)?;
-
-        let TensorResult {
-            element_type,
-            dimensions,
-            buffer,
-        } = ctx.get_input_tensor("input").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
+        ],
+        arguments: Vec::new(),
+        inputs: vec![
+            TensorMetadata {
                 name: "input".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
+                description: None,
+                hints: Vec::new(),
+            }
+        ],
+        outputs: vec![
+TensorMetadata {
+                name: "output".to_string(),
+                description:             Some("converted values from i16 data type to a floating-point value.".to_string()),
+                hints: Vec::new(),
+            }
+        ],
+        }
+    }
+}
 
-        let tensor: ArrayView1<i16> = match element_type {
-            ElementType::I16 => {
-                let tensor = buffer.view::<i16>(&dimensions)
-                    .map_err(|e| KernelError::InvalidInput(InvalidInput {
-                        name: "input".to_string(),
-                        reason: BadInputReason::Other(e.to_string()),
-                    }))?;
+pub struct Node;
 
-                    tensor.into_dimensionality()
-                    .map_err(|_| KernelError::InvalidInput(InvalidInput {
-                        name: "input".to_string(),
-                        reason: BadInputReason::UnsupportedShape,
-                    }))?
-            },
+impl proc_block_v2::Node for Node {
+    fn new(_args: Vec<Argument>) -> Result<Handle<Self>, ArgumentError> {
+        Ok(Handle::new(Node))
+    }
 
-            other => {
-                return Err(KernelError::Other(format!(
-                "The Audio Float Conversion proc-block only accepts I16 tensors, found {:?}",
-                other,
-                )))
-            },
-        };
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![TensorConstraint {
+                name: "input".to_string(),
+                element_type: ElementTypeConstraint::I16,
+                dimensions: Dimensions::Fixed(vec![1, 0]),
+            }],
+            outputs: vec![TensorConstraint {
+                name: "output".to_string(),
+                element_type: ElementTypeConstraint::F32,
+                dimensions: Dimensions::Fixed(vec![1, 0]),
+            }],
+        }
+    }
 
-        let output = audio_float_conversion(tensor);
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, KernelError> {
+        let tensor = support::get_input_tensor(&inputs, "input")?;
 
-        ctx.set_output_tensor(
-            "output",
-            TensorParam {
-                element_type: ElementType::F32,
-                dimensions: &dimensions,
-                buffer: output.as_bytes(),
-            },
-        );
+        let output = audio_float_conversion(tensor.view_1d()?);
 
-        Ok(())
+        Ok(vec![Tensor {
+            name: "output".to_string(),
+            element_type: ElementType::F32,
+            dimensions: tensor.dimensions.clone(),
+            buffer: output.as_bytes().to_vec(),
+        }])
     }
 }
 

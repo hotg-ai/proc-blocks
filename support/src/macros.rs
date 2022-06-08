@@ -34,6 +34,50 @@ macro_rules! generate_support {
                         }))
             }
 
+            impl Tensor {
+                pub fn view<T>(&self) -> Result<$crate::ndarray::ArrayViewD<'_, T>, KernelError>
+                where
+                    T: ValueType,
+                {
+                    if self.element_type != T::ELEMENT_TYPE {
+                        return Err(KernelError::InvalidInput(InvalidInput {
+                            name: self.name.clone(),
+                            reason: InvalidInputReason::UnsupportedShape,
+                        }));
+                    }
+
+                    todo!();
+                }
+
+                pub fn view_1d<T>(&self) -> Result<$crate::ndarray::ArrayView1<'_, T>, KernelError>
+                where
+                    T: ValueType,
+                {
+                    let array = self.view::<T>()?;
+
+                    array.into_dimensionality()
+                        .map_err(|e| KernelError::InvalidInput(InvalidInput {
+                            name: self.name.clone(),
+                            reason: InvalidInputReason::InvalidValue(format!("Incorrect dimensions: {e}")),
+                        }))
+                }
+            }
+
+            pub trait ValueType: $crate::ValueType {
+                const ELEMENT_TYPE: ElementType;
+            }
+
+            impl ValueType for u8 { const ELEMENT_TYPE: ElementType = ElementType::U8; }
+            impl ValueType for i8 { const ELEMENT_TYPE: ElementType = ElementType::I8; }
+            impl ValueType for u16 { const ELEMENT_TYPE: ElementType = ElementType::U16; }
+            impl ValueType for i16 { const ELEMENT_TYPE: ElementType = ElementType::I16; }
+            impl ValueType for u32 { const ELEMENT_TYPE: ElementType = ElementType::U32; }
+            impl ValueType for i32 { const ELEMENT_TYPE: ElementType = ElementType::I32; }
+            impl ValueType for f32 { const ELEMENT_TYPE: ElementType = ElementType::F32; }
+            impl ValueType for u64 { const ELEMENT_TYPE: ElementType = ElementType::U64; }
+            impl ValueType for i64 { const ELEMENT_TYPE: ElementType = ElementType::I64; }
+            impl ValueType for f64 { const ELEMENT_TYPE: ElementType = ElementType::F64; }
+
             impl Display for KernelError {
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                     match self {
@@ -57,6 +101,19 @@ macro_rules! generate_support {
                     write!(f, "The \"{}\" input tensor was invalid", self.name)
                 }
             }
+
+            impl Display for InvalidInputReason {
+                fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                    match self {
+                        InvalidInputReason::Other(msg) => write!(f, "{msg}"),
+                        InvalidInputReason::NotFound => write!(f, "Not found"),
+                        InvalidInputReason::InvalidValue(msg) => write!(f, "Invalid value: {msg}"),
+                        InvalidInputReason::UnsupportedShape => write!(f, "Unsupported shape"),
+                    }
+                }
+            }
+
+            impl std::error::Error for InvalidInputReason {}
 
             impl Display for ArgumentError {
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
