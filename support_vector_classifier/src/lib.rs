@@ -64,19 +64,44 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         tol.set_default_value("0.001");
         metadata.add_argument(&tol);
 
-        // todo: how to add an array of string: [linear, rbf, polynomial,
-        // polynomial_with_degree, sigmoid, sigmoiod_with_gamma].
-        // Have to figure out how to how to change the parameter of polynomial,
-        // sigmoid, etc
+        let kernel = ArgumentMetadata::new("kernel");
+        kernel.set_description(
+            "Plane which divides the data",
+        );
+        let hint = runtime_v1::supported_argument_type(ArgumentType::String);
+        kernel.add_hint(&hint);
+        let hint = runtime_v1::interpret_as_string_in_enum(&["linear", "rbf", "polynomial", "polynomial_with_degree", "sigmoid", "sigmoid_with_gamma"]);
+        kernel.add_hint(&hint);
+        kernel.set_default_value("linear");
+        metadata.add_argument(&kernel);
 
-        // let kernel = ArgumentMetadata::new("kernel");
-        // epochs.set_description(
-        //     "Tolerance for stopping criterion",
-        // );
-        // let hint = runtime_v1::supported_argument_type(ArgumentType::String);
-        // kernel.add_hint(&hint);
-        // kernel.set_default_value("linear");
-        // metadata.add_argument(&kernel);
+        let degree = ArgumentMetadata::new("degree");
+        degree.set_description("Degree of the polynomial kernel");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        degree.add_hint(&hint);
+        degree.set_default_value("2.0");
+        metadata.add_argument(&degree);
+
+        let gamma = ArgumentMetadata::new("gamma");
+        gamma.set_description("kernel coefficient");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        gamma.add_hint(&hint);
+        gamma.set_default_value("0.1");
+        metadata.add_argument(&gamma);
+
+        let coef0 = ArgumentMetadata::new("coef0");
+        coef0.set_description("independent term in kernel function");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
+        coef0.add_hint(&hint);
+        coef0.set_default_value("1");
+        metadata.add_argument(&coef0);
+
+        let n_features = ArgumentMetadata::new("n_features");
+        n_features.set_description("number of features in vector");
+        let hint = runtime_v1::supported_argument_type(ArgumentType::Integer);
+        n_features.add_hint(&hint);
+        n_features.set_default_value("2");
+        metadata.add_argument(&n_features);
 
         let x_train = TensorMetadata::new("x_train");
         let supported_types = [ElementType::F64];
@@ -168,8 +193,20 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let tol: f64 = get_args("tolerance", |n| ctx.get_argument(n))
             .map_err(KernelError::InvalidArgument)?;
 
-        // let _kernel: String  = get_args("kernel", |n| ctx.get_argument(n))
-        // .map_err(KernelError::InvalidArgument)?;
+        let kernel_type: String  = get_args("kernel", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
+
+        let degree: f64 = get_args("degree", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
+
+        let gamma: f64  = get_args("gamma", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
+
+        let coef0: f64 = get_args("coef0", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
+
+        let n_features: usize  = get_args("n_features", |n| ctx.get_argument(n))
+        .map_err(KernelError::InvalidArgument)?;
 
         let x_train = ctx.get_input_tensor("x_train").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
@@ -192,6 +229,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             })
         })?;
 
+    
         let output = transform(
             &x_train.buffer.elements(),
             &x_train.dimensions,
@@ -201,6 +239,11 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             c,
             epoch,
             tol,
+            kernel_type,
+            degree,
+            gamma,
+            coef0,
+            n_features
         );
 
         let y_test_dimension = [x_test.dimensions[0]];
@@ -257,8 +300,14 @@ fn transform(
     c: f64,
     epoch: u32,
     tol: f64,
+    kernel: String,
+    degree: f64,
+    gamma: f64,
+    coef0: f64,
+    n_features: usize
 ) -> Vec<f64> {
     // todo: let user change the kernel. Right now setting it to 'linear'
+    
     let svc_parameters = SVCParameters::default()
         .with_c(c)
         .with_epoch(epoch.try_into().unwrap())
