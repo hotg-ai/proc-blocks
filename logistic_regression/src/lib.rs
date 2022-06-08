@@ -7,10 +7,7 @@ use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{
-    runtime_v1::*,
-    BufferExt, SliceExt,
-};
+use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -207,13 +204,7 @@ mod tests {
 
         let dim: Vec<u32> = vec![3, 4];
 
-        let y_pred = transform(
-            &x_train,
-            &dim,
-            &y_train,
-            &x_train,
-            &dim,
-        );
+        let y_pred = transform(&x_train, &dim, &y_train, &x_train, &dim);
 
         println!("{:?}", y_pred);
 

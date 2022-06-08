@@ -23,7 +23,7 @@ use crate::{
     vocab::{BertVocab, Vocab},
     Mask, Offset, OffsetSize, Token, TokenRef,
 };
-use alloc::{borrow::ToOwned, vec::Vec, string::String};
+use alloc::{borrow::ToOwned, string::String, vec::Vec};
 use anyhow::Result;
 use core::{borrow::BorrowMut, char, char::REPLACEMENT_CHARACTER, cmp::min};
 use unicode_normalization::char::decompose_canonical;

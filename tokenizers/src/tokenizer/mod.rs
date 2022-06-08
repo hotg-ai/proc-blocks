@@ -9,11 +9,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//!# Tokenizers
+//! # Tokenizers
 //!
-//! This module contains the tokenizers to split an input text in a sequence of tokens.
-//! These rely on the vocabularies for defining the subtokens a given word should be decomposed to.
-//! There are 3 main classes of tokenizers implemented in this crate:
+//! This module contains the tokenizers to split an input text in a sequence of
+//! tokens. These rely on the vocabularies for defining the subtokens a given
+//! word should be decomposed to. There are 3 main classes of tokenizers
+//! implemented in this crate:
 //! - WordPiece tokenizers
 //!     - BERT
 //!     - DistilBERT
@@ -31,7 +32,8 @@
 //!     - Marian
 //!     - Reformer
 //!
-//! All tokenizers are `Send`, `Sync` and support multi-threaded tokenization and encoding.
+//! All tokenizers are `Send`, `Sync` and support multi-threaded tokenization
+//! and encoding.
 
 pub(crate) mod base_tokenizer;
 pub mod bert_tokenizer;

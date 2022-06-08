@@ -32,8 +32,10 @@ struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
-        let metadata =
-            Metadata::new("Support Vector Regression", env!("CARGO_PKG_VERSION"));
+        let metadata = Metadata::new(
+            "Support Vector Regression",
+            env!("CARGO_PKG_VERSION"),
+        );
         metadata.set_description(
             "a binary approach for modelling the relationship between a scalar response and one or more explanatory variables",
         );
