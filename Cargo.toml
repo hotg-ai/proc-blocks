@@ -27,7 +27,8 @@ members = [
     "elastic_net",
     "support_vector_classifier",
     "support_vector_regression",
-    "train_test_split"
+    "train_test_split",
+    "accuracy"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
