@@ -1,224 +1,171 @@
 #![allow(dead_code)]
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v2.wit");
 
-use std::fmt::Display;
+use crate::proc_block_v2::*;
 
-use crate::proc_block_v1::{
-    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-    InvalidInput, KernelError,
-};
-use hotg_rune_proc_blocks::{
-    runtime_v1::{
-        self, ArgumentMetadata, DimensionsParam, ElementType, GraphContext,
-        KernelContext, Metadata, TensorMetadata, TensorParam, TensorResult,
-    },
-    BufferExt,
-};
+use hotg_rune_proc_blocks::{BufferExt, ValueType};
 use num_traits::{FromPrimitive, ToPrimitive};
+use wit_bindgen_rust::Handle;
 
-pub struct ProcBlockV1;
+hotg_rune_proc_blocks::generate_support!(crate::proc_block_v2);
 
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata =
-            Metadata::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-        metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
+pub struct ProcBlockV2;
 
-        let modulo = ArgumentMetadata::new("modulo");
-        modulo.add_hint(&runtime_v1::non_negative_number());
-        metadata.add_argument(&modulo);
-
-        let element_type = ArgumentMetadata::new("element_type");
-        element_type
-            .set_description("The type of tensor this proc-block will accept");
-        element_type.set_default_value("f64");
-        element_type.add_hint(&runtime_v1::interpret_as_string_in_enum(&[
-            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
-        ]));
-        metadata.add_argument(&element_type);
-
-        let input = TensorMetadata::new("input");
-        metadata.add_input(&input);
-
-        let output = TensorMetadata::new("output");
-        metadata.add_output(&output);
-
-        runtime_v1::register_node(&metadata);
-    }
-
-    fn graph(node_id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&node_id).ok_or_else(|| {
-            GraphError::Other("Unable to load the graph context".to_string())
-        })?;
-
-        // make sure the modulus is valid
-        let _ = get_modulus(|n| ctx.get_argument(n))
-            .map_err(GraphError::InvalidArgument)?;
-
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("u8") => ElementType::U8,
-            Some("i8") => ElementType::I8,
-            Some("u16") => ElementType::U16,
-            Some("i16") => ElementType::I16,
-            Some("u32") => ElementType::U32,
-            Some("i32") => ElementType::I32,
-            Some("f32") => ElementType::F32,
-            Some("u64") => ElementType::U64,
-            Some("i64") => ElementType::I64,
-            Some("f64") | None => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }))
-            },
-        };
-
-        ctx.add_input_tensor("input", element_type, DimensionsParam::Dynamic);
-        ctx.add_output_tensor("output", element_type, DimensionsParam::Dynamic);
-
-        Ok(())
-    }
-
-    fn kernel(node_id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&node_id).ok_or_else(|| {
-            KernelError::Other("Unable to load the kernel context".to_string())
-        })?;
-
-        let modulus = get_modulus(|n| ctx.get_argument(n))
-            .map_err(KernelError::InvalidArgument)?;
-
-        let TensorResult {
-            dimensions,
-            element_type,
-            mut buffer,
-        } = ctx.get_input_tensor("input").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
+impl proc_block_v2::ProcBlockV2 for ProcBlockV2 {
+    fn metadata() -> Metadata {
+        Metadata {
+            name: "Modulo".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            tags: Vec::new(),
+            description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
+            homepage: Some(env!("CARGO_PKG_HOMEPAGE").to_string()),
+            repository: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
+            arguments: vec![ArgumentMetadata {
+                name: "modulus".to_string(),
+                description: Some("The modulus operand".to_string()),
+                default_value: None,
+                hints: vec![ArgumentHint::ArgumentType(ArgumentType::Float)],
+            }],
+            inputs: vec![TensorMetadata {
                 name: "input".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
+                description: None,
+                hints: Vec::new(),
+            }],
+            outputs: vec![TensorMetadata {
+                name: "output".to_string(),
+                description: None,
+                hints: Vec::new(),
+            }],
+        }
+    }
+}
 
-        // Note: The "element_type" argument is only used while constructing the
-        // ML pipeline. We see its effect at runtime in the form of the tensor
-        // data variant that gets used.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Node {
+    modulus: f64,
+}
 
-        match element_type {
+impl TryFrom<Vec<Argument>> for Node {
+    type Error = ArgumentError;
+
+    fn try_from(args: Vec<Argument>) -> Result<Self, Self::Error> {
+        let modulus = support::parse_arg(&args, "modulus")?;
+
+        Ok(Node { modulus })
+    }
+}
+
+impl proc_block_v2::Node for Node {
+    fn new(args: Vec<Argument>) -> Result<Handle<crate::Node>, ArgumentError> {
+        Node::try_from(args).map(Handle::new)
+    }
+
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![TensorConstraint {
+                name: "input".to_string(),
+                element_type: !ElementTypeConstraint::UTF8,
+                dimensions: Dimensions::Dynamic,
+            }],
+            outputs: vec![TensorConstraint {
+                name: "output".to_string(),
+                element_type: !ElementTypeConstraint::UTF8,
+                dimensions: Dimensions::Dynamic,
+            }],
+        }
+    }
+
+    fn run(
+        &self,
+        inputs: Vec<Tensor>,
+    ) -> Result<Vec<Tensor>, proc_block_v2::KernelError> {
+        let mut tensor = inputs
+            .into_iter()
+            .find(|tensor| tensor.name == "input")
+            .ok_or_else(|| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "input".to_string(),
+                    reason: InvalidInputReason::NotFound,
+                })
+            })?;
+
+        tensor.name = "output".to_string();
+
+        match tensor.element_type {
             ElementType::U8 => {
-                modulus_in_place(buffer.elements_mut::<u8>(), modulus)?
+                modulus_in_place::<u8>(&mut tensor.buffer, self.modulus)
             },
             ElementType::I8 => {
-                modulus_in_place(buffer.elements_mut::<i8>(), modulus)?
+                modulus_in_place::<i8>(&mut tensor.buffer, self.modulus)
             },
             ElementType::U16 => {
-                modulus_in_place(buffer.elements_mut::<u16>(), modulus)?
+                modulus_in_place::<u16>(&mut tensor.buffer, self.modulus)
             },
             ElementType::I16 => {
-                modulus_in_place(buffer.elements_mut::<i16>(), modulus)?
+                modulus_in_place::<i16>(&mut tensor.buffer, self.modulus)
             },
             ElementType::U32 => {
-                modulus_in_place(buffer.elements_mut::<u32>(), modulus)?
+                modulus_in_place::<u32>(&mut tensor.buffer, self.modulus)
             },
             ElementType::I32 => {
-                modulus_in_place(buffer.elements_mut::<i32>(), modulus)?
+                modulus_in_place::<i32>(&mut tensor.buffer, self.modulus)
             },
             ElementType::F32 => {
-                modulus_in_place(buffer.elements_mut::<f32>(), modulus)?
+                modulus_in_place::<f32>(&mut tensor.buffer, self.modulus)
             },
             ElementType::U64 => {
-                modulus_in_place(buffer.elements_mut::<u64>(), modulus)?
+                modulus_in_place::<u64>(&mut tensor.buffer, self.modulus)
             },
             ElementType::I64 => {
-                modulus_in_place(buffer.elements_mut::<i64>(), modulus)?
+                modulus_in_place::<i64>(&mut tensor.buffer, self.modulus)
             },
             ElementType::F64 => {
-                modulus_in_place(buffer.elements_mut::<f64>(), modulus)?
+                modulus_in_place::<f64>(&mut tensor.buffer, self.modulus)
             },
-            ElementType::Utf8 => {
-                return Err(KernelError::Other(
-                    "String tensors aren't supported".to_string(),
-                ))
+            ElementType::Utf8
+            | ElementType::Complex128
+            | ElementType::Complex64 => {
+                return Err(KernelError::InvalidInput(InvalidInput {
+                    name: tensor.name,
+                    reason: InvalidInputReason::UnsupportedShape,
+                }))
             },
         }
 
-        ctx.set_output_tensor(
-            "output",
-            TensorParam {
-                element_type,
-                dimensions: &dimensions,
-                buffer: &buffer,
-            },
-        );
-
-        Ok(())
+        Ok(vec![tensor])
     }
 }
 
-fn modulus_in_place<T>(
-    values: &mut [T],
-    modulus: f64,
-) -> Result<(), KernelError>
+fn modulus_in_place<T>(bytes: &mut [u8], modulus: f64)
 where
-    T: ToPrimitive + FromPrimitive + Copy + Display,
+    T: ToPrimitive + FromPrimitive + Copy + ValueType,
 {
-    for value in values {
-        let as_float = value.to_f64().ok_or_else(|| error(*value))?;
-        let after_modulus = as_float % modulus;
-        *value = T::from_f64(after_modulus).ok_or_else(|| error(*value))?;
-    }
+    let items: &mut [T] = bytes.elements_mut();
 
-    Ok(())
-}
+    for item in items {
+        let result = item
+            .to_f64()
+            .map(|n| n % modulus)
+            .and_then(|n| T::from_f64(n));
 
-fn error(value: impl Display) -> KernelError {
-    KernelError::Other(format!(
-        "Unable to convert `{}` to/from a double",
-        value
-    ))
-}
-
-fn get_modulus(
-    get_argument: impl FnOnce(&str) -> Option<String>,
-) -> Result<f64, InvalidArgument> {
-    let value = match get_argument("modulus") {
-        Some(s) => s,
-        None => {
-            return Err(InvalidArgument {
-                name: "modulus".to_string(),
-                reason: BadArgumentReason::NotFound,
-            })
-        },
-    };
-
-    let value = value.parse::<f64>().map_err(|e| InvalidArgument {
-        name: "modulus".to_string(),
-        reason: BadArgumentReason::InvalidValue(e.to_string()),
-    })?;
-
-    if value > 0.0 {
-        Ok(value)
-    } else {
-        Err(InvalidArgument {
-            name: "modulus".to_string(),
-            reason: BadArgumentReason::InvalidValue(
-                "The modulus must be a positive, non-zero number".to_string(),
-            ),
-        })
+        if let Some(updated) = result {
+            *item = updated;
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use hotg_rune_proc_blocks::SliceExt;
+
     use super::*;
 
     #[test]
     fn apply_modulus() {
         let mut values = [0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0];
 
-        modulus_in_place(&mut values, 2.0).unwrap();
+        modulus_in_place::<f64>(values.as_bytes_mut(), 2.0);
 
         assert_eq!(values, [0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0]);
     }

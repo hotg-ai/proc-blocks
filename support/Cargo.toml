@@ -13,5 +13,5 @@ wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen", op
 getrandom = { version = "0.2.6", default-features = false, features = ["custom"] }
 
 [features]
-default = ["runtime_v1"]
+default = []
 runtime_v1 = ["wit-bindgen-rust"]
