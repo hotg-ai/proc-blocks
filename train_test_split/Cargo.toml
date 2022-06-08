@@ -1,0 +1,20 @@
+[package]
+name = "train_test_split"
+version = "0.1.0"
+edition = "2021"
+description = "a random split into training and test sets"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hotg-rune-proc-blocks = { path = "../support" }
+wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development" }
+getrandom = { version = "0.2.6", default-features = false, features = ["custom"] }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"
