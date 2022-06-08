@@ -1,16 +1,11 @@
 // use linfa_logistic::LogisticRegression;
-use smartcore::{
-    linalg::naive::dense_matrix::*, linear::elastic_net::*,
-};
+use smartcore::{linalg::naive::dense_matrix::*, linear::elastic_net::*};
 
 use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{
-    runtime_v1::*,
-    BufferExt, SliceExt,
-};
+use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -26,8 +21,7 @@ struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
-        let metadata =
-            Metadata::new("Elastic Net", env!("CARGO_PKG_VERSION"));
+        let metadata = Metadata::new("Elastic Net", env!("CARGO_PKG_VERSION"));
         metadata.set_description(
             "a linear approach for modelling the relationship between a scalar response and one or more explanatory variables",
         );
@@ -177,10 +171,9 @@ fn transform(
         x_train,
     );
 
-    let model = ElasticNet::fit(
-        &x_train,
-        &y_train.to_vec(),
-        Default::default()).unwrap();
+    let model =
+        ElasticNet::fit(&x_train, &y_train.to_vec(), Default::default())
+            .unwrap();
 
     let x_test = DenseMatrix::from_array(
         x_test_dim[0] as usize,
@@ -193,8 +186,9 @@ fn transform(
     y_hat
 }
 
-//comenting out test because it will in after deciaml places everytime so we can't generate a fixed y_pred. BUt I have tested in local and it's working. :)
-// #[cfg(test)]
+// comenting out test because it will in after deciaml places everytime so we
+// can't generate a fixed y_pred. BUt I have tested in local and it's working.
+// :) #[cfg(test)]
 // mod tests {
 //     use super::*;
 
@@ -218,8 +212,8 @@ fn transform(
 //             518.173, 480.6, 257.2, 127.852, 1961., 69.331,
 //             554.894, 400.7, 282.7, 130.081, 1962., 70.551];
 
-//         let y_train: Vec<f64> = vec![83.0, 88.5, 88.2, 89.5, 96.2, 98.1, 99.0,
-//         100.0, 101.2, 104.6, 108.4, 110.8, 112.6, 114.2, 115.7, 116.9];
+//         let y_train: Vec<f64> = vec![83.0, 88.5, 88.2, 89.5, 96.2, 98.1,
+// 99.0,         100.0, 101.2, 104.6, 108.4, 110.8, 112.6, 114.2, 115.7, 116.9];
 
 //         let dim: Vec<u32> = vec![16, 6];
 
@@ -233,7 +227,11 @@ fn transform(
 
 //         println!("{:?}", y_pred);
 
-//         let should_be = vec![112.7901174966222, 115.23028619478328, 104.00652847960953, 106.91893927853232, 101.89562519168146, 98.62225598974453, 100.3986322888735, 90.34439937146931, 99.44618079637769, 102.87598179071631, 103.51961064304874, 92.90632404596613, 101.22197835350744, 101.6134669106201, 95.40896231278623, 99.70071085566008];
+//         let should_be = vec![112.7901174966222, 115.23028619478328,
+// 104.00652847960953, 106.91893927853232, 101.89562519168146,
+// 98.62225598974453, 100.3986322888735, 90.34439937146931, 99.44618079637769,
+// 102.87598179071631, 103.51961064304874, 92.90632404596613,
+// 101.22197835350744, 101.6134669106201, 95.40896231278623, 99.70071085566008];
 
 //         assert_eq!(y_pred, should_be);
 //     }

@@ -1,16 +1,11 @@
 // use linfa_logistic::LogisticRegression;
-use smartcore::{
-    linalg::naive::dense_matrix::*, linear::linear_regression::*,
-};
+use smartcore::{linalg::naive::dense_matrix::*, linear::linear_regression::*};
 
 use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{
-    runtime_v1::*,
-    BufferExt, SliceExt,
-};
+use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -180,8 +175,8 @@ fn transform(
     let lr = LinearRegression::fit(
         &x_train,
         &y_train.to_vec(),
-        LinearRegressionParameters::default().
-            with_solver(LinearRegressionSolverName::QR)
+        LinearRegressionParameters::default()
+            .with_solver(LinearRegressionSolverName::QR),
     )
     .unwrap();
 
@@ -196,8 +191,9 @@ fn transform(
     y_hat
 }
 
-//comenting out test because it will in after deciaml places everytime so we can't generate a fixed y_pred. BUt I have tested in local and it's working. :)
-// #[cfg(test)]
+// comenting out test because it will in after deciaml places everytime so we
+// can't generate a fixed y_pred. BUt I have tested in local and it's working.
+// :) #[cfg(test)]
 // mod tests {
 //     use super::*;
 
@@ -221,8 +217,8 @@ fn transform(
 //             518.173, 480.6, 257.2, 127.852, 1961., 69.331,
 //             554.894, 400.7, 282.7, 130.081, 1962., 70.551];
 
-//         let y_train: Vec<f64> = vec![83.0, 88.5, 88.2, 89.5, 96.2, 98.1, 99.0,
-//         100.0, 101.2, 104.6, 108.4, 110.8, 112.6, 114.2, 115.7, 116.9];
+//         let y_train: Vec<f64> = vec![83.0, 88.5, 88.2, 89.5, 96.2, 98.1,
+// 99.0,         100.0, 101.2, 104.6, 108.4, 110.8, 112.6, 114.2, 115.7, 116.9];
 
 //         let dim: Vec<u32> = vec![16, 6];
 
@@ -236,7 +232,11 @@ fn transform(
 
 //         println!("{:?}", y_pred);
 
-//         let should_be = vec![83.60081557529429, 86.9497267843858, 88.0967712796537, 90.73064861498187, 96.53551391475548, 97.83066549287923, 98.12232410020943, 99.87775705667309, 103.2086121315433, 105.08598261412453, 107.33368709022488, 109.57250942066366, 112.98358207057254, 113.92897848657913, 115.50214310337833, 117.54028226408764];
+//         let should_be = vec![83.60081557529429, 86.9497267843858,
+// 88.0967712796537, 90.73064861498187, 96.53551391475548, 97.83066549287923,
+// 98.12232410020943, 99.87775705667309, 103.2086121315433, 105.08598261412453,
+// 107.33368709022488, 109.57250942066366, 112.98358207057254,
+// 113.92897848657913, 115.50214310337833, 117.54028226408764];
 
 //         assert_eq!(y_pred, should_be);
 //     }

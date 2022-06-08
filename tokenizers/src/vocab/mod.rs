@@ -9,15 +9,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//!# Vocabularies
+//! # Vocabularies
 //!
-//! This module contains the vocabularies leveraged by the tokenizer. These contain methods for
-//! deserialization of vocabulary files and access by the tokenizers, including:
+//! This module contains the vocabularies leveraged by the tokenizer. These
+//! contain methods for deserialization of vocabulary files and access by the
+//! tokenizers, including:
 //! - dictionaries (mapping from token to token ids)
 //!
 //! The following vocabularies have been implemented:
 //! - BERT
-//! Vocabulary implement the `Vocab` trait exposing a standard interface for integration with
+//! Vocabulary implement the `Vocab` trait exposing a standard interface for
+//! integration with
 
 pub(crate) mod base_vocab;
 pub mod bert_vocab;
