@@ -49,11 +49,17 @@ macro_rules! generate_support {
                         .map(|&d| d as u32)
                         .collect();
 
+                    let mut buffer = Vec::new();
+
+                    for element in array.iter() {
+                        buffer.extend($crate::bytemuck::bytes_of(element));
+                    }
+
                     Tensor {
                         name: name.into(),
                         dimensions,
                         element_type: T::ELEMENT_TYPE,
-                        buffer: Vec::new(),
+                        buffer,
                     }
                 }
 
@@ -76,7 +82,8 @@ macro_rules! generate_support {
                         .iter()
                         .map(|&d| d as usize)
                         .collect();
-                    let elements = $crate::bytemuck::cast_slice(&self.buffer);
+                    let elements = $crate::bytemuck::try_cast_slice(&self.buffer)
+                        .expect("Unable to reinterpret the buffer's bytes as the desired element type");
 
                     $crate::ndarray::ArrayViewD::from_shape(dimensions, elements)
                         .map_err(|e| InvalidInput::other(&self.name, e).into())
@@ -121,7 +128,8 @@ macro_rules! generate_support {
                         .iter()
                         .map(|&d| d as usize)
                         .collect();
-                    let elements = $crate::bytemuck::cast_slice_mut(&mut self.buffer);
+                    let elements = $crate::bytemuck::try_cast_slice_mut(&mut self.buffer)
+                        .expect("Unable to reinterpret the buffer's bytes as the desired element type");
 
                     $crate::ndarray::ArrayViewMutD::from_shape(dimensions, elements)
                         .map_err(|e| InvalidInput::other(&self.name, e).into())
@@ -141,6 +149,17 @@ macro_rules! generate_support {
                     self.view_mut::<T>()?
                         .into_dimensionality::<Dims>()
                         .map_err(|e| InvalidInput::other(name, e).into())
+                }
+            }
+
+            impl PartialEq for Tensor {
+                fn eq(&self, other: &Tensor) -> bool {
+                    let Tensor { name, element_type, dimensions, buffer } = self;
+
+                    name == &other.name
+                        && element_type == &other.element_type
+                        && dimensions == &other.dimensions
+                        && buffer == &other.buffer
                 }
             }
 

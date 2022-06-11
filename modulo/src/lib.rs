@@ -116,9 +116,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use hotg_rune_proc_blocks::ndarray;
-
     use super::*;
+    use crate::proc_block_v2::Node as _;
+    use hotg_rune_proc_blocks::ndarray;
 
     fn args(arguments: &[(&str, &str)]) -> Vec<Argument> {
         arguments
@@ -141,10 +141,18 @@ mod tests {
 
     #[test]
     fn apply_modulus() {
-        let mut values = ndarray::array![0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0];
+        let inputs = vec![Tensor::new(
+            "input",
+            ndarray::array![0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0],
+        )];
+        let expected = vec![Tensor::new(
+            "output",
+            ndarray::array![0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0],
+        )];
+        let modulo = Node { modulus: 2.0 };
 
-        modulo_in_place(values.view_mut().into_dyn(), 2.0);
+        let outputs = modulo.run(inputs).unwrap();
 
-        assert_eq!(values, ndarray::array![0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0]);
+        assert_eq!(outputs, expected);
     }
 }
