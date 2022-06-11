@@ -49,6 +49,7 @@ macro_rules! generate_support {
                         .map(|&d| d as u32)
                         .collect();
 
+                    // Safety:
                     let mut buffer = Vec::new();
 
                     for element in array.iter() {
@@ -61,6 +62,14 @@ macro_rules! generate_support {
                         element_type: T::ELEMENT_TYPE,
                         buffer,
                     }
+                }
+
+                pub fn new_1d<T>(name: impl Into<String>, elements: &[T]) -> Self
+                where
+                    T: ValueType,
+                {
+                    let array = $crate::ndarray::aview1(elements);
+                    Tensor::new(name, &array)
                 }
 
                 pub fn with_name(self, name: impl Into<String>) -> Self {
@@ -82,6 +91,21 @@ macro_rules! generate_support {
                         .iter()
                         .map(|&d| d as usize)
                         .collect();
+
+                    // Note: If our buffer is empty, the slice you get when from
+                    // the Deref implementation will be null + align_of(u8) with
+                    // a length of 0.
+                    //
+                    // This is normally fine, but if we later use bytemuck to
+                    // cast the &[u8] to &[T] and T has an alignment greater
+                    // than 1, we'll panic due to being mis-aligned.
+                    //
+                    // To prevent this, we return a view into an empty slice.
+                    if dimensions.iter().product::<usize>() == 0 {
+                        return $crate::ndarray::ArrayViewD::from_shape(dimensions, &[])
+                            .map_err(|e| InvalidInput::other(&self.name, e).into());
+                    }
+
                     let elements = $crate::bytemuck::try_cast_slice(&self.buffer)
                         .expect("Unable to reinterpret the buffer's bytes as the desired element type");
 
@@ -128,6 +152,13 @@ macro_rules! generate_support {
                         .iter()
                         .map(|&d| d as usize)
                         .collect();
+
+                    // See the comment in Tensor::view() for why we need this.
+                    if dimensions.iter().product::<usize>() == 0 {
+                        return $crate::ndarray::ArrayViewMutD::from_shape(dimensions, &mut [])
+                            .map_err(|e| InvalidInput::other(&self.name, e).into());
+                    }
+
                     let elements = $crate::bytemuck::try_cast_slice_mut(&mut self.buffer)
                         .expect("Unable to reinterpret the buffer's bytes as the desired element type");
 
@@ -195,11 +226,26 @@ macro_rules! generate_support {
             }
 
             impl KernelError {
+                pub fn other(reason: impl Display) -> Self {
+                    KernelError::Other(reason.to_string())
+                }
+
                 pub fn unsupported_shape(tensor_name: impl Into<String>) -> Self {
                     KernelError::InvalidInput(InvalidInput {
                         name: tensor_name.into(),
                         reason: InvalidInputReason::UnsupportedShape,
                     })
+                }
+            }
+
+            impl PartialEq for KernelError {
+                fn eq(&self, other: &KernelError) -> bool {
+                    match (self, other) {
+                        (KernelError::Other(left), KernelError::Other(right)) => left == right,
+                        (KernelError::InvalidInput(left), KernelError::InvalidInput(right)) => left == right,
+                        (KernelError::Other(_), _)
+                        | (KernelError::InvalidInput(_), _) => false,
+                    }
                 }
             }
 
@@ -229,6 +275,29 @@ macro_rules! generate_support {
                     InvalidInput {
                         name: tensor_name.into(),
                         reason: InvalidInputReason::Other(reason.to_string()),
+                    }
+                }
+            }
+
+            impl PartialEq for InvalidInput {
+                fn eq(&self, other: &InvalidInput) -> bool {
+                    let InvalidInput { name, reason } = self;
+
+                    name == &other.name && reason == &other.reason
+                }
+            }
+
+            impl PartialEq for InvalidInputReason {
+                fn eq(&self, other: &InvalidInputReason) -> bool {
+                    match (self, other) {
+                        (InvalidInputReason::Other(left), InvalidInputReason::Other(right)) => left == right,
+                        (InvalidInputReason::InvalidValue(left), InvalidInputReason::InvalidValue(right)) => left == right,
+                        (InvalidInputReason::NotFound, InvalidInputReason::NotFound) => true,
+                        (InvalidInputReason::UnsupportedShape, InvalidInputReason::UnsupportedShape) => true,
+                        (InvalidInputReason::Other(_), _)
+                        | (InvalidInputReason::InvalidValue(_), _)
+                        | (InvalidInputReason::NotFound, _)
+                        | (InvalidInputReason::UnsupportedShape, _) => false,
                     }
                 }
             }

@@ -13,32 +13,17 @@ struct ProcBlockV2;
 
 impl proc_block_v2::ProcBlockV2 for ProcBlockV2 {
     fn metadata() -> Metadata {
-        Metadata {
-            name: "Audio Float Conversion".to_string(),
-            version: env!("CARGO_PKG_VERSION").to_string(),
-            description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
-            repository: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
-            homepage: Some(env!("CARGO_PKG_HOMEPAGE").to_string()),
-            tags: vec![
-                "audio".to_string(),
-                "float".to_string(),
-            ],
-            arguments: Vec::new(),
-            inputs: vec![
-                TensorMetadata {
-                    name: "input".to_string(),
-                    description: None,
-                    hints: Vec::new(),
-                }
-            ],
-            outputs: vec![
-                TensorMetadata {
-                    name: "output".to_string(),
-                    description: Some("converted values from i16 data type to a floating-point value.".to_string()),
-                    hints: Vec::new(),
-                }
-            ],
-        }
+        Metadata::new( "Audio Float Conversion", env!("CARGO_PKG_VERSION"))
+            .with_description(env!("CARGO_PKG_DESCRIPTION"))
+            .with_repository(env!("CARGO_PKG_REPOSITORY"))
+            .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+            .with_tag("audio")
+            .with_tag("float")
+            .with_input(TensorMetadata::new("input"))
+            .with_output(
+                TensorMetadata::new("output")
+                    .with_description("converted values from i16 data type to a floating-point value.")
+            )
     }
 }
 
@@ -69,7 +54,7 @@ impl proc_block_v2::Node for Node {
 
         let output = audio_float_conversion(tensor.view_1d()?);
 
-        Ok(vec![Tensor::new("output", output)])
+        Ok(vec![Tensor::new("output", &output)])
     }
 }
 
@@ -80,16 +65,19 @@ fn audio_float_conversion(values: ArrayView1<'_, i16>) -> Array1<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    extern crate alloc;
-    use alloc::vec;
+    use crate::proc_block_v2::Node as _;
     use hotg_rune_proc_blocks::ndarray::{self, array};
 
     #[test]
     fn handle_empty() {
-        let input = array![0, 0, 0, 0, 0, 0];
-        let should_be = ndarray::array![0.0_f32, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let input = vec![Tensor::new_1d("input", &[0, 0, 0, 0, 0, 0])];
+        let should_be = vec![Tensor::new_1d(
+            "output",
+            &[0.0_f32, 0.0, 0.0, 0.0, 0.0, 0.0],
+        )];
+        let node = Node;
 
-        let got = audio_float_conversion(input.view());
+        let got = node.run(input).unwrap();
 
         assert_eq!(got, should_be);
     }
