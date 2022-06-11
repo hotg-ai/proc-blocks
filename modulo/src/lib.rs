@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v2.wit");
+use hotg_rune_proc_blocks::ndarray::ArrayViewMutD;
+use num_traits::{FromPrimitive, ToPrimitive};
+use wit_bindgen_rust::Handle;
 
 use crate::proc_block_v2::*;
 
-use hotg_rune_proc_blocks::{BufferExt, ValueType};
-use num_traits::{FromPrimitive, ToPrimitive};
-use wit_bindgen_rust::Handle;
+wit_bindgen_rust::export!("../wit-files/rune/proc-block-v2.wit");
 
 hotg_rune_proc_blocks::generate_support!(crate::proc_block_v2);
 
@@ -14,30 +14,17 @@ pub struct ProcBlockV2;
 
 impl proc_block_v2::ProcBlockV2 for ProcBlockV2 {
     fn metadata() -> Metadata {
-        Metadata {
-            name: "Modulo".to_string(),
-            version: env!("CARGO_PKG_VERSION").to_string(),
-            tags: Vec::new(),
-            description: Some(env!("CARGO_PKG_DESCRIPTION").to_string()),
-            homepage: Some(env!("CARGO_PKG_HOMEPAGE").to_string()),
-            repository: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
-            arguments: vec![ArgumentMetadata {
-                name: "modulus".to_string(),
-                description: Some("The modulus operand".to_string()),
-                default_value: None,
-                hints: vec![ArgumentHint::ArgumentType(ArgumentType::Float)],
-            }],
-            inputs: vec![TensorMetadata {
-                name: "input".to_string(),
-                description: None,
-                hints: Vec::new(),
-            }],
-            outputs: vec![TensorMetadata {
-                name: "output".to_string(),
-                description: None,
-                hints: Vec::new(),
-            }],
-        }
+        Metadata::new("Modulo", env!("CARGO_PKG_VERSION"))
+            .with_description(env!("CARGO_PKG_DESCRIPTION"))
+            .with_repository(env!("CARGO_PKG_REPOSITORY"))
+            .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+            .with_argument(
+                ArgumentMetadata::new("modulus")
+                    .with_description("The modulus operand")
+                    .with_hint(ArgumentHint::ArgumentType(ArgumentType::Float)),
+            )
+            .with_input(TensorMetadata::new("input"))
+            .with_output(TensorMetadata::new("output"))
     }
 }
 
@@ -63,65 +50,53 @@ impl proc_block_v2::Node for Node {
 
     fn tensor_constraints(&self) -> TensorConstraints {
         TensorConstraints {
-            inputs: vec![TensorConstraint {
-                name: "input".to_string(),
-                element_type: !ElementTypeConstraint::UTF8,
-                dimensions: Dimensions::Dynamic,
-            }],
-            outputs: vec![TensorConstraint {
-                name: "output".to_string(),
-                element_type: !ElementTypeConstraint::UTF8,
-                dimensions: Dimensions::Dynamic,
-            }],
+            inputs: vec![TensorConstraint::numeric(
+                "input",
+                Dimensions::Dynamic,
+            )],
+            outputs: vec![TensorConstraint::numeric(
+                "output",
+                Dimensions::Dynamic,
+            )],
         }
     }
 
-    fn run(
-        &self,
-        inputs: Vec<Tensor>,
-    ) -> Result<Vec<Tensor>, proc_block_v2::KernelError> {
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, KernelError> {
         let mut tensor = inputs
             .into_iter()
             .find(|tensor| tensor.name == "input")
-            .ok_or_else(|| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "input".to_string(),
-                    reason: InvalidInputReason::NotFound,
-                })
-            })?;
-
-        tensor.name = "output".to_string();
+            .ok_or_else(|| InvalidInput::not_found("input"))?;
 
         match tensor.element_type {
             ElementType::U8 => {
-                modulus_in_place::<u8>(&mut tensor.buffer, self.modulus)
+                modulo_in_place(tensor.view_mut::<u8>()?, self.modulus)
             },
             ElementType::I8 => {
-                modulus_in_place::<i8>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<i8>(tensor.view_mut::<i8>()?, self.modulus)
             },
             ElementType::U16 => {
-                modulus_in_place::<u16>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<u16>(tensor.view_mut::<u16>()?, self.modulus)
             },
             ElementType::I16 => {
-                modulus_in_place::<i16>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<i16>(tensor.view_mut::<i16>()?, self.modulus)
             },
             ElementType::U32 => {
-                modulus_in_place::<u32>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<u32>(tensor.view_mut::<u32>()?, self.modulus)
             },
             ElementType::I32 => {
-                modulus_in_place::<i32>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<i32>(tensor.view_mut::<i32>()?, self.modulus)
             },
             ElementType::F32 => {
-                modulus_in_place::<f32>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<f32>(tensor.view_mut::<f32>()?, self.modulus)
             },
             ElementType::U64 => {
-                modulus_in_place::<u64>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<u64>(tensor.view_mut::<u64>()?, self.modulus)
             },
             ElementType::I64 => {
-                modulus_in_place::<i64>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<i64>(tensor.view_mut::<i64>()?, self.modulus)
             },
             ElementType::F64 => {
-                modulus_in_place::<f64>(&mut tensor.buffer, self.modulus)
+                modulo_in_place::<f64>(tensor.view_mut::<f64>()?, self.modulus)
             },
             ElementType::Utf8
             | ElementType::Complex128
@@ -133,17 +108,15 @@ impl proc_block_v2::Node for Node {
             },
         }
 
-        Ok(vec![tensor])
+        Ok(vec![tensor.with_name("output")])
     }
 }
 
-fn modulus_in_place<T>(bytes: &mut [u8], modulus: f64)
+fn modulo_in_place<T>(mut array: ArrayViewMutD<'_, T>, modulus: f64)
 where
-    T: ToPrimitive + FromPrimitive + Copy + ValueType,
+    T: ToPrimitive + FromPrimitive + Copy,
 {
-    let items: &mut [T] = bytes.elements_mut();
-
-    for item in items {
+    for item in array.iter_mut() {
         let result = item
             .to_f64()
             .map(|n| n % modulus)
@@ -157,16 +130,35 @@ where
 
 #[cfg(test)]
 mod tests {
-    use hotg_rune_proc_blocks::SliceExt;
+    use hotg_rune_proc_blocks::ndarray;
 
     use super::*;
 
+    fn args(arguments: &[(&str, &str)]) -> Vec<Argument> {
+        arguments
+            .iter()
+            .map(|(n, v)| Argument {
+                name: n.to_string(),
+                value: v.to_string(),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn create_modulo_with_good_modulus() {
+        let args = args(&[("modulus", "42.0")]);
+
+        let proc_block = Node::try_from(args).unwrap();
+
+        assert_eq!(proc_block, Node { modulus: 42.0 });
+    }
+
     #[test]
     fn apply_modulus() {
-        let mut values = [0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0];
+        let mut values = ndarray::array![0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0];
 
-        modulus_in_place::<f64>(values.as_bytes_mut(), 2.0);
+        modulo_in_place(values.view_mut().into_dyn(), 2.0);
 
-        assert_eq!(values, [0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0]);
+        assert_eq!(values, ndarray::array![0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0]);
     }
 }

@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+pub extern crate bytemuck;
 pub extern crate ndarray;
 
 mod buffer_ext;
