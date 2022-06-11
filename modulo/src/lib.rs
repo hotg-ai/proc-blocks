@@ -88,10 +88,7 @@ impl proc_block_v2::Node for Node {
         } else if let Ok(tensor) = tensor.view_mut::<f64>() {
             modulo_in_place(tensor, self.modulus);
         } else {
-            return Err(KernelError::InvalidInput(InvalidInput {
-                name: tensor.name,
-                reason: InvalidInputReason::UnsupportedShape,
-            }));
+            return Err(InvalidInput::unsupported_shape(tensor.name).into());
         }
 
         Ok(vec![tensor.with_name("output")])
@@ -143,11 +140,11 @@ mod tests {
     fn apply_modulus() {
         let inputs = vec![Tensor::new(
             "input",
-            ndarray::array![0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0],
+            &ndarray::array![0.0_f64, 1.0, 2.0, 3.0, 4.0, 5.0],
         )];
         let expected = vec![Tensor::new(
             "output",
-            ndarray::array![0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0],
+            &ndarray::array![0.0_f64, 1.0, 0.0, 1.0, 0.0, 1.0],
         )];
         let modulo = Node { modulus: 2.0 };
 

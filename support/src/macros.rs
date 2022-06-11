@@ -38,7 +38,7 @@ macro_rules! generate_support {
             }
 
             impl Tensor {
-                pub fn new<T, S, Dims>(name: impl Into<String>, array: $crate::ndarray::ArrayBase<S, Dims>) -> Self
+                pub fn new<T, S, Dims>(name: impl Into<String>, array: &$crate::ndarray::ArrayBase<S, Dims>) -> Self
                 where
                     T: ValueType,
                     S: $crate::ndarray::Data<Elem=T>,
