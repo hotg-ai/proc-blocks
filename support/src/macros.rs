@@ -69,13 +69,17 @@ macro_rules! generate_support {
                     T: ValueType,
                 {
                     if self.element_type != T::ELEMENT_TYPE {
-                        return Err(KernelError::InvalidInput(InvalidInput {
-                            name: self.name.clone(),
-                            reason: InvalidInputReason::UnsupportedShape,
-                        }));
+                        return Err(InvalidInput::unsupported_shape(&self.name).into());
                     }
 
-                    todo!();
+                    let dimensions: Vec<_> = self.dimensions
+                        .iter()
+                        .map(|&d| d as usize)
+                        .collect();
+                    let elements = $crate::bytemuck::cast_slice(&self.buffer);
+
+                    $crate::ndarray::ArrayViewD::from_shape(dimensions, elements)
+                        .map_err(|e| InvalidInput::other(&self.name, e).into())
                 }
 
                 pub fn view_with_dimensions<T, Dims>(&self) -> Result<$crate::ndarray::ArrayView<'_, T, Dims>, KernelError>
@@ -113,7 +117,14 @@ macro_rules! generate_support {
                         }));
                     }
 
-                    todo!();
+                    let dimensions: Vec<_> = self.dimensions
+                        .iter()
+                        .map(|&d| d as usize)
+                        .collect();
+                    let elements = $crate::bytemuck::cast_slice_mut(&mut self.buffer);
+
+                    $crate::ndarray::ArrayViewMutD::from_shape(dimensions, elements)
+                        .map_err(|e| InvalidInput::other(&self.name, e).into())
                 }
 
                 pub fn view_with_dimensions_mut<T, Dims>(&mut self) -> Result<$crate::ndarray::ArrayViewMut<'_, T, Dims>, KernelError>
@@ -328,7 +339,7 @@ macro_rules! generate_support {
                 }
             }
 
-            pub trait ValueType: $crate::ValueType {
+            pub trait ValueType: $crate::ValueType + $crate::bytemuck::AnyBitPattern + $crate::bytemuck::NoUninit {
                 const ELEMENT_TYPE: ElementType;
             }
 
@@ -355,9 +366,15 @@ macro_rules! generate_support {
             impl std::error::Error for KernelError {
                 fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
                     match self {
-                        KernelError::InvalidInput(i) => todo!(),
+                        KernelError::InvalidInput(i) => Some(i),
                         KernelError::Other(_) => None,
                     }
+                }
+            }
+
+            impl std::error::Error for InvalidInput {
+                fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                    Some(&self.reason)
                 }
             }
 

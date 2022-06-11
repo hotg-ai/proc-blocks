@@ -67,45 +67,31 @@ impl proc_block_v2::Node for Node {
             .find(|tensor| tensor.name == "input")
             .ok_or_else(|| InvalidInput::not_found("input"))?;
 
-        match tensor.element_type {
-            ElementType::U8 => {
-                modulo_in_place(tensor.view_mut::<u8>()?, self.modulus)
-            },
-            ElementType::I8 => {
-                modulo_in_place::<i8>(tensor.view_mut::<i8>()?, self.modulus)
-            },
-            ElementType::U16 => {
-                modulo_in_place::<u16>(tensor.view_mut::<u16>()?, self.modulus)
-            },
-            ElementType::I16 => {
-                modulo_in_place::<i16>(tensor.view_mut::<i16>()?, self.modulus)
-            },
-            ElementType::U32 => {
-                modulo_in_place::<u32>(tensor.view_mut::<u32>()?, self.modulus)
-            },
-            ElementType::I32 => {
-                modulo_in_place::<i32>(tensor.view_mut::<i32>()?, self.modulus)
-            },
-            ElementType::F32 => {
-                modulo_in_place::<f32>(tensor.view_mut::<f32>()?, self.modulus)
-            },
-            ElementType::U64 => {
-                modulo_in_place::<u64>(tensor.view_mut::<u64>()?, self.modulus)
-            },
-            ElementType::I64 => {
-                modulo_in_place::<i64>(tensor.view_mut::<i64>()?, self.modulus)
-            },
-            ElementType::F64 => {
-                modulo_in_place::<f64>(tensor.view_mut::<f64>()?, self.modulus)
-            },
-            ElementType::Utf8
-            | ElementType::Complex128
-            | ElementType::Complex64 => {
-                return Err(KernelError::InvalidInput(InvalidInput {
-                    name: tensor.name,
-                    reason: InvalidInputReason::UnsupportedShape,
-                }))
-            },
+        if let Ok(tensor) = tensor.view_mut::<u8>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<i8>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<u16>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<i16>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<u32>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<i32>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<f32>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<u64>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<i64>() {
+            modulo_in_place(tensor, self.modulus);
+        } else if let Ok(tensor) = tensor.view_mut::<f64>() {
+            modulo_in_place(tensor, self.modulus);
+        } else {
+            return Err(KernelError::InvalidInput(InvalidInput {
+                name: tensor.name,
+                reason: InvalidInputReason::UnsupportedShape,
+            }));
         }
 
         Ok(vec![tensor.with_name("output")])
