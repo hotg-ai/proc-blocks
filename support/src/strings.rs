@@ -1,36 +1,4 @@
-/// Serialize a string tensor so it can be passed to the runtime.
-///
-/// # Examples
-///
-/// ```
-/// use hotg_rune_proc_blocks::{BufferExt, string_tensor_from_ndarray};
-///
-/// let tensor = ndarray::arr2(&[
-///     ["this", "is", "a", "sentence"],
-///     ["and", "this", "is", "another"],
-/// ]);
-///
-/// let serialized: Vec<u8> = string_tensor_from_ndarray(&tensor);
-///
-/// let deserialized = serialized.string_view(&[2, 4]).unwrap();
-/// assert_eq!(deserialized, tensor.into_dyn());
-/// ```
-pub fn string_tensor_from_ndarray<S, Data, Dim>(
-    array: &ndarray::ArrayBase<Data, Dim>,
-) -> Vec<u8>
-where
-    Dim: ndarray::Dimension,
-    Data: ndarray::Data<Elem = S>,
-    S: AsRef<str>,
-{
-    let mut builder = StringBuilder::new();
-
-    for s in array.iter() {
-        builder.push(s.as_ref());
-    }
-
-    builder.finish()
-}
+use ndarray::{ErrorKind, ShapeError};
 
 /// A builder for serializing multiple UTF-8 strings to a flat byte array.
 ///
@@ -38,7 +6,6 @@ where
 ///
 /// ```rust
 /// # use hotg_rune_proc_blocks::StringBuilder;
-/// use hotg_rune_proc_blocks::BufferExt;
 /// // Construct a new string builder and add some strings to it
 /// let mut builder = StringBuilder::new();
 /// builder.push("this").push("is").push("a").push("sentence");
@@ -46,8 +13,7 @@ where
 /// // once all the strings have been added, we can get the serialized tensor.
 /// let buffer: Vec<u8> = builder.finish();
 ///
-/// // The BufferExt trait lets us deserialize the strings again.
-/// let strings: Vec<&str> = buffer.strings()?;
+/// let strings: Vec<&str> = hotg_rune_proc_blocks::decode_strings(&buffer)?;
 ///
 /// assert_eq!(strings, &["this", "is", "a", "sentence"]);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -92,10 +58,53 @@ impl Default for StringBuilder {
     fn default() -> Self { StringBuilder::new() }
 }
 
+pub fn decode_strings(raw: &[u8]) -> Result<Vec<&str>, ShapeError> {
+    const HEADER_SIZE: usize = std::mem::size_of::<u32>();
+
+    let mut strings = Vec::new();
+    let mut buffer = raw;
+
+    while !buffer.is_empty() {
+        if buffer.len() < HEADER_SIZE {
+            // We don't have enough bytes remaining for a full length field,
+            // so something is probably wrong with our buffer.
+            return Err(ShapeError::from_kind(ErrorKind::OutOfBounds));
+        }
+
+        let (len, rest) = buffer.split_at(HEADER_SIZE);
+
+        let len: [u8; HEADER_SIZE] = len.try_into().expect("Unreachable");
+        let len = u32::from_le_bytes(len);
+        let len = usize::try_from(len).expect("Unreachable");
+
+        if rest.len() < len {
+            // We don't have enough bytes left in the buffer to read a
+            // string with this length.
+            return Err(ShapeError::from_kind(ErrorKind::OutOfBounds));
+        }
+
+        let (s, rest) = rest.split_at(len);
+
+        match std::str::from_utf8(s) {
+            Ok(s) => strings.push(s),
+            Err(_) => {
+                // The string wasn't valid UTF-8. We're probably using the
+                // wrong ShapeError here, but our alternative would be
+                // introducing our own error type and that seems overkill.
+                return Err(ShapeError::from_kind(
+                    ErrorKind::IncompatibleLayout,
+                ));
+            },
+        }
+
+        buffer = rest;
+    }
+
+    Ok(strings)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::BufferExt;
-
     use super::*;
 
     #[test]
@@ -104,7 +113,7 @@ mod tests {
         builder.push("this").push("is").push("a").push("sentence");
         let buffer = builder.finish();
 
-        let strings = buffer.strings().unwrap();
+        let strings = decode_strings(&buffer).unwrap();
 
         assert_eq!(strings, &["this", "is", "a", "sentence"]);
     }

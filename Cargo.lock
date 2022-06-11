@@ -9,7 +9,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -75,7 +75,7 @@ name = "argmax"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -106,7 +106,7 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "pretty_assertions",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -135,7 +135,7 @@ name = "binary_classification"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -424,7 +424,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -475,7 +475,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -505,7 +505,7 @@ dependencies = [
  "normalize",
  "pretty_assertions",
  "sonogram",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -590,15 +590,14 @@ dependencies = [
 name = "hotg-rune-proc-blocks"
 version = "0.1.0"
 dependencies = [
-<<<<<<< HEAD
- "getrandom",
-=======
  "bytemuck",
->>>>>>> 572490abc29 (Migrated modulo across and improved our support crate's helpers)
+ "getrandom",
  "ndarray",
  "once_cell",
  "rand",
- "wit-bindgen-rust",
+ "tracing",
+ "tracing-subscriber",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
 ]
 
 [[package]]
@@ -625,7 +624,7 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -633,7 +632,7 @@ name = "image_input"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -686,7 +685,7 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "line-span",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -739,7 +738,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -758,7 +757,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -859,7 +858,7 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -873,7 +872,7 @@ name = "most_confident_indices"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -910,7 +909,7 @@ dependencies = [
  "hotg-rune-proc-blocks",
  "libm",
  "paste",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -919,7 +918,7 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1027,7 +1026,7 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "libm",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1050,7 +1049,7 @@ name = "parse"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1058,7 +1057,7 @@ name = "password_strength"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1086,7 +1085,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1384,7 +1383,7 @@ name = "segment_output"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1480,7 +1479,7 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1541,7 +1540,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1551,7 +1550,7 @@ dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1590,7 +1589,7 @@ name = "tensor_input"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1598,7 +1597,7 @@ name = "text_extractor"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1662,7 +1661,7 @@ dependencies = [
  "hotg-rune-proc-blocks",
  "lazy_static",
  "unicode-normalization",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1734,7 +1733,7 @@ version = "0.12.1"
 dependencies = [
  "hotg-rune-proc-blocks",
  "smartcore",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -1790,7 +1789,7 @@ name = "utf8_decode"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
+ "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]
@@ -2285,6 +2284,16 @@ dependencies = [
 [[package]]
 name = "wit-bindgen-gen-rust-wasm"
 version = "0.1.0"
+source = "git+https://github.com/wasmerio/wit-bindgen?branch=wasmer#8772835affd9aa1cff1831e2a5f822d832006001"
+dependencies = [
+ "heck 0.3.3",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
+ "wit-bindgen-gen-rust 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
+]
+
+[[package]]
+name = "wit-bindgen-gen-rust-wasm"
+version = "0.1.0"
 source = "git+https://github.com/bytecodealliance/wit-bindgen#067661db4059bfd8c4a4189218ac288f60afd2f5"
 dependencies = [
  "heck 0.3.3",
@@ -2305,11 +2314,32 @@ dependencies = [
 [[package]]
 name = "wit-bindgen-rust"
 version = "0.1.0"
+source = "git+https://github.com/wasmerio/wit-bindgen?branch=wasmer#8772835affd9aa1cff1831e2a5f822d832006001"
+dependencies = [
+ "async-trait",
+ "bitflags",
+ "wit-bindgen-rust-impl 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
+]
+
+[[package]]
+name = "wit-bindgen-rust"
+version = "0.1.0"
 source = "git+https://github.com/bytecodealliance/wit-bindgen#067661db4059bfd8c4a4189218ac288f60afd2f5"
 dependencies = [
  "async-trait",
  "bitflags",
- "wit-bindgen-rust-impl",
+ "wit-bindgen-rust-impl 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
+]
+
+[[package]]
+name = "wit-bindgen-rust-impl"
+version = "0.1.0"
+source = "git+https://github.com/wasmerio/wit-bindgen?branch=wasmer#8772835affd9aa1cff1831e2a5f822d832006001"
+dependencies = [
+ "proc-macro2",
+ "syn",
+ "wit-bindgen-gen-core 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
+ "wit-bindgen-gen-rust-wasm 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
 ]
 
 [[package]]
@@ -2320,7 +2350,7 @@ dependencies = [
  "proc-macro2",
  "syn",
  "wit-bindgen-gen-core 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
- "wit-bindgen-gen-rust-wasm",
+ "wit-bindgen-gen-rust-wasm 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
 ]
 
 [[package]]

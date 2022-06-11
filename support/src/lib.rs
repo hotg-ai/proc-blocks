@@ -1,21 +1,15 @@
 #![doc = include_str!("../README.md")]
 
-pub extern crate bytemuck;
 pub extern crate ndarray;
 
-mod buffer_ext;
-pub mod common;
 mod macros;
-mod string_builder;
-mod value_type;
+mod strings;
 
-use std::sync::Mutex;
+#[cfg(feature = "guest")]
+pub mod guest;
 
-pub use crate::{
-    buffer_ext::BufferExt,
-    string_builder::{string_tensor_from_ndarray, StringBuilder},
-    value_type::{SliceExt, ValueType},
-};
+pub use crate::strings::{decode_strings, StringBuilder};
+
 use once_cell::sync::Lazy;
 use rand::{prelude::SmallRng, Rng, SeedableRng};
 
