@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "accuracy"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
@@ -766,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "logistic_regression"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
@@ -1711,7 +1711,7 @@ dependencies = [
 
 [[package]]
 name = "train_test_split"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
