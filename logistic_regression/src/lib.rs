@@ -165,7 +165,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
-        let _xtest: ndarray::ArrayView1<f64> = x_test
+        let _xtest: ndarray::ArrayView2<f64> = x_test
             .buffer
             .view(&x_test.dimensions)
             .and_then(|t| t.into_dimensionality())
