@@ -28,6 +28,7 @@ members = [
     "support_vector_classifier",
     "support_vector_regression",
     "train_test_split",
+    "accuracy",
     "metric",
 ]
 
