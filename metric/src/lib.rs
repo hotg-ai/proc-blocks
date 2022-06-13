@@ -50,7 +50,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         f1.add_hint(&hint);
-        metadata.add_input(&f1);
+        metadata.add_output(&f1);
 
         let f1 = TensorMetadata::new("f1_score");
         let supported_types = [ElementType::F64];
@@ -64,42 +64,42 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         precision.add_hint(&hint);
-        metadata.add_input(&precision);
+        metadata.add_output(&precision);
 
         let recall = TensorMetadata::new("recall");
         let supported_types = [ElementType::F64];
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         recall.add_hint(&hint);
-        metadata.add_input(&recall);
+        metadata.add_output(&recall);
 
         let auc = TensorMetadata::new("auc");
         let supported_types = [ElementType::F64];
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         auc.add_hint(&hint);
-        metadata.add_input(&auc);
+        metadata.add_output(&auc);
 
         let mae = TensorMetadata::new("mean_absolute_error");
         let supported_types = [ElementType::F64];
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         mae.add_hint(&hint);
-        metadata.add_input(&mae);
+        metadata.add_output(&mae);
 
         let mse = TensorMetadata::new("mean_square_error");
         let supported_types = [ElementType::F64];
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         mse.add_hint(&hint);
-        metadata.add_input(&mse);
+        metadata.add_output(&mse);
 
         let r2 = TensorMetadata::new("r2");
         let supported_types = [ElementType::F64];
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         r2.add_hint(&hint);
-        metadata.add_input(&r2);
+        metadata.add_output(&r2);
 
         register_node(&metadata);
     }

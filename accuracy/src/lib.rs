@@ -48,7 +48,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         accuracy.add_hint(&hint);
-        metadata.add_input(&accuracy);
+        metadata.add_output(&accuracy);
 
         register_node(&metadata);
     }

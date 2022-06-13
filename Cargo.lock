@@ -3,6 +3,16 @@
 version = 3
 
 [[package]]
+name = "accuracy"
+version = "0.12.1"
+dependencies = [
+ "getrandom",
+ "hotg-rune-proc-blocks",
+ "smartcore",
+ "wit-bindgen-rust",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -809,7 +819,7 @@ dependencies = [
 
 [[package]]
 name = "metric"
-version = "0.1.0"
+version = "0.12.1"
 dependencies = [
  "getrandom",
  "hotg-rune-proc-blocks",
