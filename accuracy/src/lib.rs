@@ -30,6 +30,15 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.add_tag("metric");
         metadata.add_tag("analytics");
 
+        let element_type = ArgumentMetadata::new("element_type");
+        element_type
+            .set_description("The type of tensor this proc-block will accept");
+        element_type.set_default_value("f64");
+        element_type.add_hint(&interpret_as_string_in_enum(&[
+            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
+        ]));
+        metadata.add_argument(&element_type);
+
         let y_true = TensorMetadata::new("y_true");
         let hint =
             supported_shapes(&[ElementType::F64], DimensionsParam::Fixed(&[0]));
