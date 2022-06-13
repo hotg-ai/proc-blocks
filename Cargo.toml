@@ -29,7 +29,8 @@ members = [
     "support_vector_regression",
     "train_test_split",
     "accuracy",
-    "metric",
+    "f1-score",
+    "prediction_errors"
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.

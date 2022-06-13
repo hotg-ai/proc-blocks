@@ -1,9 +1,4 @@
-// use linfa_logistic::LogisticRegression;
-use smartcore::metrics::{
-    auc::AUC, f1::F1, mean_absolute_error::MeanAbsoluteError,
-    mean_squared_error::MeanSquareError, precision::Precision, r2::R2,
-    recall::Recall,
-};
+use smartcore::metrics::{f1::F1, precision::Precision, recall::Recall};
 
 use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
@@ -20,12 +15,12 @@ fn unsupported_rng(_buffer: &mut [u8]) -> Result<(), getrandom::Error> {
     Err(getrandom::Error::UNSUPPORTED)
 }
 
-/// A proc block which can perform linear regression
+/// A proc-block used to calculate f1-score
 struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
-        let metadata = Metadata::new("Metric", env!("CARGO_PKG_VERSION"));
+        let metadata = Metadata::new("F-Score", env!("CARGO_PKG_VERSION"));
         metadata.set_description("for assessing prediction error");
         metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
         metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
@@ -65,34 +60,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         recall.add_hint(&hint);
         metadata.add_output(&recall);
-
-        let auc = TensorMetadata::new("auc");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
-        auc.add_hint(&hint);
-        metadata.add_output(&auc);
-
-        let mae = TensorMetadata::new("mean_absolute_error");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
-        mae.add_hint(&hint);
-        metadata.add_output(&mae);
-
-        let mse = TensorMetadata::new("mean_square_error");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
-        mse.add_hint(&hint);
-        metadata.add_output(&mse);
-
-        let r2 = TensorMetadata::new("r2");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
-        r2.add_hint(&hint);
-        metadata.add_output(&r2);
 
         register_node(&metadata);
     }
@@ -148,26 +115,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             element_type,
             DimensionsParam::Fixed(&[1]),
         );
-
-        ctx.add_output_tensor(
-            "auc",
-            element_type,
-            DimensionsParam::Fixed(&[1]),
-        );
-
-        ctx.add_output_tensor(
-            "mean_absolute_error",
-            element_type,
-            DimensionsParam::Fixed(&[1]),
-        );
-
-        ctx.add_output_tensor(
-            "mean_square_error",
-            element_type,
-            DimensionsParam::Fixed(&[1]),
-        );
-
-        ctx.add_output_tensor("r2", element_type, DimensionsParam::Fixed(&[1]));
 
         Ok(())
     }
@@ -228,67 +175,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             },
         );
 
-        let auc = vec![metric.3];
-
-        ctx.set_output_tensor(
-            "auc",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &[1 as u32],
-                buffer: &auc.as_bytes(),
-            },
-        );
-
-        let mae = vec![metric.4];
-
-        ctx.set_output_tensor(
-            "mean_absolute_error",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &[1 as u32],
-                buffer: &mae.as_bytes(),
-            },
-        );
-
-        let mse = vec![metric.5];
-
-        ctx.set_output_tensor(
-            "mean_square_error",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &[1 as u32],
-                buffer: &mse.as_bytes(),
-            },
-        );
-
-        let r2 = vec![metric.6];
-
-        ctx.set_output_tensor(
-            "r2",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &[1 as u32],
-                buffer: &r2.as_bytes(),
-            },
-        );
-
         Ok(())
     }
 }
 
-fn transform(
-    y_true: Vec<f64>,
-    y_pred: Vec<f64>,
-) -> (f64, f64, f64, f64, f64, f64, f64) {
+fn transform(y_true: Vec<f64>, y_pred: Vec<f64>) -> (f64, f64, f64) {
     let f1 = F1 { beta: 1.0 }.get_score(&y_pred, &y_true);
     let precision = Precision {}.get_score(&y_pred, &y_true);
     let recall = Recall {}.get_score(&y_pred, &y_true);
-    let auc = AUC {}.get_score(&y_true, &y_pred);
-    let mae = MeanAbsoluteError {}.get_score(&y_pred, &y_true);
-    let mse = MeanSquareError {}.get_score(&y_pred, &y_true);
-    let r2 = R2 {}.get_score(&y_pred, &y_true);
 
-    (f1, precision, recall, auc, mae, mse, r2)
+    (f1, precision, recall)
 }
 
 #[cfg(test)]
@@ -323,44 +219,5 @@ mod tests {
         let metric = transform(y_true, y_pred);
 
         assert_eq!(0.5, metric.2);
-    }
-
-    #[test]
-    fn check_auc() {
-        let y_pred: Vec<f64> = vec![0., 0., 1., 1., 1., 1.];
-        let y_true: Vec<f64> = vec![0., 1., 1., 0., 1., 0.];
-
-        let metric = transform(y_true, y_pred);
-
-        assert_eq!(0.5, metric.3);
-    }
-
-    #[test]
-    fn check_mae() {
-        let y_pred: Vec<f64> = vec![0., 0., 1., 1., 1., 1.];
-        let y_true: Vec<f64> = vec![0., 1., 1., 0., 1., 0.];
-        let metric = transform(y_true, y_pred);
-
-        assert_eq!(0.5, metric.4);
-    }
-
-    #[test]
-    fn check_mse() {
-        let y_pred: Vec<f64> = vec![0., 0., 1., 1., 1., 1.];
-        let y_true: Vec<f64> = vec![0., 1., 1., 0., 1., 0.];
-
-        let metric = transform(y_true, y_pred);
-
-        assert_eq!(0.5, metric.5);
-    }
-
-    #[test]
-    fn check_r2() {
-        let y_pred: Vec<f64> = vec![0., 0., 1., 1., 1., 1.];
-        let y_true: Vec<f64> = vec![0., 1., 1., 0., 1., 0.];
-
-        let metric = transform(y_true, y_pred);
-
-        assert_eq!(-1.2499999999999996, metric.6);
     }
 }
