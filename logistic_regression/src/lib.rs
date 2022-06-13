@@ -182,7 +182,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             &y_train.buffer.elements(),
             &x_test.buffer.elements(),
             &x_test.dimensions,
-        );
+        )?;
 
         let y_test_dimension = [x_test.dimensions[0]];
 
@@ -205,7 +205,7 @@ fn transform(
     y_train: &[f64],
     x_test: &[f64],
     x_test_dim: &[u32],
-) -> Vec<f64> {
+) -> Result<Vec<f64>, KernelError> {
     // Iris data
     let x_train = DenseMatrix::from_array(
         x_train_dim[0] as usize,
@@ -218,7 +218,7 @@ fn transform(
         &y_train.to_vec(),
         Default::default(),
     )
-    .unwrap();
+    .map_err(|e| KernelError::Other(e.to_string()))?;
 
     let x_test = DenseMatrix::from_array(
         x_test_dim[0] as usize,
@@ -226,9 +226,8 @@ fn transform(
         x_test,
     );
 
-    let y_hat = lr.predict(&x_test).unwrap();
-
-    y_hat
+    lr.predict(&x_test)
+        .map_err(|e| KernelError::Other(e.to_string()))
 }
 
 #[cfg(test)]
