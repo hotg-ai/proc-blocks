@@ -485,16 +485,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "errors"
-version = "0.12.0"
-dependencies = [
- "getrandom",
- "hotg-rune-proc-blocks",
- "smartcore",
- "wit-bindgen-rust",
-]
-
-[[package]]
 name = "f1-score"
 version = "0.12.0"
 dependencies = [
@@ -1077,6 +1067,16 @@ name = "ppv-lite86"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
+
+[[package]]
+name = "prediction_errors"
+version = "0.12.0"
+dependencies = [
+ "getrandom",
+ "hotg-rune-proc-blocks",
+ "smartcore",
+ "wit-bindgen-rust",
+]
 
 [[package]]
 name = "pretty_assertions"

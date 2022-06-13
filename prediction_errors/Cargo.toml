@@ -1,5 +1,5 @@
 [package]
-name = "errors"
+name = "prediction_errors"
 version = "0.12.0"
 edition = "2021"
 description = "a proc-block to find Mean Absolute Error and Mean Squared Error. used for assessing evaluation and performace of the model."
