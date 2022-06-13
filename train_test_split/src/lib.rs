@@ -274,7 +274,7 @@ fn transform(
     let x = DenseMatrix::from_array(x_dim[0] as usize, x_dim[1] as usize, x);
 
     let (x_train, x_test, y_train, y_test) =
-        train_test_split(&x, &y, test_size, true);
+        train_test_split(&x, &y, test_size, false);
     let train_dim = x_train.shape();
     let test_dim = x_test.shape();
     let x_train: Vec<f64> = x_train.iter().map(|f| f).collect();

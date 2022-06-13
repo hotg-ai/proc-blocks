@@ -7,7 +7,7 @@ use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{ndarray, runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -42,7 +42,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
         ]));
         metadata.add_argument(&element_type);
-
 
         let x_train = TensorMetadata::new("x_train");
         let supported_types = [ElementType::F64];
@@ -132,6 +131,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _xtrain: ndarray::ArrayView2<f64> = x_train
+            .buffer
+            .view(&x_train.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "x_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
 
         let y_train = ctx.get_input_tensor("y_train").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
@@ -139,6 +148,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _ytrain: ndarray::ArrayView1<f64> = y_train
+            .buffer
+            .view(&y_train.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "y_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
 
         let x_test = ctx.get_input_tensor("x_test").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
@@ -146,6 +165,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _xtest: ndarray::ArrayView1<f64> = x_test
+            .buffer
+            .view(&x_test.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "x_test".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
 
         let output = transform(
             &x_train.buffer.elements(),
