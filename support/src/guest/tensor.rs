@@ -90,14 +90,14 @@ impl Tensor {
         }
     }
 
-    pub fn view<T>(
-        &self,
-    ) -> Result<crate::ndarray::ArrayViewD<'_, T>, KernelError>
+    pub fn view<T>(&self) -> Result<crate::ndarray::ArrayViewD<'_, T>, RunError>
     where
         T: PrimitiveTensorElement,
     {
         if self.element_type != T::ELEMENT_TYPE {
-            return Err(InvalidInput::unsupported_shape(&self.name).into());
+            return Err(
+                InvalidInput::incompatible_element_type(&self.name).into()
+            );
         }
 
         let dimensions: Vec<_> =
@@ -126,7 +126,7 @@ impl Tensor {
 
     pub fn view_with_dimensions<T, Dims>(
         &self,
-    ) -> Result<crate::ndarray::ArrayView<'_, T, Dims>, KernelError>
+    ) -> Result<crate::ndarray::ArrayView<'_, T, Dims>, RunError>
     where
         T: PrimitiveTensorElement,
         Dims: crate::ndarray::Dimension,
@@ -138,7 +138,7 @@ impl Tensor {
 
     pub fn view_1d<T>(
         &self,
-    ) -> Result<crate::ndarray::ArrayView1<'_, T>, KernelError>
+    ) -> Result<crate::ndarray::ArrayView1<'_, T>, RunError>
     where
         T: PrimitiveTensorElement,
     {
@@ -147,7 +147,7 @@ impl Tensor {
 
     pub fn view_2d<T>(
         &self,
-    ) -> Result<crate::ndarray::ArrayView2<'_, T>, KernelError>
+    ) -> Result<crate::ndarray::ArrayView2<'_, T>, RunError>
     where
         T: PrimitiveTensorElement,
     {
@@ -156,15 +156,12 @@ impl Tensor {
 
     pub fn view_mut<T>(
         &mut self,
-    ) -> Result<crate::ndarray::ArrayViewMutD<'_, T>, KernelError>
+    ) -> Result<crate::ndarray::ArrayViewMutD<'_, T>, RunError>
     where
         T: PrimitiveTensorElement,
     {
         if self.element_type != T::ELEMENT_TYPE {
-            return Err(KernelError::InvalidInput(InvalidInput {
-                name: self.name.clone(),
-                reason: InvalidInputReason::UnsupportedShape,
-            }));
+            return Err(InvalidInput::incompatible_element_type(&self.name).into());
         }
 
         let dimensions: Vec<_> =
@@ -188,7 +185,7 @@ impl Tensor {
 
     pub fn view_with_dimensions_mut<T, Dims>(
         &mut self,
-    ) -> Result<crate::ndarray::ArrayViewMut<'_, T, Dims>, KernelError>
+    ) -> Result<crate::ndarray::ArrayViewMut<'_, T, Dims>, RunError>
     where
         T: PrimitiveTensorElement,
         Dims: crate::ndarray::Dimension,

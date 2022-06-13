@@ -2,56 +2,44 @@ use std::fmt::{self, Display, Formatter};
 
 use crate::guest::bindings::*;
 
-impl KernelError {
+impl RunError {
     pub fn other(reason: impl Display) -> Self {
-        KernelError::Other(reason.to_string())
-    }
-
-    pub fn unsupported_shape(tensor_name: impl Into<String>) -> Self {
-        KernelError::InvalidInput(InvalidInput {
-            name: tensor_name.into(),
-            reason: InvalidInputReason::UnsupportedShape,
-        })
+        RunError::Other(reason.to_string())
     }
 }
 
-impl PartialEq for KernelError {
-    fn eq(&self, other: &KernelError) -> bool {
+impl PartialEq for RunError {
+    fn eq(&self, other: &RunError) -> bool {
         match (self, other) {
-            (KernelError::Other(left), KernelError::Other(right)) => {
+            (RunError::Other(left), RunError::Other(right)) => left == right,
+            (RunError::InvalidInput(left), RunError::InvalidInput(right)) => {
                 left == right
             },
-            (
-                KernelError::InvalidInput(left),
-                KernelError::InvalidInput(right),
-            ) => left == right,
-            (KernelError::Other(_), _) | (KernelError::InvalidInput(_), _) => {
-                false
-            },
+            (RunError::Other(_), _) | (RunError::InvalidInput(_), _) => false,
         }
     }
 }
 
-impl Display for KernelError {
+impl Display for RunError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            KernelError::InvalidInput(i) => i.fmt(f),
-            KernelError::Other(msg) => write!(f, "{}", msg),
+            RunError::InvalidInput(i) => i.fmt(f),
+            RunError::Other(msg) => write!(f, "{}", msg),
         }
     }
 }
 
-impl std::error::Error for KernelError {
+impl std::error::Error for RunError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            KernelError::InvalidInput(i) => Some(i),
-            KernelError::Other(_) => None,
+            RunError::InvalidInput(i) => Some(i),
+            RunError::Other(_) => None,
         }
     }
 }
 
-impl From<InvalidInput> for KernelError {
-    fn from(e: InvalidInput) -> Self { KernelError::InvalidInput(e) }
+impl From<InvalidInput> for RunError {
+    fn from(e: InvalidInput) -> Self { RunError::InvalidInput(e) }
 }
 
 impl CreateError {
@@ -65,10 +53,17 @@ impl From<ArgumentError> for CreateError {
 }
 
 impl InvalidInput {
-    pub fn unsupported_shape(tensor_name: impl Into<String>) -> Self {
+    pub fn incompatible_dimensions(tensor_name: impl Into<String>) -> Self {
         InvalidInput {
             name: tensor_name.into(),
-            reason: InvalidInputReason::UnsupportedShape,
+            reason: InvalidInputReason::IncompatibleDimensions,
+        }
+    }
+
+    pub fn incompatible_element_type(tensor_name: impl Into<String>) -> Self {
+        InvalidInput {
+            name: tensor_name.into(),
+            reason: InvalidInputReason::IncompatibleElementType,
         }
     }
 
@@ -132,13 +127,18 @@ impl PartialEq for InvalidInputReason {
                 true
             },
             (
-                InvalidInputReason::UnsupportedShape,
-                InvalidInputReason::UnsupportedShape,
+                InvalidInputReason::IncompatibleDimensions,
+                InvalidInputReason::IncompatibleDimensions,
+            ) => true,
+            (
+                InvalidInputReason::IncompatibleElementType,
+                InvalidInputReason::IncompatibleElementType,
             ) => true,
             (InvalidInputReason::Other(_), _)
             | (InvalidInputReason::InvalidValue(_), _)
             | (InvalidInputReason::NotFound, _)
-            | (InvalidInputReason::UnsupportedShape, _) => false,
+            | (InvalidInputReason::IncompatibleElementType, _)
+            | (InvalidInputReason::IncompatibleDimensions, _) => false,
         }
     }
 }
@@ -151,8 +151,11 @@ impl Display for InvalidInputReason {
             InvalidInputReason::InvalidValue(msg) => {
                 write!(f, "Invalid value: {msg}")
             },
-            InvalidInputReason::UnsupportedShape => {
-                write!(f, "Unsupported shape")
+            InvalidInputReason::IncompatibleDimensions => {
+                write!(f, "Incompatible dimensions")
+            },
+            InvalidInputReason::IncompatibleElementType => {
+                write!(f, "Incompatible element type")
             },
         }
     }
@@ -179,8 +182,12 @@ impl Display for ArgumentErrorReason {
             ArgumentErrorReason::NotFound => {
                 write!(f, "The argument wasn't defined")
             },
+
             ArgumentErrorReason::InvalidValue(msg) => {
                 write!(f, "Invalid value: {msg}")
+            },
+            ArgumentErrorReason::ParseFailed(e) => {
+                write!(f, "Parse failed: {e}")
             },
         }
     }

@@ -37,7 +37,7 @@ impl proc_block_v2::Node for Node {
         self.0.tensor_constraints()
     }
 
-    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, KernelError> {
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
         self.0.run(inputs)
     }
 }

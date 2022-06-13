@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug, Formatter};
+
 use ndarray::{ErrorKind, ShapeError};
 
 /// A builder for serializing multiple UTF-8 strings to a flat byte array.
@@ -54,10 +56,19 @@ impl StringBuilder {
     }
 }
 
+impl Debug for StringBuilder {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StringBuilder").finish_non_exhaustive()
+    }
+}
+
 impl Default for StringBuilder {
     fn default() -> Self { StringBuilder::new() }
 }
 
+/// Decode list of strings from their serialized form.
+///
+/// See [`StringBuilder`] for how to serialize a list of strings.
 pub fn decode_strings(raw: &[u8]) -> Result<Vec<&str>, ShapeError> {
     const HEADER_SIZE: usize = std::mem::size_of::<u32>();
 

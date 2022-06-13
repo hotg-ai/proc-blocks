@@ -1,3 +1,5 @@
+//! Types and utilities for implementing a proc-block.
+
 pub(crate) mod bindings;
 mod element_type;
 mod errors;
@@ -10,8 +12,8 @@ pub use self::{
     bindings::{
         abort, Argument, ArgumentError, ArgumentErrorReason, ArgumentHint,
         ArgumentMetadata, ArgumentType, CreateError, Dimensions, ElementType,
-        ElementTypeConstraint, InvalidInput, InvalidInputReason, KernelError,
-        MediaType, Metadata, Tensor, TensorConstraint, TensorConstraints,
+        ElementTypeConstraint, InvalidInput, InvalidInputReason, MediaType,
+        Metadata, RunError, Tensor, TensorConstraint, TensorConstraints,
         TensorHint, TensorMetadata,
     },
     element_type::PrimitiveTensorElement,

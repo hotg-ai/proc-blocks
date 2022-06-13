@@ -8,6 +8,8 @@ mod strings;
 #[cfg(feature = "guest")]
 pub mod guest;
 
+use std::sync::Mutex;
+
 pub use crate::strings::{decode_strings, StringBuilder};
 
 use once_cell::sync::Lazy;

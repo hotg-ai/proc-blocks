@@ -1,9 +1,9 @@
-use crate::guest::{KernelError, Tensor, TensorConstraints};
+use crate::guest::{Tensor, TensorConstraints, RunError};
 
 /// The implementation of a processing block.
 pub trait ProcBlock {
     fn tensor_constraints(&self) -> TensorConstraints;
-    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, KernelError>;
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError>;
 }
 
 impl<N: ProcBlock + ?Sized> ProcBlock for Box<N> {
@@ -11,7 +11,7 @@ impl<N: ProcBlock + ?Sized> ProcBlock for Box<N> {
         (**self).tensor_constraints()
     }
 
-    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, KernelError> {
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
         (**self).run(inputs)
     }
 }
