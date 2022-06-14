@@ -3,6 +3,7 @@
 pub(crate) mod bindings;
 mod element_type;
 mod errors;
+mod helpers;
 mod logging;
 mod metadata;
 mod proc_block;
@@ -17,6 +18,7 @@ pub use self::{
         TensorHint, TensorMetadata,
     },
     element_type::PrimitiveTensorElement,
+    helpers::parse_arg,
     proc_block::ProcBlock,
 };
 
