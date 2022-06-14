@@ -8,13 +8,6 @@ use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
-// Note: getrandom is pulled in by the linfa_logistic crate
-getrandom::register_custom_getrandom!(unsupported_rng);
-
-fn unsupported_rng(_buffer: &mut [u8]) -> Result<(), getrandom::Error> {
-    Err(getrandom::Error::UNSUPPORTED)
-}
-
 /// A proc-block used to calculate f1-score
 struct ProcBlockV1;
 

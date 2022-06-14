@@ -1,4 +1,3 @@
-use std::{convert::TryInto, fmt::Display, str::FromStr};
 use hotg_rune_proc_blocks::{ndarray, runtime_v1};
 use smartcore::{
     linalg::naive::dense_matrix::*,
@@ -7,24 +6,15 @@ use smartcore::{
         Kernels,
     },
 };
+use std::{convert::TryInto, fmt::Display, str::FromStr};
 
 use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{
-    runtime_v1::*,
-    BufferExt, SliceExt,
-};
+use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
-
-// Note: getrandom is pulled in by the linfa_logistic crate
-getrandom::register_custom_getrandom!(unsupported_rng);
-
-fn unsupported_rng(_buffer: &mut [u8]) -> Result<(), getrandom::Error> {
-    Err(getrandom::Error::UNSUPPORTED)
-}
 
 /// a binary classifier that uses an optimal hyperplane to separate the points
 /// in the input variable space by their class.

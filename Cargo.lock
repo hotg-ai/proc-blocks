@@ -608,7 +608,10 @@ dependencies = [
 name = "hotg-rune-proc-blocks"
 version = "0.1.0"
 dependencies = [
+ "getrandom",
  "ndarray",
+ "once_cell",
+ "rand",
  "wit-bindgen-rust",
 ]
 
@@ -1713,7 +1716,6 @@ dependencies = [
 name = "train_test_split"
 version = "0.12.1"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust",
