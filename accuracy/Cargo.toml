@@ -1,6 +1,6 @@
 [package]
 name = "accuracy"
-version = "0.12.1"
+version = "0.12.2"
 edition = "2018"
 description = "calculates accuracy of predicted labels when compared to true labels"
 

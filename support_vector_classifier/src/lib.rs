@@ -1,6 +1,5 @@
 use std::{convert::TryInto, fmt::Display, str::FromStr};
-
-// use linfa_logistic::LogisticRegression;
+use hotg_rune_proc_blocks::{ndarray, runtime_v1};
 use smartcore::{
     linalg::naive::dense_matrix::*,
     svm::{
@@ -14,7 +13,7 @@ use crate::proc_block_v1::{
     InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{
-    runtime_v1::{self, *},
+    runtime_v1::*,
     BufferExt, SliceExt,
 };
 
@@ -44,6 +43,15 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
         metadata.add_tag("binary classifier");
         metadata.add_tag("analytics");
+
+        let element_type = ArgumentMetadata::new("element_type");
+        element_type
+            .set_description("The type of tensor this proc-block will accept");
+        element_type.set_default_value("f64");
+        element_type.add_hint(&interpret_as_string_in_enum(&[
+            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
+        ]));
+        metadata.add_argument(&element_type);
 
         let epochs = ArgumentMetadata::new("epochs");
         epochs.set_description("Number of epochs");
@@ -179,6 +187,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _xtrain: ndarray::ArrayView2<f64> = x_train
+            .buffer
+            .view(&x_train.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "x_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
 
         let y_train = ctx.get_input_tensor("y_train").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
@@ -186,6 +204,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _ytrain: ndarray::ArrayView1<f64> = y_train
+            .buffer
+            .view(&y_train.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "y_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
 
         let x_test = ctx.get_input_tensor("x_test").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
@@ -193,6 +221,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _xtest: ndarray::ArrayView2<f64> = x_test
+            .buffer
+            .view(&x_test.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "x_test".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
 
         let output = transform(
             &x_train.buffer.elements(),
@@ -203,7 +241,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             c,
             epoch,
             tol,
-        );
+        )?;
 
         let y_test_dimension = [x_test.dimensions[0]];
 
@@ -259,7 +297,7 @@ fn transform(
     c: f64,
     epoch: u32,
     tol: f64,
-) -> Vec<f64> {
+) -> Result<Vec<f64>, KernelError> {
     // todo: let user change the kernel. Right now setting it to 'linear'
     let svc_parameters = SVCParameters::default()
         .with_c(c)
@@ -273,7 +311,8 @@ fn transform(
         x_train,
     );
 
-    let model = SVC::fit(&x_train, &y_train.to_vec(), svc_parameters).unwrap();
+    let model = SVC::fit(&x_train, &y_train.to_vec(), svc_parameters)
+        .map_err(|e| KernelError::Other(e.to_string()))?;
 
     let x_test = DenseMatrix::from_array(
         x_test_dim[0] as usize,
@@ -281,9 +320,9 @@ fn transform(
         x_test,
     );
 
-    let y_hat = model.predict(&x_test).unwrap();
-
-    y_hat
+    model
+        .predict(&x_test)
+        .map_err(|e| KernelError::Other(e.to_string()))
 }
 
 #[cfg(test)]
@@ -292,11 +331,21 @@ mod tests {
 
     #[test]
     fn check_model() {
-        let x_train =
-            [5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4];
-        let y_train: Vec<f64> = vec![0., 0., 1.];
+        let x_train = vec![
+            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 4.7, 3.2, 1.3, 0.2, 4.6,
+            3.1, 1.5, 0.2, 5.0, 3.6, 1.4, 0.2, 5.4, 3.9, 1.7, 0.4, 4.6, 3.4,
+            1.4, 0.3, 5.0, 3.4, 1.5, 0.2, 4.4, 2.9, 1.4, 0.2, 4.9, 3.1, 1.5,
+            0.1, 7.0, 3.2, 4.7, 1.4, 6.4, 3.2, 4.5, 1.5, 6.9, 3.1, 4.9, 1.5,
+            5.5, 2.3, 4.0, 1.3, 6.5, 2.8, 4.6, 1.5, 5.7, 2.8, 4.5, 1.3, 6.3,
+            3.3, 4.7, 1.6, 4.9, 2.4, 3.3, 1.0, 6.6, 2.9, 4.6, 1.3, 5.2, 2.7,
+            3.9, 1.4,
+        ];
+        let y_train: Vec<f64> = vec![
+            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1.,
+        ];
 
-        let dim: Vec<u32> = vec![3, 4];
+        let dim: Vec<u32> = vec![20, 4];
 
         let epoch: u32 = 5;
         let c: f64 = 200.0;
@@ -305,6 +354,6 @@ mod tests {
         let y_pred =
             transform(&x_train, &dim, &y_train, &x_train, &dim, c, epoch, tol);
 
-        assert_eq!(y_pred, y_train);
+        assert_eq!(y_pred.unwrap(), y_train);
     }
 }
