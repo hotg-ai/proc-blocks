@@ -1,4 +1,4 @@
-use crate::guest::{Tensor, TensorConstraints, RunError};
+use crate::guest::{RunError, Tensor, TensorConstraints};
 
 /// The implementation of a processing block.
 pub trait ProcBlock {

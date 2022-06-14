@@ -1,10 +1,17 @@
-use std::fmt::{self, Display, Formatter};
+use std::{
+    convert::Infallible,
+    fmt::{self, Display, Formatter},
+};
 
 use crate::guest::bindings::*;
 
 impl RunError {
     pub fn other(reason: impl Display) -> Self {
         RunError::Other(reason.to_string())
+    }
+
+    pub fn missing_input(name: impl Into<String>) -> Self {
+        RunError::InvalidInput(InvalidInput::not_found(name))
     }
 }
 
@@ -46,6 +53,10 @@ impl CreateError {
     pub fn other(error: impl Display) -> Self {
         CreateError::Other(error.to_string())
     }
+}
+
+impl From<Infallible> for CreateError {
+    fn from(v: Infallible) -> Self { match v {} }
 }
 
 impl From<ArgumentError> for CreateError {

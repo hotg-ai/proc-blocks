@@ -90,6 +90,28 @@ impl Tensor {
         }
     }
 
+    pub fn take_named<'t>(
+        tensors: &'t mut Vec<Tensor>,
+        name: &str,
+    ) -> Result<Self, RunError> {
+        let index = tensors
+            .iter()
+            .position(|t| t.name == name)
+            .ok_or_else(|| RunError::missing_input(name))?;
+
+        Ok(tensors.remove(index))
+    }
+
+    pub fn get_named<'t>(
+        tensors: &'t [Tensor],
+        name: &str,
+    ) -> Result<&'t Self, RunError> {
+        tensors
+            .iter()
+            .find(|t| t.name == name)
+            .ok_or_else(|| RunError::missing_input(name))
+    }
+
     pub fn view<T>(&self) -> Result<crate::ndarray::ArrayViewD<'_, T>, RunError>
     where
         T: PrimitiveTensorElement,
@@ -161,7 +183,9 @@ impl Tensor {
         T: PrimitiveTensorElement,
     {
         if self.element_type != T::ELEMENT_TYPE {
-            return Err(InvalidInput::incompatible_element_type(&self.name).into());
+            return Err(
+                InvalidInput::incompatible_element_type(&self.name).into()
+            );
         }
 
         let dimensions: Vec<_> =

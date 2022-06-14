@@ -122,3 +122,28 @@ impl TensorMetadata {
 impl From<MediaType> for TensorHint {
     fn from(m: MediaType) -> Self { TensorHint::MediaType(m) }
 }
+
+impl TensorConstraint {
+    pub fn new(
+        name: impl Into<String>,
+        element_type: ElementTypeConstraint,
+        dimensions: impl Into<Dimensions>,
+    ) -> Self {
+        TensorConstraint {
+            name: name.into(),
+            element_type,
+            dimensions: dimensions.into(),
+        }
+    }
+
+    pub fn numeric(
+        name: impl Into<String>,
+        dimensions: impl Into<Dimensions>,
+    ) -> Self {
+        TensorConstraint {
+            name: name.into(),
+            element_type: !ElementTypeConstraint::UTF8,
+            dimensions: dimensions.into(),
+        }
+    }
+}

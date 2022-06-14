@@ -23,7 +23,7 @@ pub use self::{
 /// Tell the runtime that a WebAssembly module contains a proc-block.
 #[macro_export]
 macro_rules! export_proc_block {
-    ( metadata: $metadata_func:expr, proc_block: $proc_block:ty $(,)?) => {
+    (metadata: $metadata_func:expr, proc_block: $proc_block:ty $(,)?) => {
         #[doc(hidden)]
         #[no_mangle]
         pub fn __proc_block_metadata() -> $crate::guest::Metadata { $metadata_func() }
