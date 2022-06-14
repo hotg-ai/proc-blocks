@@ -253,7 +253,6 @@ mod tests {
         let dim: Vec<u32> = vec![20, 4];
 
         let y_pred = transform(&x_train, &dim, &y_train, &x_train, &dim);
-        println!("{:?}", &y_pred.as_ref().unwrap());
 
         assert_eq!(y_pred.unwrap(), y_train);
     }
