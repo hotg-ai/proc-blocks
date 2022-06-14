@@ -36,7 +36,7 @@ getrandom::register_custom_getrandom!(unsupported_rng);
 fn unsupported_rng(buffer: &mut [u8]) -> Result<(), getrandom::Error> {
     // FIXME: We should probably seed this with something more useful.
     static RNG: Lazy<Mutex<SmallRng>> =
-        Lazy::new(|| Mutex::new(SmallRng::from_seed([0; 16])));
+        Lazy::new(|| Mutex::new(SmallRng::from_seed(Default::default())));
 
     RNG.lock().unwrap().fill(buffer);
     Ok(())
