@@ -6,7 +6,6 @@ version = 3
 name = "accuracy"
 version = "0.12.2"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
@@ -421,7 +420,6 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 name = "elastic_net"
 version = "0.12.1"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
@@ -472,7 +470,6 @@ dependencies = [
 name = "f1-score"
 version = "0.12.0"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
@@ -593,8 +590,6 @@ dependencies = [
  "bytemuck",
  "getrandom",
  "ndarray",
- "once_cell",
- "rand",
  "tracing",
  "tracing-subscriber",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
@@ -735,7 +730,6 @@ checksum = "806de604a37f6d73a83c850af7b3ba33a44f330d12fd5e4ac216645b54da912b"
 name = "linear_regression"
 version = "0.12.1"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
@@ -754,7 +748,6 @@ dependencies = [
 name = "logistic_regression"
 version = "0.12.5"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
@@ -1082,7 +1075,6 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 name = "prediction_errors"
 version = "0.12.0"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
@@ -1537,7 +1529,6 @@ dependencies = [
 name = "support_vector_classifier"
 version = "0.12.3"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",
@@ -1547,7 +1538,6 @@ dependencies = [
 name = "support_vector_regression"
 version = "0.12.3"
 dependencies = [
- "getrandom",
  "hotg-rune-proc-blocks",
  "smartcore",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/bytecodealliance/wit-bindgen)",

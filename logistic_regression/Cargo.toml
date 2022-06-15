@@ -9,7 +9,6 @@ description = "a statistical model that models the probability of one event taki
 hotg-rune-proc-blocks = { path = "../support" }
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
 smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development" }
-getrandom = { version = "0.2.6", default-features = false, features = ["custom"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
