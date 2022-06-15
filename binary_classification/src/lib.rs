@@ -11,19 +11,21 @@ hotg_rune_proc_blocks::export_proc_block! {
 
 fn metadata() -> Metadata {
     Metadata::new("Binary Classification", env!("CARGO_PKG_VERSION"))
-        .with_description(
-            "Classify each element in a tensor depending on whether they are above or below a certain threshold.",
-        )
-       .with_repository(env!("CARGO_PKG_REPOSITORY"))
-        .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
-        .with_tag("classify")
-        .with_argument(ArgumentMetadata::new("threshold")
-        .with_default_value("0.5")
-        .with_description("The classification threshold")
+    .with_description(
+        "Classify each element in a tensor depending on whether they are above or below a certain threshold.",
+    )
+    .with_repository(env!("CARGO_PKG_REPOSITORY"))
+    .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+    .with_tag("classify")
+    .with_argument(ArgumentMetadata::new("threshold")
+    .with_default_value("0.5")
+    .with_description("The classification threshold")
     .with_hint(ArgumentType::Float))
     .with_input(TensorMetadata::new("input").with_description("The numbers to classify"))
-    .with_output(TensorMetadata::new("classified")
-    .with_description("A tensor of `1`'s and `0`'s, where `1` indicates an element was above the `threshold` and `0` means it was below."))
+    .with_output(
+        TensorMetadata::new("classified")
+            .with_description("A tensor of `1`'s and `0`'s, where `1` indicates an element was above the `threshold` and `0` means it was below."),
+    )
 }
 
 /// A proc-block which takes a rank 1 `tensor` as input, return 1 if value
@@ -37,7 +39,7 @@ impl ProcBlock for BinaryClassification {
         TensorConstraints {
             inputs: vec![TensorConstraint::new(
                 "input",
-                ElementTypeConstraint::U32,
+                ElementTypeConstraint::F32,
                 Dimensions::Dynamic,
             )],
             outputs: vec![TensorConstraint::new(

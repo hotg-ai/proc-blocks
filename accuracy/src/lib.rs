@@ -1,8 +1,8 @@
 use hotg_rune_proc_blocks::{
     guest::{
-        Argument, ArgumentMetadata, Dimensions, ElementTypeConstraint,
-        Metadata, ProcBlock, RunError, Tensor, TensorConstraint,
-        TensorConstraints, TensorMetadata,
+        Argument, ArgumentHint, ArgumentMetadata, Dimensions,
+        ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor,
+        TensorConstraint, TensorConstraints, TensorMetadata,
     },
     ndarray::ArrayView1,
 };
@@ -15,16 +15,15 @@ hotg_rune_proc_blocks::export_proc_block! {
 
 fn metadata() -> Metadata {
     Metadata::new("Accuracy", env!("CARGO_PKG_VERSION"))
-            .with_description(            "calculates accuracy of predicted labels when compared to true labels",
-)
-.with_repository(env!("CARGO_PKG_REPOSITORY"))
-.with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+        .with_description("calculates accuracy of predicted labels when compared to true labels")
+        .with_repository(env!("CARGO_PKG_REPOSITORY"))
+        .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
         .with_tag("metric")
         .with_tag("analytics")
         .with_argument(ArgumentMetadata::new("element_type")
         .with_description("The type of tensor this proc-block will accept")
         .with_default_value("f64")
-        .with_hint(hotg_rune_proc_blocks::guest::ArgumentHint::one_of([
+        .with_hint(ArgumentHint::one_of([
             "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
         ]))
     )
