@@ -2,7 +2,7 @@
 name = "normalize"
 version = "0.12.0"
 authors = ["The Rune Developers <developers@hotg.ai>"]
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "normalizes the input to the range [0, 1]"

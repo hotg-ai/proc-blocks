@@ -1,7 +1,7 @@
 [package]
 name = "segment_output"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "A proc-block which takes a rank 4 `tensor` as input, whose dimension is of this form `[1, x, y, z]`. It will return: 1. a 2-d `tensor` after performing argmax along the axis-3 of the tensor 2. a 1-d `tensor` which a `set` of all the number present in the above 2-d`tensor`"

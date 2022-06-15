@@ -1,7 +1,7 @@
 [package]
 name = "image-normalization"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "A normalization routine takes the image matrix as input and fits their values to the range [0, 1] as f32's."

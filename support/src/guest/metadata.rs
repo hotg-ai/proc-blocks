@@ -147,3 +147,9 @@ impl TensorConstraint {
         }
     }
 }
+
+impl ArgumentHint {
+    pub fn one_of(items: impl IntoIterator<Item = impl ToString>) -> Self {
+        ArgumentHint::OneOf(items.into_iter().map(|s| s.to_string()).collect())
+    }
+}

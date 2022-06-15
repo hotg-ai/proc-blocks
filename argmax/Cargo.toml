@@ -1,7 +1,7 @@
 [package]
 name = "argmax"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "Find the index of the largest element."

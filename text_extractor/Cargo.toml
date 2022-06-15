@@ -1,7 +1,7 @@
 [package]
 name = "text_extractor"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "It parses the text from a start logit to an end logit"

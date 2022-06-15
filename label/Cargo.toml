@@ -1,7 +1,7 @@
 [package]
 name = "label"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "Using a wordlist, retrieve the label that corresponds to each element in a tensor."
