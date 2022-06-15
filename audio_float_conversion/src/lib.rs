@@ -65,19 +65,17 @@ fn audio_float_conversion(values: ArrayView1<'_, i16>) -> Array1<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::proc_block_v2::Node as _;
     use hotg_rune_proc_blocks::ndarray::{self, array};
 
     #[test]
     fn handle_empty() {
-        let input = vec![Tensor::new_1d("input", &[0, 0, 0, 0, 0, 0])];
+        let input = vec![Tensor::new_1d("input", &[0_i16, 0, 0, 0, 0, 0])];
         let should_be = vec![Tensor::new_1d(
             "output",
             &[0.0_f32, 0.0, 0.0, 0.0, 0.0, 0.0],
         )];
-        let node = Node;
 
-        let got = node.run(input).unwrap();
+        let got = AudioFloatConversion.run(input).unwrap();
 
         assert_eq!(got, should_be);
     }

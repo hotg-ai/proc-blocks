@@ -88,8 +88,9 @@ impl TryFrom<Vec<Argument>> for Modulo {
     type Error = CreateError;
 
     fn try_from(args: Vec<Argument>) -> Result<Self, Self::Error> {
-        let modulus =
-            hotg_rune_proc_blocks::guest::parse_arg(&args, "modulus")?;
+        let modulus = hotg_rune_proc_blocks::guest::parse::required_arg(
+            &args, "modulus",
+        )?;
 
         Ok(Modulo { modulus })
     }

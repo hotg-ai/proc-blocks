@@ -89,8 +89,8 @@ impl ArgumentMetadata {
         self
     }
 
-    pub fn with_hint(mut self, hint: ArgumentHint) -> Self {
-        self.hints.push(hint);
+    pub fn with_hint(mut self, hint: impl Into<ArgumentHint>) -> Self {
+        self.hints.push(hint.into());
         self
     }
 }
@@ -152,4 +152,8 @@ impl ArgumentHint {
     pub fn one_of(items: impl IntoIterator<Item = impl ToString>) -> Self {
         ArgumentHint::OneOf(items.into_iter().map(|s| s.to_string()).collect())
     }
+}
+
+impl From<ArgumentType> for ArgumentHint {
+    fn from(a: ArgumentType) -> Self { ArgumentHint::ArgumentType(a) }
 }
