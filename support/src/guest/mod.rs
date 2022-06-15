@@ -20,7 +20,7 @@ pub use self::{
         Metadata, RunError, Tensor, TensorConstraint, TensorConstraints,
         TensorHint, TensorMetadata,
     },
-    element_type::PrimitiveTensorElement,
+    element_type::{PrimitiveTensorElement, UnknownElementType},
     helpers::parse_arg,
     proc_block::ProcBlock,
 };

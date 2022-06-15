@@ -590,6 +590,7 @@ dependencies = [
  "bytemuck",
  "getrandom",
  "ndarray",
+ "thiserror",
  "tracing",
  "tracing-subscriber",
  "wit-bindgen-rust 0.1.0 (git+https://github.com/wasmerio/wit-bindgen?branch=wasmer)",
