@@ -56,29 +56,19 @@ impl ProcBlock for MostConfidentIndices {
         let count = 1 as usize; // todo: replace with actual arguements passed by user
 
         let indices = match tensor.element_type {
-            ElementType::U8 => preprocess_buffer::<u8>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::I8 => preprocess_buffer::<i8>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::U16 => preprocess_buffer::<u16>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::I16 => preprocess_buffer::<i16>(&tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::U32 => preprocess_buffer::<u32>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::I32 => preprocess_buffer::<i32>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::F32 => preprocess_buffer::<f32>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::U64 => preprocess_buffer::<u64>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::I64 => preprocess_buffer::<i64>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
-            ElementType::F64 => preprocess_buffer::<f64>(tensor)
-                .and_then(|t| most_confident_indices(t, count))?,
+            ElementType::U8 => most_confident_indices(tensor.view_1d::<u8>()?, count)?,
+            ElementType::I8 => most_confident_indices(tensor.view_1d::<i8>()?, count)?,
+            ElementType::U16 => most_confident_indices(tensor.view_1d::<u16>()?, count)?,
+            ElementType::I16 =>most_confident_indices(tensor.view_1d::<i16>()?, count)?,
+            ElementType::U32 => most_confident_indices(tensor.view_1d::<u32>()?, count)?,
+            ElementType::I32 => most_confident_indices(tensor.view_1d::<i32>()?, count)?,
+            ElementType::F32 => most_confident_indices(tensor.view_1d::<f32>()?, count)?,
+            ElementType::U64 => most_confident_indices(tensor.view_1d::<u64>()?, count)?,
+            ElementType::I64 => most_confident_indices(tensor.view_1d::<i64>()?, count)?,
+            ElementType::F64 => most_confident_indices(tensor.view_1d::<f64>()?, count)?,
             _ => {
                 return Err(InvalidInput::incompatible_element_type(
-                    &tensor.name,
+                    "confidences",
                 )
                 .into());
             },
@@ -88,17 +78,17 @@ impl ProcBlock for MostConfidentIndices {
     }
 }
 
-fn preprocess_buffer<
-    'buf,
-    T: hotg_rune_proc_blocks::guest::PrimitiveTensorElement,
->(
-    buffer: &Tensor,
-) -> Result<ArrayView1<&T>, RunError> {
+// fn preprocess_buffer<
+//     'buf,
+//     T: hotg_rune_proc_blocks::guest::PrimitiveTensorElement,
+// >(
+//     buffer: &Tensor,
+// ) -> Result<ArrayView1<&T>, RunError> {
 
-    buffer
-        .view::<T>().unwrap().and_then(|t| Ok(t.into_dimensionality()))
-        .map_err(|e| RunError::other(format!("Invalid input: {}", e))).unwrap()
-}
+//     buffer
+//         .view::<T>().unwrap().and_then(|t| Ok(t.into_dimensionality()))
+//         .map_err(|e| RunError::other(format!("Invalid input: {}", e))).unwrap()
+// }
 
 
 fn most_confident_indices<T>(
