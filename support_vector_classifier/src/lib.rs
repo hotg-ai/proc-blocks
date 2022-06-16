@@ -1,4 +1,11 @@
-use hotg_rune_proc_blocks::{ndarray, runtime_v1};
+use hotg_rune_proc_blocks::{
+    guest::{
+        parse, Argument, ArgumentMetadata, ArgumentType, CreateError,
+        ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor,
+        TensorConstraint, TensorConstraints, TensorMetadata,
+    },
+    ndarray::{Array1, ArrayView1, ArrayView2},
+};
 use smartcore::{
     linalg::naive::dense_matrix::*,
     svm::{
@@ -6,288 +13,118 @@ use smartcore::{
         Kernels,
     },
 };
-use std::{convert::TryInto, fmt::Display, str::FromStr};
 
-use crate::proc_block_v1::{
-    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-    InvalidInput, KernelError,
-};
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
+hotg_rune_proc_blocks::export_proc_block! {
+    metadata: metadata,
+    proc_block: SupportVectorClassifier,
+}
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+fn metadata() -> Metadata {
+    // TODO: how to add an array of string: [linear, rbf, polynomial,
+    // polynomial_with_degree, sigmoid, sigmoiod_with_gamma].
+    // Have to figure out how to how to change the parameter of polynomial,
+    // sigmoid, etc
+
+    Metadata::new(" Support Vector Classifier", env!("CARGO_PKG_VERSION"))
+    .with_description(
+            "a binary approach for modelling the relationship between a scalar response and one or more explanatory variables",
+        )
+    .with_repository(env!("CARGO_PKG_REPOSITORY"))
+    .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+    .with_tag("binary classifier")
+    .with_tag("analytics")
+    .with_argument(
+        ArgumentMetadata::new("epochs")
+            .with_description("Number of epochs")
+            .with_hint(ArgumentType::Integer)
+            .with_default_value("5"),
+    )
+    .with_argument(
+        ArgumentMetadata::new("c")
+            .with_description("Penalizing parameter")
+            .with_hint(ArgumentType::Float)
+            .with_default_value("200.0"),
+    )
+    .with_argument(
+        ArgumentMetadata::new("tol")
+            .with_description("Tolerance for stopping criterion")
+            .with_hint(ArgumentType::Float)
+            .with_default_value("0.001"),
+    )
+    .with_input(TensorMetadata::new("x_train"))
+    .with_input(TensorMetadata::new("y_train"))
+    .with_input(TensorMetadata::new("x_test"))
+    .with_output(TensorMetadata::new("y_test"))
+}
 
 /// a binary classifier that uses an optimal hyperplane to separate the points
 /// in the input variable space by their class.
-struct ProcBlockV1;
-
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata = Metadata::new(
-            " Support Vector Classifier",
-            env!("CARGO_PKG_VERSION"),
-        );
-        metadata.set_description(
-            "a binary approach for modelling the relationship between a scalar response and one or more explanatory variables",
-        );
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("binary classifier");
-        metadata.add_tag("analytics");
-
-        let element_type = ArgumentMetadata::new("element_type");
-        element_type
-            .set_description("The type of tensor this proc-block will accept");
-        element_type.set_default_value("f64");
-        element_type.add_hint(&interpret_as_string_in_enum(&[
-            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
-        ]));
-        metadata.add_argument(&element_type);
-
-        let epochs = ArgumentMetadata::new("epochs");
-        epochs.set_description("Number of epochs");
-        let hint = runtime_v1::supported_argument_type(ArgumentType::Integer);
-        epochs.add_hint(&hint);
-        epochs.set_default_value("5");
-        metadata.add_argument(&epochs);
-
-        let c = ArgumentMetadata::new("c");
-        c.set_description("Penalizing parameter");
-        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
-        c.add_hint(&hint);
-        c.set_default_value("200.0");
-        metadata.add_argument(&c);
-
-        let tol = ArgumentMetadata::new("tolerance");
-        tol.set_description("Tolerance for stopping criterion");
-        let hint = runtime_v1::supported_argument_type(ArgumentType::Float);
-        tol.add_hint(&hint);
-        tol.set_default_value("0.001");
-        metadata.add_argument(&tol);
-
-        // todo: how to add an array of string: [linear, rbf, polynomial,
-        // polynomial_with_degree, sigmoid, sigmoiod_with_gamma].
-        // Have to figure out how to how to change the parameter of polynomial,
-        // sigmoid, etc
-
-        // let kernel = ArgumentMetadata::new("kernel");
-        // epochs.set_description(
-        //     "Tolerance for stopping criterion",
-        // );
-        // let hint = runtime_v1::supported_argument_type(ArgumentType::String);
-        // kernel.add_hint(&hint);
-        // kernel.set_default_value("linear");
-        // metadata.add_argument(&kernel);
-
-        let x_train = TensorMetadata::new("x_train");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
-        x_train.add_hint(&hint);
-        metadata.add_input(&x_train);
-
-        let y_train = TensorMetadata::new("y_train");
-        let hint =
-            supported_shapes(&[ElementType::F64], DimensionsParam::Fixed(&[0]));
-        y_train.add_hint(&hint);
-        metadata.add_input(&y_train);
-
-        let x_test = TensorMetadata::new("x_test");
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
-        x_test.add_hint(&hint);
-        metadata.add_input(&x_test);
-
-        let y_test = TensorMetadata::new("y_test");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0]));
-        y_test.add_hint(&hint);
-        metadata.add_output(&y_test);
-        register_node(&metadata);
-    }
-
-    fn graph(node_id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&node_id)
-            .ok_or(GraphError::MissingContext)?;
-
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
-
-        ctx.add_input_tensor(
-            "x_train",
-            element_type,
-            DimensionsParam::Fixed(&[0, 0]),
-        );
-
-        ctx.add_input_tensor(
-            "y_train",
-            element_type,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        ctx.add_input_tensor(
-            "x_test",
-            element_type,
-            DimensionsParam::Fixed(&[0, 0]),
-        );
-
-        ctx.add_output_tensor(
-            "y_test",
-            element_type,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(node_id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&node_id)
-            .ok_or(KernelError::MissingContext)?;
-
-        let epoch: u32 = get_args("epochs", |n| ctx.get_argument(n))
-            .map_err(KernelError::InvalidArgument)?;
-
-        let c: f64 = get_args("c", |n| ctx.get_argument(n))
-            .map_err(KernelError::InvalidArgument)?;
-
-        let tol: f64 = get_args("tolerance", |n| ctx.get_argument(n))
-            .map_err(KernelError::InvalidArgument)?;
-
-        // let _kernel: String  = get_args("kernel", |n| ctx.get_argument(n))
-        // .map_err(KernelError::InvalidArgument)?;
-
-        let x_train = ctx.get_input_tensor("x_train").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "x_train".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-        let _xtrain: ndarray::ArrayView2<f64> = x_train
-            .buffer
-            .view(&x_train.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "x_train".to_string(),
-                    reason: BadInputReason::Other(e.to_string()),
-                })
-            })?;
-
-        let y_train = ctx.get_input_tensor("y_train").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "y_train".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-        let _ytrain: ndarray::ArrayView1<f64> = y_train
-            .buffer
-            .view(&y_train.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "y_train".to_string(),
-                    reason: BadInputReason::Other(e.to_string()),
-                })
-            })?;
-
-        let x_test = ctx.get_input_tensor("x_test").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "x_test".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-        let _xtest: ndarray::ArrayView2<f64> = x_test
-            .buffer
-            .view(&x_test.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "x_test".to_string(),
-                    reason: BadInputReason::Other(e.to_string()),
-                })
-            })?;
-
-        let output = transform(
-            &x_train.buffer.elements(),
-            &x_train.dimensions,
-            &y_train.buffer.elements(),
-            &x_test.buffer.elements(),
-            &x_test.dimensions,
-            c,
-            epoch,
-            tol,
-        )?;
-
-        let y_test_dimension = [x_test.dimensions[0]];
-
-        ctx.set_output_tensor(
-            "y_test",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &y_test_dimension,
-                buffer: &output.to_vec().as_bytes(),
-            },
-        );
-
-        Ok(())
-    }
+struct SupportVectorClassifier {
+    epochs: u32,
+    c: f64,
+    tol: f64,
 }
 
-fn get_args<T>(
-    name: &str,
-    get_argument: impl FnOnce(&str) -> Option<String>,
-) -> Result<T, InvalidArgument>
-where
-    T: FromStr,
-    <T as FromStr>::Err: Display,
-{
-    get_argument(name)
-        .ok_or_else(|| InvalidArgument::not_found(name))?
-        .parse::<T>()
-        .map_err(|e| InvalidArgument::invalid_value(name, e))
-}
-
-impl InvalidArgument {
-    fn not_found(name: impl Into<String>) -> Self {
-        InvalidArgument {
-            name: name.into(),
-            reason: BadArgumentReason::NotFound,
+impl ProcBlock for SupportVectorClassifier {
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![
+                TensorConstraint::new(
+                    "x_train",
+                    ElementTypeConstraint::F64,
+                    vec![0, 0],
+                ),
+                TensorConstraint::new(
+                    "y_train",
+                    ElementTypeConstraint::F64,
+                    vec![0],
+                ),
+                TensorConstraint::new(
+                    "x_test",
+                    ElementTypeConstraint::F64,
+                    vec![0, 0],
+                ),
+            ],
+            outputs: vec![TensorConstraint::new(
+                "y_test",
+                ElementTypeConstraint::F64,
+                vec![0],
+            )],
         }
     }
 
-    fn invalid_value(name: impl Into<String>, reason: impl Display) -> Self {
-        InvalidArgument {
-            name: name.into(),
-            reason: BadArgumentReason::InvalidValue(reason.to_string()),
-        }
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
+        let x_train = Tensor::get_named(&inputs, "x_train")?.view_2d()?;
+        let y_train = Tensor::get_named(&inputs, "y_train")?.view_1d()?;
+        let x_test = Tensor::get_named(&inputs, "x_test")?.view_2d()?;
+
+        let output =
+            transform(x_train, y_train, x_test, self.c, self.epochs, self.tol)?;
+
+        Ok(vec![Tensor::new("y_train", &output)])
+    }
+}
+
+impl TryFrom<Vec<Argument>> for SupportVectorClassifier {
+    type Error = CreateError;
+
+    fn try_from(value: Vec<Argument>) -> Result<Self, Self::Error> {
+        let epochs = parse::optional_arg(&value, "epochs")?.unwrap_or(5);
+        let c = parse::optional_arg(&value, "c")?.unwrap_or(200.0);
+        let tol = parse::optional_arg(&value, "tol")?.unwrap_or(0.001);
+
+        Ok(SupportVectorClassifier { epochs, c, tol })
     }
 }
 
 fn transform(
-    x_train: &[f64],
-    x_train_dim: &[u32],
-    y_train: &[f64],
-    x_test: &[f64],
-    x_test_dim: &[u32],
+    x_train: ArrayView2<'_, f64>,
+    y_train: ArrayView1<'_, f64>,
+    x_test: ArrayView2<'_, f64>,
     c: f64,
     epoch: u32,
     tol: f64,
-) -> Result<Vec<f64>, KernelError> {
+) -> Result<Array1<f64>, RunError> {
     // todo: let user change the kernel. Right now setting it to 'linear'
     let svc_parameters = SVCParameters::default()
         .with_c(c)
@@ -295,55 +132,71 @@ fn transform(
         .with_kernel(Kernels::linear())
         .with_tol(tol);
 
-    let x_train = DenseMatrix::from_array(
-        x_train_dim[0] as usize,
-        x_train_dim[1] as usize,
-        x_train,
-    );
+    let (rows, columns) = x_train.dim();
+    let x_train =
+        DenseMatrix::new(rows, columns, x_train.iter().copied().collect());
 
     let model = SVC::fit(&x_train, &y_train.to_vec(), svc_parameters)
-        .map_err(|e| KernelError::Other(e.to_string()))?;
+        .map_err(RunError::other)?;
 
-    let x_test = DenseMatrix::from_array(
-        x_test_dim[0] as usize,
-        x_test_dim[1] as usize,
-        x_test,
-    );
+    let (rows, columns) = x_test.dim();
+    let x_test =
+        DenseMatrix::new(rows, columns, x_test.iter().copied().collect());
 
     model
         .predict(&x_test)
-        .map_err(|e| KernelError::Other(e.to_string()))
+        .map(Array1::from_vec)
+        .map_err(RunError::other)
 }
 
 #[cfg(test)]
 mod tests {
+    use hotg_rune_proc_blocks::ndarray;
+
     use super::*;
 
     #[test]
     fn check_model() {
-        let x_train = vec![
-            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 4.7, 3.2, 1.3, 0.2, 4.6,
-            3.1, 1.5, 0.2, 5.0, 3.6, 1.4, 0.2, 5.4, 3.9, 1.7, 0.4, 4.6, 3.4,
-            1.4, 0.3, 5.0, 3.4, 1.5, 0.2, 4.4, 2.9, 1.4, 0.2, 4.9, 3.1, 1.5,
-            0.1, 7.0, 3.2, 4.7, 1.4, 6.4, 3.2, 4.5, 1.5, 6.9, 3.1, 4.9, 1.5,
-            5.5, 2.3, 4.0, 1.3, 6.5, 2.8, 4.6, 1.5, 5.7, 2.8, 4.5, 1.3, 6.3,
-            3.3, 4.7, 1.6, 4.9, 2.4, 3.3, 1.0, 6.6, 2.9, 4.6, 1.3, 5.2, 2.7,
-            3.9, 1.4,
+        let x_train = ndarray::array![
+            [5.1, 3.5, 1.4, 0.2],
+            [4.9, 3.0, 1.4, 0.2],
+            [4.7, 3.2, 1.3, 0.2],
+            [4.6, 3.1, 1.5, 0.2],
+            [5.0, 3.6, 1.4, 0.2],
+            [5.4, 3.9, 1.7, 0.4],
+            [4.6, 3.4, 1.4, 0.3],
+            [5.0, 3.4, 1.5, 0.2],
+            [4.4, 2.9, 1.4, 0.2],
+            [4.9, 3.1, 1.5, 0.1],
+            [7.0, 3.2, 4.7, 1.4],
+            [6.4, 3.2, 4.5, 1.5],
+            [6.9, 3.1, 4.9, 1.5],
+            [5.5, 2.3, 4.0, 1.3],
+            [6.5, 2.8, 4.6, 1.5],
+            [5.7, 2.8, 4.5, 1.3],
+            [6.3, 3.3, 4.7, 1.6],
+            [4.9, 2.4, 3.3, 1.0],
+            [6.6, 2.9, 4.6, 1.3],
+            [5.2, 2.7, 3.9, 1.4],
         ];
-        let y_train: Vec<f64> = vec![
+        let y_train = ndarray::array![
             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1.,
             1., 1., 1.,
         ];
+        let svc = SupportVectorClassifier {
+            epochs: 5,
+            c: 200.0,
+            tol: 0.001,
+        };
+        let inputs = vec![
+            Tensor::new("x_train", &x_train),
+            Tensor::new("y_train", &y_train),
+            Tensor::new("x_test", &x_train),
+        ];
 
-        let dim: Vec<u32> = vec![20, 4];
+        let got = svc.run(inputs).unwrap();
 
-        let epoch: u32 = 5;
-        let c: f64 = 200.0;
-        let tol: f64 = 0.001;
-
-        let y_pred =
-            transform(&x_train, &dim, &y_train, &x_train, &dim, c, epoch, tol);
-
-        assert_eq!(y_pred.unwrap(), y_train);
+        let should_be = vec![Tensor::new("y_train", &y_train)];
+        assert_eq!(got, should_be);
     }
 }
