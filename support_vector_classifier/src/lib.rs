@@ -134,14 +134,14 @@ fn transform(
 
     let (rows, columns) = x_train.dim();
     let x_train =
-        DenseMatrix::new(rows, columns, x_train.iter().copied().collect());
+        DenseMatrix::new(rows, columns, x_train.t().iter().copied().collect());
 
     let model = SVC::fit(&x_train, &y_train.to_vec(), svc_parameters)
         .map_err(RunError::other)?;
 
     let (rows, columns) = x_test.dim();
     let x_test =
-        DenseMatrix::new(rows, columns, x_test.iter().copied().collect());
+        DenseMatrix::new(rows, columns, x_test.t().iter().copied().collect());
 
     model
         .predict(&x_test)
