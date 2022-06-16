@@ -1,4 +1,5 @@
 use anyhow::{Context, Error};
+use rand::Rng;
 use wasmer::{ImportObject, Module, Store, WasmerEnv};
 
 use crate::{
@@ -51,7 +52,7 @@ impl ProcBlockModule {
             .map(|(name, value)| Argument { name, value })
             .collect();
 
-        let instance = self.0.node_new(&args)??;
+        let instance = self.0.create_node(&args)??;
 
         Ok(instance)
     }
@@ -81,5 +82,9 @@ impl crate::runtime_v2::RuntimeV2 for HostFunctions {
         _message: &str,
         _data: LogValueMap<'_>,
     ) {
+    }
+
+    fn get_random(&mut self, buffer: &mut [u8]) {
+        rand::thread_rng().fill(buffer);
     }
 }

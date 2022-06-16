@@ -62,9 +62,6 @@ impl Manifest {
             })?;
         }
 
-        save_json(dir.join("metadata.json"), &self.metadata)
-            .context("Unable to save the metadata")?;
-
         let names: Vec<_> = self.metadata.keys().collect();
         save_json(dir.join("manifest.json"), &names)
             .context("Unable to save the manifest")?;

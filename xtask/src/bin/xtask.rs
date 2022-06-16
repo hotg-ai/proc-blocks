@@ -14,7 +14,7 @@ use xtask::{runtime::ProcBlockModule, CompilationMode};
 
 fn main() -> Result<(), Error> {
     if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "warn,xtask=debug");
+        std::env::set_var("RUST_LOG", "warn,xtask=debug,walrus=error");
     }
     tracing_subscriber::fmt::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -53,6 +53,9 @@ struct Dist {
     /// optimisations.
     #[structopt(long)]
     debug: bool,
+    /// Do not abort the build as soon as there is an error.
+    #[structopt(short, long)]
+    keep_going: bool,
     /// Where to write compiled proc-blocks to.
     #[structopt(short, long, default_value = &*DIST_DIR)]
     out_dir: PathBuf,
@@ -70,7 +73,7 @@ impl Dist {
             CompilationMode::Release
         };
 
-        let mut wasm_modules = proc_blocks.compile(mode)?;
+        let mut wasm_modules = proc_blocks.compile(mode, self.keep_going)?;
 
         if !self.debug {
             tracing::info!("Stripping custom sections to reduce binary size");

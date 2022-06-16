@@ -10,5 +10,3 @@ pub use crate::{
     docs::document,
     manifest::{generate_manifest, Manifest},
 };
-
-hotg_rune_proc_blocks::generate_support!(crate::proc_block_v2);
