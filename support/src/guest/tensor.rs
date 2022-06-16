@@ -328,4 +328,14 @@ mod tests {
         let view = tensor.view_3d::<f64>().unwrap();
         assert_eq!(view.dim(), (1, 1, 5));
     }
+
+    #[test]
+    fn cant_view_2d_as_1d() {
+        let elements = ndarray::arr2(&[[0.0_f64, 0.5], [10.0, -200.0]]);
+        let tensor = Tensor::new("x", &elements);
+
+        let err = tensor.view_1d::<f64>().unwrap_err();
+
+        assert_eq!(err.reason, InvalidInputReason::IncompatibleDimensions);
+    }
 }
