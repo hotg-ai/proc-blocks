@@ -1,4 +1,4 @@
-use ndarray::{ArrayD, ShapeError};
+use ndarray::{ArrayD, Dim, Dimension, IntoDimension, ShapeError};
 
 use crate::{
     guest::{bindings::*, PrimitiveTensorElement},
@@ -112,7 +112,72 @@ impl Tensor {
             .ok_or_else(|| RunError::missing_input(name))
     }
 
-    pub fn view<T>(&self) -> Result<crate::ndarray::ArrayViewD<'_, T>, RunError>
+    pub fn view<T>(
+        &self,
+    ) -> Result<crate::ndarray::ArrayViewD<'_, T>, InvalidInput>
+    where
+        T: PrimitiveTensorElement,
+    {
+        let dimensions: Vec<_> = self.dimensions().collect();
+        let elements = self.elements()?;
+
+        crate::ndarray::ArrayViewD::from_shape(dimensions, elements)
+            .map_err(|e| InvalidInput::other(&self.name, e))
+    }
+
+    pub fn view_mut<T>(
+        &mut self,
+    ) -> Result<crate::ndarray::ArrayViewMutD<'_, T>, InvalidInput>
+    where
+        T: PrimitiveTensorElement,
+    {
+        let dimensions: Vec<_> = self.dimensions().collect();
+        let name = self.name.clone();
+        let elements = self.elements_mut()?;
+
+        crate::ndarray::ArrayViewMutD::from_shape(dimensions, elements)
+            .map_err(|e| InvalidInput::other(name, e))
+    }
+
+    pub fn view_with_dimensions_mut<T, const N: usize>(
+        &mut self,
+    ) -> Result<
+        crate::ndarray::ArrayViewMut<'_, T, Dim<[usize; N]>>,
+        InvalidInput,
+    >
+    where
+        T: PrimitiveTensorElement,
+        [usize; N]: IntoDimension<Dim = Dim<[usize; N]>>,
+        Dim<[usize; N]>: Dimension,
+    {
+        let dimensions: [usize; N] = self.as_nd_shape()?;
+        let name = self.name.clone();
+        let elements = self.elements_mut()?;
+
+        let shape = ndarray::Shape::from(ndarray::Dim(dimensions));
+
+        crate::ndarray::ArrayViewMut::from_shape(shape, elements)
+            .map_err(|e| InvalidInput::other(name, e))
+    }
+
+    pub fn view_with_dimensions<T, const N: usize>(
+        &self,
+    ) -> Result<crate::ndarray::ArrayView<'_, T, Dim<[usize; N]>>, InvalidInput>
+    where
+        T: PrimitiveTensorElement,
+        [usize; N]: IntoDimension<Dim = Dim<[usize; N]>>,
+        Dim<[usize; N]>: Dimension,
+    {
+        let dimensions: [usize; N] = self.as_nd_shape()?;
+        let elements = self.elements()?;
+
+        let shape = ndarray::Shape::from(ndarray::Dim(dimensions));
+
+        crate::ndarray::ArrayView::from_shape(shape, elements)
+            .map_err(|e| InvalidInput::other(&self.name, e))
+    }
+
+    fn elements<T>(&self) -> Result<&[T], InvalidInput>
     where
         T: PrimitiveTensorElement,
     {
@@ -121,9 +186,6 @@ impl Tensor {
                 InvalidInput::incompatible_element_type(&self.name).into()
             );
         }
-
-        let dimensions: Vec<_> =
-            self.dimensions.iter().map(|&d| d as usize).collect();
 
         // Note: If our buffer is empty, the slice you get when from
         // the Deref implementation will be null + align_of(u8) with
@@ -134,51 +196,16 @@ impl Tensor {
         // than 1, we'll panic due to being mis-aligned.
         //
         // To prevent this, we return a view into an empty slice.
-        if dimensions.iter().product::<usize>() == 0 {
-            return crate::ndarray::ArrayViewD::from_shape(dimensions, &[])
-                .map_err(|e| InvalidInput::other(&self.name, e).into());
+
+        if self.dimensions.iter().product::<u32>() == 0 {
+            return Ok(&[]);
         }
 
-        let elements = bytemuck::try_cast_slice(&self.buffer)
-                        .expect("Unable to reinterpret the buffer's bytes as the desired element type");
-
-        crate::ndarray::ArrayViewD::from_shape(dimensions, elements)
-            .map_err(|e| InvalidInput::other(&self.name, e).into())
+        bytemuck::try_cast_slice(&self.buffer)
+            .map_err(|e| InvalidInput::other(&self.name, e))
     }
 
-    pub fn view_with_dimensions<T, Dims>(
-        &self,
-    ) -> Result<crate::ndarray::ArrayView<'_, T, Dims>, RunError>
-    where
-        T: PrimitiveTensorElement,
-        Dims: crate::ndarray::Dimension,
-    {
-        self.view::<T>()?
-            .into_dimensionality::<Dims>()
-            .map_err(|e| InvalidInput::other(&self.name, e).into())
-    }
-
-    pub fn view_1d<T>(
-        &self,
-    ) -> Result<crate::ndarray::ArrayView1<'_, T>, RunError>
-    where
-        T: PrimitiveTensorElement,
-    {
-        self.view_with_dimensions()
-    }
-
-    pub fn view_2d<T>(
-        &self,
-    ) -> Result<crate::ndarray::ArrayView2<'_, T>, RunError>
-    where
-        T: PrimitiveTensorElement,
-    {
-        self.view_with_dimensions()
-    }
-
-    pub fn view_mut<T>(
-        &mut self,
-    ) -> Result<crate::ndarray::ArrayViewMutD<'_, T>, RunError>
+    fn elements_mut<T>(&mut self) -> Result<&mut [T], InvalidInput>
     where
         T: PrimitiveTensorElement,
     {
@@ -188,46 +215,73 @@ impl Tensor {
             );
         }
 
-        let dimensions: Vec<_> =
-            self.dimensions.iter().map(|&d| d as usize).collect();
-
-        // See the comment in Tensor::view() for why we need this.
-        if dimensions.iter().product::<usize>() == 0 {
-            return crate::ndarray::ArrayViewMutD::from_shape(
-                dimensions,
-                &mut [],
-            )
-            .map_err(|e| InvalidInput::other(&self.name, e).into());
+        if self.dimensions.iter().product::<u32>() == 0 {
+            return Ok(&mut []);
         }
 
-        let elements = bytemuck::try_cast_slice_mut(&mut self.buffer)
-                        .expect("Unable to reinterpret the buffer's bytes as the desired element type");
-
-        crate::ndarray::ArrayViewMutD::from_shape(dimensions, elements)
-            .map_err(|e| InvalidInput::other(&self.name, e).into())
+        bytemuck::try_cast_slice_mut(&mut self.buffer)
+            .map_err(|e| InvalidInput::other(&self.name, e))
     }
 
-    pub fn view_with_dimensions_mut<T, Dims>(
-        &mut self,
-    ) -> Result<crate::ndarray::ArrayViewMut<'_, T, Dims>, RunError>
+    fn dimensions(
+        &self,
+    ) -> impl Iterator<Item = usize> + DoubleEndedIterator + '_ {
+        self.dimensions.iter().map(|&d| d as usize)
+    }
+
+    fn as_nd_shape<const N: usize>(&self) -> Result<[usize; N], InvalidInput> {
+        let mut shape = [1; N];
+        let mut last_index = N;
+
+        for dim in self.dimensions().rev() {
+            if dim == 1 {
+                continue;
+            }
+
+            match last_index.checked_sub(1) {
+                Some(ix) => last_index = ix,
+                None => {
+                    return Err(InvalidInput::incompatible_dimensions(
+                        &self.name,
+                    ));
+                },
+            }
+
+            shape[last_index] = dim;
+        }
+
+        Ok(shape)
+    }
+
+    pub fn view_1d<T>(
+        &self,
+    ) -> Result<crate::ndarray::ArrayView1<'_, T>, InvalidInput>
     where
         T: PrimitiveTensorElement,
-        Dims: crate::ndarray::Dimension,
     {
-        // FIXME: It'd be nice if we didn't need to make this copy,
-        // but the borrow checker isn't able to figure out that
-        // the into_dimensionality() call consumes our view and
-        // therefore the mutable borrow is finished.
-        let name = self.name.clone();
+        self.view_with_dimensions()
+    }
 
-        self.view_mut::<T>()?
-            .into_dimensionality::<Dims>()
-            .map_err(|e| InvalidInput::other(name, e).into())
+    pub fn view_2d<T>(
+        &self,
+    ) -> Result<crate::ndarray::ArrayView2<'_, T>, InvalidInput>
+    where
+        T: PrimitiveTensorElement,
+    {
+        self.view_with_dimensions()
+    }
+
+    pub fn view_3d<T>(
+        &self,
+    ) -> Result<crate::ndarray::ArrayView3<'_, T>, InvalidInput>
+    where
+        T: PrimitiveTensorElement,
+    {
+        self.view_with_dimensions()
     }
 
     pub fn string_view(&self) -> Result<ArrayD<&str>, ShapeError> {
-        let dimensions: Vec<_> =
-            self.dimensions.iter().map(|&dim| dim as usize).collect();
+        let dimensions: Vec<_> = self.dimensions().collect();
         let strings = crate::strings::decode_strings(&self.buffer)?;
 
         ArrayD::from_shape_vec(dimensions, strings)
@@ -252,4 +306,26 @@ impl PartialEq for Tensor {
 
 impl From<Vec<u32>> for Dimensions {
     fn from(fixed: Vec<u32>) -> Self { Dimensions::Fixed(fixed) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn viewing_with_dimensionality_can_strip_or_add_leading_1s() {
+        let elements = ndarray::arr2(&[[0.0_f64, 0.5, 10.0, 3.5, -200.0]]);
+        let tensor = Tensor::new("x", &elements);
+
+        // We should be able to view as both 1D, 2D, and 3D
+
+        let view = tensor.view_1d::<f64>().unwrap();
+        assert_eq!(view.dim(), 5);
+
+        let view = tensor.view_2d::<f64>().unwrap();
+        assert_eq!(view.dim(), (1, 5));
+
+        let view = tensor.view_3d::<f64>().unwrap();
+        assert_eq!(view.dim(), (1, 1, 5));
+    }
 }
