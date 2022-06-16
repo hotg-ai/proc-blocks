@@ -39,8 +39,8 @@ struct MostConfidentIndices {
 
 impl ProcBlock for MostConfidentIndices {
     fn tensor_constraints(&self) -> TensorConstraints {
-
-        let count = 1 as u32; // todo: replace with actual arguements passed by user
+        
+        let count = parse::required_arg(&vec![Argument{ name: "count".to_string(), value: self.count.to_string() }], "count").unwrap();
 
         TensorConstraints {
             inputs: vec![TensorConstraint::numeric(
@@ -54,7 +54,7 @@ impl ProcBlock for MostConfidentIndices {
     fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
         let tensor = Tensor::get_named(&inputs, "confidences")?;
 
-        let count = parse::required_arg(args, "count").unwrap(); // todo: replace with actual arguements passed by user
+        let count = parse::required_arg(&vec![Argument{ name: "count".to_string(), value: self.count.to_string() }], "count").unwrap(); 
 
         let indices = match tensor.element_type {
             ElementType::U8 => most_confident_indices(tensor.view_1d::<u8>()?, count)?,
@@ -120,44 +120,38 @@ impl TryFrom<Vec<Argument>> for MostConfidentIndices {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use hotg_rune_proc_blocks::ndarray;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hotg_rune_proc_blocks::ndarray;
 
-//     #[test]
-//     fn only_works_with_1d() {
-//         let buffer = [1, 2, 3, 4, 5, 6];
+    #[test]
+    fn get_top_3_values_from_2_d() {
+        let elements = ndarray::arr2(&[[0.0, 0.5, 10.0, 3.5, -200.0]]);
 
-//         let error = preprocess_buffer::<u8>(&buffer).unwrap_err();
+        let tensor = Tensor::new("confidences", &elements);
+        
 
-//         assert!(matches!(error, RunError::InvalidInput(_)));
-//     }
+        let got = most_confident_indices(tensor.view_1d::<f64>().unwrap(), 3).unwrap();
 
-//     #[test]
-//     fn tensors_equivalent_to_1d_are_okay_too() {
-//         let buffer = [1, 2, 3, 4, 5, 6];
+        assert_eq!(got, &[2, 3, 1]);
+    }
 
-//         let error = preprocess_buffer::<u8>(&buffer).unwrap_err();
+    #[test]
+    fn count_must_be_less_than_input_size() {
+        let input = ndarray::arr1(&[1_u32, 2, 3]);
 
-//         assert!(matches!(error, RunError::InvalidInput(_)));
-//     }
+        most_confident_indices(input.view(), 42).unwrap_err();
 
-//     #[test]
-//     fn count_must_be_less_than_input_size() {
-//         let input = ndarray::arr1(&[1_u32, 2, 3]);
+        // assert!(matches!(error, RunError));
+    }
 
-//         let error = most_confident_indices(input.view(), 42).unwrap_err();
+    #[test]
+    fn get_top_3_values() {
+        let elements = ndarray::arr1(&[0.0, 0.5, 10.0, 3.5, -200.0]);
 
-//         assert!(matches!(error, RunError::InvalidArgument(_)));
-//     }
+        let got = most_confident_indices(elements.view(), 3).unwrap();
 
-//     #[test]
-//     fn get_top_3_values() {
-//         let elements = ndarray::arr1(&[0.0, 0.5, 10.0, 3.5, -200.0]);
-
-//         let got = most_confident_indices(elements.view(), 3).unwrap();
-
-//         assert_eq!(got, &[2, 3, 1]);
-//     }
-// }
+        assert_eq!(got, &[2, 3, 1]);
+    }
+}
