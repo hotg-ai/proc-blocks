@@ -83,8 +83,10 @@ fn transform(
     // with ndarray and it can't use &[T] slices.
 
     let (rows, columns) = x_train.dim();
+    let x_train: Vec<f64> = x_train.iter().map(|e| *e as f64).collect();
+
     let x_train =
-        DenseMatrix::new(rows, columns, x_train.into_iter().copied().collect());
+        DenseMatrix::from_array(rows, columns, &x_train);
 
     let y_train: Vec<_> = y_train.to_vec();
 
@@ -92,8 +94,10 @@ fn transform(
         .map_err(RunError::other)?;
 
     let (rows, columns) = x_test.dim();
+    let x_test: Vec<f64> = x_test.iter().map(|e| *e as f64).collect();
+
     let x_test =
-        DenseMatrix::new(rows, columns, x_test.into_iter().copied().collect());
+        DenseMatrix::from_array(rows, columns, &x_test);
 
     model
         .predict(&x_test)
