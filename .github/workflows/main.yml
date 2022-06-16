@@ -38,17 +38,17 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --all --verbose --locked
+          args: --workspace --verbose --locked
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all --verbose --locked
+          args: --workspace --verbose --locked
       - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all --verbose --locked
+          args: --workspace --verbose --locked
 
   compile-to-wasm:
     name: Compile to WebAssembly
@@ -77,20 +77,18 @@ jobs:
           target: wasm32-unknown-unknown
       - name: Compile to WebAssembly
         uses: actions-rs/cargo@v1
-        continue-on-error: true
         with:
-          command: build
-          args: --target wasm32-unknown-unknown
+          command: xtask
+          args: dist --keep-going
         env:
           RUST_LOG: xtask=debug
       - name: Check all proc-blocks can be loaded
         uses: actions-rs/cargo@v1
         with:
           command: xtask
-          args: doc target/wasm32-unknown-unknown/debug/*.wasm
+          args: doc target/proc-blocks/*.wasm
       - name: Save Compiled proc-blocks
         uses: actions/upload-artifact@v2
-        continue-on-error: true
         with:
           name: compiled-proc-blocks
           path: target/proc-blocks

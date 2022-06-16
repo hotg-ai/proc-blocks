@@ -81,8 +81,7 @@ impl ProcBlocks {
                 .arg(&package.manifest_path)
                 .arg("--lib")
                 .arg("--target=wasm32-unknown-unknown")
-                .arg("-Zunstable-options")
-                .arg("--crate-type=cdylib");
+                .arg("--locked");
 
             match mode {
                 CompilationMode::Release => {
