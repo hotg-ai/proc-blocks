@@ -1,7 +1,7 @@
 use hotg_rune_proc_blocks::guest::{
     Argument, ArgumentMetadata, ArgumentType, CreateError, Dimensions,
     ElementType, InvalidInput, Metadata, ProcBlock, RunError, Tensor,
-    TensorConstraint, TensorConstraints, TensorMetadata,
+    TensorConstraint, TensorConstraints, TensorMetadata, parse
 };
 
 use std::{cmp::Ordering, convert::TryInto};
@@ -39,6 +39,7 @@ struct MostConfidentIndices {
 
 impl ProcBlock for MostConfidentIndices {
     fn tensor_constraints(&self) -> TensorConstraints {
+
         let count = 1 as u32; // todo: replace with actual arguements passed by user
 
         TensorConstraints {
@@ -53,7 +54,7 @@ impl ProcBlock for MostConfidentIndices {
     fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
         let tensor = Tensor::get_named(&inputs, "confidences")?;
 
-        let count = 1 as usize; // todo: replace with actual arguements passed by user
+        let count = parse::required_arg(args, "count").unwrap(); // todo: replace with actual arguements passed by user
 
         let indices = match tensor.element_type {
             ElementType::U8 => most_confident_indices(tensor.view_1d::<u8>()?, count)?,
@@ -77,18 +78,6 @@ impl ProcBlock for MostConfidentIndices {
         Ok(vec![Tensor::new_1d("indices", &indices.to_vec())])
     }
 }
-
-// fn preprocess_buffer<
-//     'buf,
-//     T: hotg_rune_proc_blocks::guest::PrimitiveTensorElement,
-// >(
-//     buffer: &Tensor,
-// ) -> Result<ArrayView1<&T>, RunError> {
-
-//     buffer
-//         .view::<T>().unwrap().and_then(|t| Ok(t.into_dimensionality()))
-//         .map_err(|e| RunError::other(format!("Invalid input: {}", e))).unwrap()
-// }
 
 
 fn most_confident_indices<T>(
