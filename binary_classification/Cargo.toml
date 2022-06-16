@@ -1,7 +1,7 @@
 [package]
 name = "binary_classification"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "A proc-block takes a probability (0.0 to 1.0) score as input and divides the output into two classes ( 0 or 1) based on a threshold"

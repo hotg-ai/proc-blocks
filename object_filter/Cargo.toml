@@ -1,7 +1,7 @@
 [package]
 name = "object_filter"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "A proc-block which filter the object detected by an Object Detection model to: 1. remove duplicate detection for a single object 2. remove the objects with low confidence"

@@ -1,7 +1,7 @@
 [package]
 name = "noise-filtering"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "reduces noise and applies a gain control algorithm within each frequency bin."

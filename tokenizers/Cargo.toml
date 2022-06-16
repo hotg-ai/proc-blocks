@@ -1,7 +1,7 @@
 [package]
 name = "tokenizers"
 version = "0.12.0"
-edition = "2018"
+edition = "2021"
 publish = false
 repository = "https://github.com/hotg-ai/proc-blocks"
 description = "A proc-block takes a passage and a question as input and gives us BERT Encoding in form of input_ids, input_masks, segment_ids as output"

@@ -1,155 +1,92 @@
-// use linfa_logistic::LogisticRegression;
+use hotg_rune_proc_blocks::{
+    guest::{
+        Argument, ArgumentHint, ArgumentMetadata, Dimensions,
+        ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor,
+        TensorConstraint, TensorConstraints, TensorMetadata,
+    },
+    ndarray::ArrayView1,
+};
 use smartcore::metrics::*;
 
-use crate::proc_block_v1::{
-    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-    InvalidInput, KernelError,
-};
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
+hotg_rune_proc_blocks::export_proc_block! {
+    metadata: metadata,
+    proc_block: Accuracy,
+}
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+fn metadata() -> Metadata {
+    Metadata::new("Accuracy", env!("CARGO_PKG_VERSION"))
+        .with_description("calculates accuracy of predicted labels when compared to true labels")
+        .with_repository(env!("CARGO_PKG_REPOSITORY"))
+        .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+        .with_tag("metric")
+        .with_tag("analytics")
+        .with_argument(ArgumentMetadata::new("element_type")
+        .with_description("The type of tensor this proc-block will accept")
+        .with_default_value("f64")
+        .with_hint(ArgumentHint::one_of([
+            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
+        ]))
+    )
+    .with_input(TensorMetadata::new("y_true"))
+    .with_input(TensorMetadata::new("y_pred"))
+    .with_output(TensorMetadata::new("accuracy"))
+}
 
 /// A proc block which can perform linear regression
-struct ProcBlockV1;
+struct Accuracy;
 
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata = Metadata::new("Accuracy", env!("CARGO_PKG_VERSION"));
-        metadata.set_description(
-            "calculates accuracy of predicted labels when compared to true labels",
-        );
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("metric");
-        metadata.add_tag("analytics");
-
-        let element_type = ArgumentMetadata::new("element_type");
-        element_type
-            .set_description("The type of tensor this proc-block will accept");
-        element_type.set_default_value("f64");
-        element_type.add_hint(&interpret_as_string_in_enum(&[
-            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
-        ]));
-        metadata.add_argument(&element_type);
-
-        let y_true = TensorMetadata::new("y_true");
-        let hint =
-            supported_shapes(&[ElementType::F64], DimensionsParam::Fixed(&[0]));
-        y_true.add_hint(&hint);
-        metadata.add_input(&y_true);
-
-        let y_pred = TensorMetadata::new("y_pred");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0]));
-        y_pred.add_hint(&hint);
-        metadata.add_input(&y_pred);
-
-        let accuracy = TensorMetadata::new("accuracy");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
-        accuracy.add_hint(&hint);
-        metadata.add_output(&accuracy);
-
-        register_node(&metadata);
+impl ProcBlock for Accuracy {
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![
+                TensorConstraint::numeric("y_true", vec![0]),
+                TensorConstraint::numeric("y_pred", vec![0]),
+            ],
+            outputs: vec![TensorConstraint {
+                name: "accuracy".to_string(),
+                dimensions: Dimensions::Fixed(vec![1]),
+                element_type: ElementTypeConstraint::F64,
+            }],
+        }
     }
 
-    fn graph(node_id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&node_id)
-            .ok_or(GraphError::MissingContext)?;
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
+        let y_true = Tensor::get_named(&inputs, "y_true")?.view_1d()?;
+        let y_pred = Tensor::get_named(&inputs, "y_pred")?.view_1d()?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
+        let accuracy = transform(y_true, y_pred);
 
-        ctx.add_input_tensor(
-            "y_true",
-            element_type,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        ctx.add_input_tensor(
-            "y_pred",
-            element_type,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        ctx.add_output_tensor(
-            "accuracy",
-            element_type,
-            DimensionsParam::Fixed(&[1]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(node_id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&node_id)
-            .ok_or(KernelError::MissingContext)?;
-
-        let y_true = ctx.get_input_tensor("y_true").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "y_true".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-
-        let y_pred = ctx.get_input_tensor("y_pred").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "y_pred".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-
-        let accuracy = transform(
-            y_true.buffer.elements().to_vec(),
-            y_pred.buffer.elements().to_vec(),
-        );
-
-        let output = vec![accuracy];
-
-        ctx.set_output_tensor(
-            "accuracy",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &[1 as u32],
-                buffer: &output.as_bytes(),
-            },
-        );
-
-        Ok(())
+        Ok(vec![Tensor::new_1d("accuracy", &[accuracy])])
     }
 }
 
-fn transform(y_true: Vec<f64>, y_pred: Vec<f64>) -> f64 {
+impl From<Vec<Argument>> for Accuracy {
+    fn from(_: Vec<Argument>) -> Self { Accuracy }
+}
+
+fn transform(y_true: ArrayView1<'_, f64>, y_pred: ArrayView1<'_, f64>) -> f64 {
+    // Note: We need to unnecessarily copy our inputs here because
+    // smartcore's accuracy metric accepts types implementing BaseVector.
+    // However, they only have an implementation for Vec<T> and not &[T]
+    // or ndarray's 1D arrays.
+    let y_true: Vec<f64> = y_true.iter().copied().collect();
+    let y_pred: Vec<f64> = y_pred.iter().copied().collect();
+
     ClassificationMetrics::accuracy().get_score(&y_true, &y_pred)
 }
 
 #[cfg(test)]
 mod tests {
+    use hotg_rune_proc_blocks::ndarray;
+
     use super::*;
 
     #[test]
     fn check_transform() {
-        let y_pred: Vec<f64> = vec![0., 2., 1., 3.];
-        let y_true: Vec<f64> = vec![0., 1., 2., 3.];
+        let y_pred = ndarray::array![0., 2., 1., 3.];
+        let y_true = ndarray::array![0., 1., 2., 3.];
 
-        let accuracy = transform(y_true, y_pred);
+        let accuracy = transform(y_true.view(), y_pred.view());
 
         assert_eq!(0.5, accuracy);
     }

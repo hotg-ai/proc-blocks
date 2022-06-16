@@ -1,5 +1,5 @@
 use anyhow::{Context, Error};
-use cargo_metadata::{CargoOpt, Metadata, MetadataCommand, Package};
+use cargo_metadata::{Metadata, MetadataCommand, Package};
 use std::{
     path::{Path, PathBuf},
     process::Command,
@@ -61,6 +61,7 @@ impl ProcBlocks {
     pub fn compile(
         &self,
         mode: CompilationMode,
+        keep_going: bool,
     ) -> Result<Vec<CompiledModule>, Error> {
         let _span = tracing::info_span!("Compile").entered();
         tracing::info!("Compiling proc-blocks to WebAssembly");
@@ -71,15 +72,16 @@ impl ProcBlocks {
         let mut libs = Vec::new();
 
         for package in &self.packages {
+            let _span =
+                tracing::info_span!("build", package=%package.name).entered();
+
             let mut cmd = Command::new(&cargo);
             cmd.arg("rustc")
                 .arg("--manifest-path")
                 .arg(&package.manifest_path)
                 .arg("--lib")
                 .arg("--target=wasm32-unknown-unknown")
-                .arg("--features=metadata")
-                .arg("-Zunstable-options")
-                .arg("--crate-type=cdylib");
+                .arg("--locked");
 
             match mode {
                 CompilationMode::Release => {
@@ -99,11 +101,16 @@ impl ProcBlocks {
 
             tracing::debug!(exit_code = ?status.code(), "Cargo build completed");
 
-            if !status.success() {
+            if status.success() {
+                libs.push(&package.name);
+            } else if keep_going {
+                tracing::warn!(
+                    "Compiling \"{}\" failed. Skipping...",
+                    package.name,
+                );
+            } else {
                 anyhow::bail!("Compilation failed");
             }
-
-            libs.push(&package.name);
         }
 
         tracing::debug!(?libs);
@@ -157,9 +164,7 @@ impl CompiledModule {
 
 fn manifest(manifest_path: &Path) -> Result<Metadata, Error> {
     let mut cmd = MetadataCommand::new();
-
-    cmd.manifest_path(manifest_path)
-        .features(CargoOpt::SomeFeatures(vec!["metadata".to_string()]));
+    cmd.manifest_path(manifest_path);
 
     tracing::debug!(
         manifest = %manifest_path.display(),

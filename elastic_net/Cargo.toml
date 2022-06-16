@@ -1,7 +1,7 @@
 [package]
 name = "elastic_net"
 version = "0.12.1"
-edition = "2018"
+edition = "2021"
 description = "an extension of linear regression that adds L1 and L2 regularization penalties to the loss function during training"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,7 +10,6 @@ description = "an extension of linear regression that adds L1 and L2 regularizat
 hotg-rune-proc-blocks = { path = "../support" }
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
 smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development" }
-getrandom = { version = "0.2.6", default-features = false, features = ["custom"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

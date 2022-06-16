@@ -1,252 +1,142 @@
-// use linfa_logistic::LogisticRegression;
+use hotg_rune_proc_blocks::{
+    guest::{
+        Argument, ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor,
+        TensorConstraint, TensorConstraints, TensorMetadata,
+    },
+    ndarray::{Array1, Array2, ArrayView1, ArrayView2},
+};
 use smartcore::{
     linalg::naive::dense_matrix::*, linear::logistic_regression::*,
 };
 
-use crate::proc_block_v1::{
-    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-    InvalidInput, KernelError,
-};
-use hotg_rune_proc_blocks::{ndarray, runtime_v1::*, BufferExt, SliceExt};
+hotg_rune_proc_blocks::export_proc_block! {
+    metadata: metadata,
+    proc_block: Logistic,
+}
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+fn metadata() -> Metadata {
+    Metadata::new("Logistic Regression", env!("CARGO_PKG_VERSION"))
+        .with_description(
+            "a statistical model that models the probability of one event taking place by having the log-odds for the event be a linear combination of one or more independent variables.",
+        )
+        .with_repository(env!("CARGO_PKG_REPOSITORY"))
+        .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+        .with_tag("classification")
+        .with_tag("linear modeling")
+        .with_tag("analytics")
+        .with_input(TensorMetadata::new("x_train"))
+        .with_input(TensorMetadata::new("y_train"))
+        .with_input(TensorMetadata::new("x_test"))
+        .with_output(TensorMetadata::new("y_test"))
+}
 
-/// A proc block which can perform linear regression
-struct ProcBlockV1;
+struct Logistic;
 
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata =
-            Metadata::new("Logistic Regression", env!("CARGO_PKG_VERSION"));
-        metadata.set_description(
-            "a linear approach for modelling the relationship between a scalar response and one or more explanatory variables",
-        );
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("regression");
-        metadata.add_tag("linear modeling");
-        metadata.add_tag("analytics");
-
-        let element_type = ArgumentMetadata::new("element_type");
-        element_type
-            .set_description("The type of tensor this proc-block will accept");
-        element_type.set_default_value("f64");
-        element_type.add_hint(&interpret_as_string_in_enum(&[
-            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
-        ]));
-        metadata.add_argument(&element_type);
-
-        let x_train = TensorMetadata::new("x_train");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
-        x_train.add_hint(&hint);
-        metadata.add_input(&x_train);
-
-        let y_train = TensorMetadata::new("y_train");
-        let hint =
-            supported_shapes(&[ElementType::F64], DimensionsParam::Fixed(&[0]));
-        y_train.add_hint(&hint);
-        metadata.add_input(&y_train);
-
-        let x_test = TensorMetadata::new("x_test");
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0, 0]));
-        x_test.add_hint(&hint);
-        metadata.add_input(&x_test);
-
-        let y_test = TensorMetadata::new("y_test");
-        let supported_types = [ElementType::F64];
-        let hint =
-            supported_shapes(&supported_types, DimensionsParam::Fixed(&[0]));
-        y_test.add_hint(&hint);
-        metadata.add_output(&y_test);
-
-        register_node(&metadata);
+impl ProcBlock for Logistic {
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![
+                TensorConstraint::new(
+                    "x_train",
+                    ElementTypeConstraint::F64,
+                    vec![0, 0],
+                ),
+                TensorConstraint::new(
+                    "y_train",
+                    ElementTypeConstraint::F64,
+                    vec![0],
+                ),
+                TensorConstraint::new(
+                    "x_test",
+                    ElementTypeConstraint::F64,
+                    vec![0, 0],
+                ),
+            ],
+            outputs: vec![TensorConstraint::new(
+                "y_test",
+                ElementTypeConstraint::F64,
+                vec![0],
+            )],
+        }
     }
 
-    fn graph(node_id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&node_id)
-            .ok_or(GraphError::MissingContext)?;
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
+        let x_train = Tensor::get_named(&inputs, "x_train")?.view_2d()?;
+        let y_train = Tensor::get_named(&inputs, "y_train")?.view_1d()?;
+        let x_test = Tensor::get_named(&inputs, "x_test")?.view_2d()?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
+        let output = transform(x_train, y_train, x_test)?;
 
-        ctx.add_input_tensor(
-            "x_train",
-            element_type,
-            DimensionsParam::Fixed(&[0, 0]),
-        );
-
-        ctx.add_input_tensor(
-            "y_train",
-            element_type,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        ctx.add_input_tensor(
-            "x_test",
-            element_type,
-            DimensionsParam::Fixed(&[0, 0]),
-        );
-
-        ctx.add_output_tensor(
-            "y_test",
-            element_type,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(node_id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&node_id)
-            .ok_or(KernelError::MissingContext)?;
-
-        let x_train = ctx.get_input_tensor("x_train").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "x_train".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-        let _xtrain: ndarray::ArrayView2<f64> = x_train
-            .buffer
-            .view(&x_train.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "x_train".to_string(),
-                    reason: BadInputReason::Other(e.to_string()),
-                })
-            })?;
-
-        let y_train = ctx.get_input_tensor("y_train").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "y_train".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-        let _ytrain: ndarray::ArrayView1<f64> = y_train
-            .buffer
-            .view(&y_train.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "y_train".to_string(),
-                    reason: BadInputReason::Other(e.to_string()),
-                })
-            })?;
-
-        let x_test = ctx.get_input_tensor("x_test").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "x_test".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-        let _xtest: ndarray::ArrayView2<f64> = x_test
-            .buffer
-            .view(&x_test.dimensions)
-            .and_then(|t| t.into_dimensionality())
-            .map_err(|e| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "x_test".to_string(),
-                    reason: BadInputReason::Other(e.to_string()),
-                })
-            })?;
-
-        let output = transform(
-            &x_train.buffer.elements(),
-            &x_train.dimensions,
-            &y_train.buffer.elements(),
-            &x_test.buffer.elements(),
-            &x_test.dimensions,
-        )?;
-
-        let y_test_dimension = [x_test.dimensions[0]];
-
-        ctx.set_output_tensor(
-            "y_test",
-            TensorParam {
-                element_type: ElementType::F64,
-                dimensions: &y_test_dimension,
-                buffer: &output.to_vec().as_bytes(),
-            },
-        );
-
-        Ok(())
+        Ok(vec![Tensor::new("y_test", &output)])
     }
 }
 
+impl From<Vec<Argument>> for Logistic {
+    fn from(_: Vec<Argument>) -> Self { Logistic }
+}
+
 fn transform(
-    x_train: &[f64],
-    x_train_dim: &[u32],
-    y_train: &[f64],
-    x_test: &[f64],
-    x_test_dim: &[u32],
-) -> Result<Vec<f64>, KernelError> {
-    // Iris data
-    let x_train = DenseMatrix::from_array(
-        x_train_dim[0] as usize,
-        x_train_dim[1] as usize,
-        x_train,
-    );
+    x_train: ArrayView2<'_, f64>,
+    y_train: ArrayView1<'_, f64>,
+    x_test: ArrayView2<'_, f64>,
+) -> Result<Array1<f64>, RunError> {
+    let (rows, columns) = x_train.dim();
+    let x_train: Vec<f64> = x_train.t().iter().copied().collect();
+    let x_train = DenseMatrix::new(rows, columns, x_train);
 
-    let lr = LogisticRegression::fit(
-        &x_train,
-        &y_train.to_vec(),
-        Default::default(),
-    )
-    .map_err(|e| KernelError::Other(e.to_string()))?;
+    let y_train: Vec<_> = y_train.to_vec();
 
-    let x_test = DenseMatrix::from_array(
-        x_test_dim[0] as usize,
-        x_test_dim[1] as usize,
-        x_test,
-    );
+    let model = LogisticRegression::fit(&x_train, &y_train, Default::default())
+        .map_err(RunError::other)?;
 
-    lr.predict(&x_test)
-        .map_err(|e| KernelError::Other(e.to_string()))
+    let (rows, columns) = x_test.dim();
+    let x_test: Vec<f64> = x_test.t().iter().copied().collect();
+    let x_test = DenseMatrix::new(rows, columns, x_test);
+
+    model
+        .predict(&x_test)
+        .map(Array1::from_vec)
+        .map_err(RunError::other)
 }
 
 #[cfg(test)]
 mod tests {
+    use hotg_rune_proc_blocks::ndarray::array;
+
     use super::*;
 
     #[test]
     fn check_model() {
-        let x_train = vec![
-            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 4.7, 3.2, 1.3, 0.2, 4.6,
-            3.1, 1.5, 0.2, 5.0, 3.6, 1.4, 0.2, 5.4, 3.9, 1.7, 0.4, 4.6, 3.4,
-            1.4, 0.3, 5.0, 3.4, 1.5, 0.2, 4.4, 2.9, 1.4, 0.2, 4.9, 3.1, 1.5,
-            0.1, 7.0, 3.2, 4.7, 1.4, 6.4, 3.2, 4.5, 1.5, 6.9, 3.1, 4.9, 1.5,
-            5.5, 2.3, 4.0, 1.3, 6.5, 2.8, 4.6, 1.5, 5.7, 2.8, 4.5, 1.3, 6.3,
-            3.3, 4.7, 1.6, 4.9, 2.4, 3.3, 1.0, 6.6, 2.9, 4.6, 1.3, 5.2, 2.7,
-            3.9, 1.4,
+        let x_train: Array2<f64> = array![
+            [5.1, 3.5, 1.4, 0.2],
+            [4.9, 3.0, 1.4, 0.2],
+            [4.7, 3.2, 1.3, 0.2],
+            [4.6, 3.1, 1.5, 0.2],
+            [5.0, 3.6, 1.4, 0.2],
+            [5.4, 3.9, 1.7, 0.4],
+            [4.6, 3.4, 1.4, 0.3],
+            [5.0, 3.4, 1.5, 0.2],
+            [4.4, 2.9, 1.4, 0.2],
+            [4.9, 3.1, 1.5, 0.1],
+            [7.0, 3.2, 4.7, 1.4],
+            [6.4, 3.2, 4.5, 1.5],
+            [6.9, 3.1, 4.9, 1.5],
+            [5.5, 2.3, 4.0, 1.3],
+            [6.5, 2.8, 4.6, 1.5],
+            [5.7, 2.8, 4.5, 1.3],
+            [6.3, 3.3, 4.7, 1.6],
+            [4.9, 2.4, 3.3, 1.0],
+            [6.6, 2.9, 4.6, 1.3],
+            [5.2, 2.7, 3.9, 1.4],
         ];
-        let y_train: Vec<f64> = vec![
+        let y_train: Array1<f64> = array![
             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1.,
             1., 1., 1.,
         ];
 
-        let dim: Vec<u32> = vec![20, 4];
+        let y_pred =
+            transform(x_train.view(), y_train.view(), x_train.view()).unwrap();
 
-        let y_pred = transform(&x_train, &dim, &y_train, &x_train, &dim);
-
-        assert_eq!(y_pred.unwrap(), y_train);
+        assert_eq!(y_pred, y_train);
     }
 }

@@ -1,7 +1,7 @@
 [package]
 name = "train_test_split"
 version = "0.12.1"
-edition = "2018"
+edition = "2021"
 description = "a random split into training and test sets"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
