@@ -114,21 +114,20 @@ fn transform(
     let (rows, columns) = x.dim();
     let x = DenseMatrix::new(rows, columns, x.into_iter().copied().collect());
 
-    let y = y.iter().map(|e| e).collect();
+    let y = y.to_vec();
 
     let (x_train, x_test, y_train, y_test) =
         train_test_split(&x, &y, test_size, false);
 
-    let train_dim = x_train.dim();
-    let test_dim = (&x_test.len(), &x_test[0].len());
+    let train_dim = x_train.shape();
+    let test_dim = x_test.shape();
 
     let x_train: Vec<f64> = x_train.iter().map(|f| f).collect();
     let x_test: Vec<f64> = x_test.iter().map(|f| f).collect();
 
     let x_train: Array2<f64> =
         Array::from_shape_vec(train_dim, x_train).unwrap();
-    let x_test: Array2<f64> =
-        Array::from_shape_vec((x_test.len(), x_test[0].len()), x_test).unwrap();
+    let x_test: Array2<f64> = Array::from_shape_vec(test_dim, x_test).unwrap();
     let y_train: Array1<f64> =
         Array::from_shape_vec(y_train.len(), y_train).unwrap();
     let y_test: Array1<f64> =
@@ -151,46 +150,52 @@ impl TryFrom<Vec<Argument>> for TrainTestSplit {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hotg_rune_proc_blocks::ndarray::array;
 
-//     #[test]
-//     fn check_test_dim() {
-//         let x = [
-//             5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4, 5.1,
-//             3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4,
-//         ];
-//         let y: Vec<f64> = vec![0., 0., 1., 0., 0., 1.];
+    #[test]
+    fn check_test_dim() {
+        let x: Array2<f64> = array![
+            [5.1, 3.5, 1.4, 0.2],
+            [4.9, 3.0, 1.4, 0.2],
+            [5.2, 2.7, 3.9, 1.4],
+            [5.1, 3.5, 1.4, 0.2],
+            [4.9, 3.0, 1.4, 0.2],
+            [5.2, 2.7, 3.9, 1.4]
+        ];
+        let y: Array1<f64> = array![0., 0., 1., 0., 0., 1.];
 
-//         let dim: Vec<u32> = vec![6, 4];
+        let (_x_train, _y_train, x_test, _y_test) =
+            transform(x.view(), y.view(), 0.2);
 
-//         let (_x_train, x_test, _y_train, _y_test) =
-//             transform(&x,  y, 0.2);
+        let dim = x_test.dim();
 
-//         let test_dim = x_test.dim();
+        let should_be = (1 as usize, 4 as usize);
 
-//         let should_be = (1, 4);
+        assert_eq!(dim, should_be);
+    }
 
-//         assert_eq!(test_dim, should_be);
-//     }
-//     #[test]
-//     fn check_train_dim() {
-//         let x = [
-//             5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4, 5.1,
-//             3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4,
-//         ];
-//         let y: Vec<f64> = vec![0., 0., 1., 0., 0., 1.];
+    #[test]
+    fn check_train_dim() {
+        let x: Array2<f64> = array![
+            [5.1, 3.5, 1.4, 0.2],
+            [4.9, 3.0, 1.4, 0.2],
+            [5.2, 2.7, 3.9, 1.4],
+            [5.1, 3.5, 1.4, 0.2],
+            [4.9, 3.0, 1.4, 0.2],
+            [5.2, 2.7, 3.9, 1.4]
+        ];
+        let y: Array1<f64> = array![0., 0., 1., 0., 0., 1.];
 
-//         let dim: Vec<u32> = vec![6, 4];
+        let (x_train, _y_train, _x_test, _y_test) =
+            transform(x.view(), y.view(), 0.2);
 
-//         let (x_train, _x_test, _y_train, _y_test, train_dim, _test_dim) =
-//             transform(&x, y, 0.2);
+        let dim = x_train.dim();
 
-//         let should_be = (5, 4);
+        let should_be = (5 as usize, 4 as usize);
 
-//         let train_dim = x_train.dim();
-
-//         assert_eq!(train_dim, should_be);
-//     }
-// }
+        assert_eq!(dim, should_be);
+    }
+}
