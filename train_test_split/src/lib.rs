@@ -1,11 +1,14 @@
 use hotg_rune_proc_blocks::{
     guest::{
-        Argument, ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor,
-        TensorConstraint, TensorConstraints, TensorMetadata, ArgumentMetadata, parse, ArgumentType
+        parse, Argument, ArgumentMetadata, ArgumentType, CreateError,
+        ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor,
+        TensorConstraint, TensorConstraints, TensorMetadata,
     },
-    ndarray::{Array1, ArrayView1, ArrayView2},
+    ndarray::{Array, Array1, Array2, ArrayView1, ArrayView2},
 };
-use smartcore::{linalg::naive::dense_matrix::*, linear::elastic_net::*};
+use smartcore::{
+    linalg::naive::dense_matrix::*, model_selection::train_test_split,
+};
 
 hotg_rune_proc_blocks::export_proc_block! {
     metadata: metadata,
@@ -35,7 +38,7 @@ fn metadata() -> Metadata {
 }
 
 struct TrainTestSplit {
-    test_size: f32
+    test_size: f32,
 }
 
 impl ProcBlock for TrainTestSplit {
@@ -51,7 +54,7 @@ impl ProcBlock for TrainTestSplit {
                     "targets",
                     ElementTypeConstraint::F64,
                     vec![0],
-                )
+                ),
             ],
             outputs: vec![
                 TensorConstraint::new(
@@ -74,41 +77,62 @@ impl ProcBlock for TrainTestSplit {
                     ElementTypeConstraint::F64,
                     vec![0],
                 ),
-            ]
+            ],
         }
     }
 
     fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
-
         let features = Tensor::get_named(&inputs, "features")?.view_2d()?;
         let targets = Tensor::get_named(&inputs, "targets")?.view_1d()?;
 
-        let count = parse::required_arg(&vec![Argument{ name: "test_size".to_string(), value: self.count.to_string() }], "test_size").unwrap();
+        let test_size = parse::required_arg(
+            &vec![Argument {
+                name: "test_size".to_string(),
+                value: self.test_size.to_string(),
+            }],
+            "test_size",
+        )
+        .unwrap();
 
-        let (x_train, y_train, x_test, y_test) = transform(features, y, test_size);
+        let (x_train, y_train, x_test, y_test) =
+            transform(features, targets, test_size);
 
-        Ok(vec![Tensor::new("x_train", &x_train), Tensor::new("y_train", &y_train), Tensor::new("x_test", &x_test), Tensor::new("y_test", &y_test)])
-
+        Ok(vec![
+            Tensor::new("x_train", &x_train),
+            Tensor::new("y_train", &y_train),
+            Tensor::new("x_test", &x_test),
+            Tensor::new("y_test", &y_test),
+        ])
     }
 }
 
-
 fn transform(
-    x: &[f64],
-    y: Vec<f64>,
+    x: ArrayView2<'_, f64>,
+    y: ArrayView1<'_, f64>,
     test_size: f32,
-) -> (
-    Vec<f64>,
-    Vec<f64>,
-    Vec<f64>,
-    Vec<f64>
-) {
-    let x = DenseMatrix::from_array(x_dim[0] as usize, x_dim[1] as usize, x);
+) -> (Array2<f64>, Array1<f64>, Array2<f64>, Array1<f64>) {
+    let (rows, columns) = x.dim();
+    let x = DenseMatrix::new(rows, columns, x.into_iter().copied().collect());
+
+    let y = y.iter().map(|e| e).collect();
 
     let (x_train, x_test, y_train, y_test) =
         train_test_split(&x, &y, test_size, false);
+
+    let train_dim = x_train.dim();
+    let test_dim = (&x_test.len(), &x_test[0].len());
+
     let x_train: Vec<f64> = x_train.iter().map(|f| f).collect();
     let x_test: Vec<f64> = x_test.iter().map(|f| f).collect();
+
+    let x_train: Array2<f64> =
+        Array::from_shape_vec(train_dim, x_train).unwrap();
+    let x_test: Array2<f64> =
+        Array::from_shape_vec((x_test.len(), x_test[0].len()), x_test).unwrap();
+    let y_train: Array1<f64> =
+        Array::from_shape_vec(y_train.len(), y_train).unwrap();
+    let y_test: Array1<f64> =
+        Array::from_shape_vec(y_test.len(), y_test).unwrap();
 
     (x_train, y_train, x_test, y_test)
 }
