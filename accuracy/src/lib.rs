@@ -126,13 +126,13 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
-        let _ypred: ndarray::ArrayView1<f64> = y_true
+        let _ypred: ndarray::ArrayView1<f64> = y_pred
             .buffer
             .view(&y_pred.dimensions)
             .and_then(|t| t.into_dimensionality())
             .map_err(|e| {
                 KernelError::InvalidInput(InvalidInput {
-                    name: "y_train".to_string(),
+                    name: "y_pred".to_string(),
                     reason: BadInputReason::Other(e.to_string()),
                 })
             })?;
