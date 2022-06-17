@@ -1206,14 +1206,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "parse"
-version = "0.12.0"
-dependencies = [
- "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
-]
-
-[[package]]
 name = "password_strength"
 version = "0.12.0"
 dependencies = [
@@ -1812,14 +1804,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tensor_input"
-version = "0.12.0"
-dependencies = [
- "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
-]
-
-[[package]]
 name = "text_extractor"
 version = "0.12.0"
 dependencies = [
@@ -2030,14 +2014,6 @@ name = "unicode-xid"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "957e51f3646910546462e67d5f7599b9e4fb8acdd304b087a6494730f9eebf04"
-
-[[package]]
-name = "utf8_decode"
-version = "0.12.0"
-dependencies = [
- "hotg-rune-proc-blocks",
- "wit-bindgen-rust",
-]
 
 [[package]]
 name = "valuable"

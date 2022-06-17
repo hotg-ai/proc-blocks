@@ -17,7 +17,6 @@ members = [
     "noise-filtering",
     "normalize",
     "object_filter",
-    "parse",
     "password_strength",
     "prediction_errors",
     "segment_output",
@@ -25,11 +24,9 @@ members = [
     "support_vector_classifier",
     "support_vector_regression",
     "support",
-    "tensor_input",
     "text_extractor",
     "tokenizers",
     "train_test_split",
-    "utf8_decode",
     "xtask",
 ]
 
