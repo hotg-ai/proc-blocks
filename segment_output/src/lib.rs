@@ -1,16 +1,36 @@
-use std::{collections::BTreeSet, convert::TryInto};
-
-use crate::proc_block_v1::{
-    BadInputReason, GraphError, InvalidInput, KernelError,
-};
+use std::collections::BTreeSet;
 
 use hotg_rune_proc_blocks::{
-    ndarray::{s, ArrayView4},
-    runtime_v1::*,
-    BufferExt, SliceExt,
+    guest::{
+        Argument, ElementType, Metadata, ProcBlock, RunError, Tensor,
+        TensorConstraint, TensorConstraints, TensorMetadata,
+    },
+    ndarray::{s, Array1, Array2, ArrayView4},
 };
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+hotg_rune_proc_blocks::export_proc_block! {
+    metadata: metadata,
+    proc_block: SegmentOutput,
+}
+
+fn metadata() -> Metadata {
+    Metadata::new("Segment Output", env!("CARGO_PKG_VERSION"))
+        .with_description("Useful in image segmentation. A proc-block which takes a rank 4 tensor as input, whose dimension is of this form `[1, rows, columns, confidence]`.")
+        .with_repository(env!("CARGO_PKG_REPOSITORY"))
+        .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+        .with_tag("image")
+        .with_tag("segmentation")
+        .with_input(TensorMetadata::new("image")
+        .with_description("An image-like tensor with the dimensions, `[1, rows, columns, category_confidence]`. Each \"pixel\" is associated with a set of confidence values, where each value indicates how confident the model is that the pixel is in that category."))
+        .with_output(TensorMetadata::new("segmentation_map")
+        .with_description(
+"An image-like tensor where each pixel contains the index of the category with the highest confidence level."
+        ))
+        .with_output(
+            TensorMetadata::new("indices")
+                .with_description("The categories used in `segmentation_map`."),
+        )
+}
 
 /// A proc-block which takes a rank 4 `tensor` as input, whose dimension is of
 /// this form `[1, x, y, z]`.
@@ -19,136 +39,51 @@ wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 /// 1. a 2-d `tensor` after performing argmax along the axis-3 of the tensor
 /// 2. a 1-d `tensor` which a `set` of all the number present in the above 2-d
 ///    `tensor`
-struct ProcBlockV1;
+struct SegmentOutput;
 
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata =
-            Metadata::new("Segment Output", env!("CARGO_PKG_VERSION"));
-        metadata.set_description("Useful in image segmentation. A proc-block which takes a rank 4 tensor as input, whose dimension is of this form `[1, rows, columns, confidence]`.");
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("image");
-        metadata.add_tag("segmentation");
-
-        let input = TensorMetadata::new("image");
-        input.set_description("An image-like tensor with the dimensions, `[1, rows, columns, category_confidence]`. Each \"pixel\" is associated with a set of confidence values, where each value indicates how confident the model is that the pixel is in that category.");
-        let hint = supported_shapes(
-            &[ElementType::F32],
-            DimensionsParam::Fixed(&[1, 0, 0, 0]),
-        );
-        input.add_hint(&hint);
-        metadata.add_input(&input);
-
-        let segmentation_map = TensorMetadata::new("segmentation_map");
-        segmentation_map.set_description("An image-like tensor where each pixel contains the index of the category with the highest confidence level.");
-        let hint = supported_shapes(
-            &[ElementType::U32],
-            DimensionsParam::Fixed(&[0, 0]),
-        );
-        segmentation_map.add_hint(&hint);
-        metadata.add_output(&segmentation_map);
-
-        let indices = TensorMetadata::new("indices");
-        indices.set_description("The categories used in `segmentation_map`.");
-        let hint =
-            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[0]));
-        indices.add_hint(&hint);
-        metadata.add_output(&indices);
-
-        register_node(&metadata);
+impl ProcBlock for SegmentOutput {
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![TensorConstraint::new(
+                "input",
+                ElementType::F32,
+                vec![1, 0, 0, 0],
+            )],
+            outputs: vec![
+                TensorConstraint::new(
+                    "segmentation_map",
+                    ElementType::U32,
+                    vec![0, 0],
+                ),
+                TensorConstraint::new("indices", ElementType::U32, vec![0]),
+            ],
+        }
     }
 
-    fn graph(id: String) -> Result<(), GraphError> {
-        let ctx =
-            GraphContext::for_node(&id).ok_or(GraphError::MissingContext)?;
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
+        let input = Tensor::get_named(&inputs, "input")?.view_4d::<f32>()?;
 
-        ctx.add_input_tensor(
-            "input",
-            ElementType::F32,
-            DimensionsParam::Fixed(&[1, 0, 0, 0]),
-        );
+        let (segmented_map, indices) = transform(input);
 
-        ctx.add_output_tensor(
-            "segmentation_map",
-            ElementType::U32,
-            DimensionsParam::Fixed(&[0, 0]),
-        );
-
-        ctx.add_output_tensor(
-            "indices",
-            ElementType::U32,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(id: String) -> Result<(), KernelError> {
-        let ctx =
-            KernelContext::for_node(&id).ok_or(KernelError::MissingContext)?;
-        let TensorResult {
-            element_type,
-            dimensions,
-            buffer,
-        } = ctx.get_input_tensor("input").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "input".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-
-        let (segmented_map, indices) = match element_type {
-            ElementType::F32 => {
-                let tensor =buffer.view::<f32>(&dimensions)
-                .and_then(|t| t.into_dimensionality())
-                .map_err(|e| KernelError::InvalidInput(InvalidInput{ name: "input".to_string(), reason: BadInputReason::InvalidValue(e.to_string()) }))?;
-                transform(tensor)
-            },
-            other => {
-                return Err(KernelError::Other(format!(
-                "The softmax proc-block only accepts f32 or f64 tensors, found {:?}",
-                other,
-                )))
-            },
-        };
-
-        ctx.set_output_tensor(
-            "segmentation_map",
-            TensorParam {
-                element_type,
-                dimensions: &[dimensions[1], dimensions[2]],
-                buffer: &segmented_map.as_bytes(),
-            },
-        );
-
-        ctx.set_output_tensor(
-            "indices",
-            TensorParam {
-                element_type,
-                dimensions: &[indices.len().try_into().unwrap()],
-                buffer: &indices.as_bytes(),
-            },
-        );
-
-        Ok(())
+        Ok(vec![
+            Tensor::new("segmentation_map", &segmented_map),
+            Tensor::new("indices", &indices),
+        ])
     }
 }
 
-fn transform(input: ArrayView4<f32>) -> (Vec<u32>, Vec<u32>) {
-    let dim = input.shape();
+impl From<Vec<Argument>> for SegmentOutput {
+    fn from(_: Vec<Argument>) -> Self { SegmentOutput }
+}
 
-    let mut vec_2d: Vec<Vec<u32>> = Vec::new();
+fn transform(input: ArrayView4<'_, f32>) -> (Array2<u32>, Array1<u32>) {
+    let (_, rows, columns, _) = input.dim();
 
-    let rows = dim[1] as usize;
-    let columns = dim[2] as usize;
-
+    let mut map = Array2::zeros((rows, columns));
     let mut label_index = BTreeSet::new();
 
     for i in 0..rows {
-        vec_2d.push(vec![]);
         for j in 0..columns {
-            println!(" i, j {} {}", i, j);
             let val = input.slice(s![0 as usize, i, j, ..]);
             let (index, _) =
                 val.iter().enumerate().fold((0, 0.0), |max, (ind, &val)| {
@@ -157,17 +92,13 @@ fn transform(input: ArrayView4<f32>) -> (Vec<u32>, Vec<u32>) {
                     } else {
                         max
                     }
-                }); // Doing argmax over the array
-            vec_2d[i].push(index as u32);
+                });
+            map[[i, j]] = index as u32;
             label_index.insert(index as u32);
         }
     }
-    println!("{:?}", vec_2d);
 
-    (
-        vec_2d.iter().flat_map(|arr| arr.iter()).cloned().collect(),
-        label_index.into_iter().collect(),
-    )
+    (map, label_index.into_iter().collect())
 }
 
 #[cfg(test)]
@@ -213,10 +144,16 @@ mod tests {
         ];
         let input = input.broadcast((1, 5, 4, 3)).unwrap();
 
-        let output = transform(input);
-        let should_be: Vec<u32> =
-            vec![2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1];
-        let label_index: Vec<u32> = vec![1, 2];
-        assert_eq!(output, (should_be, label_index));
+        let (segments, indices) = transform(input);
+
+        assert_eq!(indices, ndarray::array![1, 2]);
+        let segments_should_be: Array2<u32> = ndarray::array![
+            [2, 2, 1, 1],
+            [2, 2, 1, 1],
+            [2, 2, 1, 1],
+            [2, 2, 1, 1],
+            [2, 2, 1, 1],
+        ];
+        assert_eq!(segments, segments_should_be);
     }
 }

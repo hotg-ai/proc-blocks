@@ -276,6 +276,15 @@ impl Tensor {
         self.view_with_dimensions()
     }
 
+    pub fn view_4d<T>(
+        &self,
+    ) -> Result<crate::ndarray::ArrayView4<'_, T>, InvalidInput>
+    where
+        T: PrimitiveTensorElement,
+    {
+        self.view_with_dimensions()
+    }
+
     pub fn string_view(&self) -> Result<ArrayD<&str>, ShapeError> {
         let dimensions: Vec<_> = self.dimensions().collect();
         let strings = crate::strings::decode_strings(&self.buffer)?;
