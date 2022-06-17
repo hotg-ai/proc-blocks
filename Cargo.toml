@@ -7,7 +7,7 @@ members = [
     "elastic_net",
     "f1-score",
     "fft",
-    "image",
+    "image_decode",
     "image-normalization",
     "label",
     "linear_regression",

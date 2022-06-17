@@ -654,16 +654,6 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "image"
-version = "0.12.0"
-dependencies = [
- "hotg-rune-proc-blocks",
- "image 0.24.2",
- "strum",
- "wit-bindgen-rust",
-]
-
-[[package]]
-name = "image"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28edd9d7bc256be2502e325ac0628bde30b7001b9b52e0abe31a1a9dc2701212"
@@ -687,6 +677,16 @@ version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
  "num-traits",
+ "wit-bindgen-rust",
+]
+
+[[package]]
+name = "image_decode"
+version = "0.12.0"
+dependencies = [
+ "hotg-rune-proc-blocks",
+ "image",
+ "strum",
  "wit-bindgen-rust",
 ]
 

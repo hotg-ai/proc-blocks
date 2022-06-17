@@ -1,5 +1,5 @@
 [package]
-name = "image"
+name = "image_decode"
 version = "0.12.0"
 edition = "2021"
 description = "Decode an image from a well-known image format."
