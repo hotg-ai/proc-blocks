@@ -1,4 +1,3 @@
-// use linfa_logistic::LogisticRegression;
 use smartcore::{
     linalg::naive::dense_matrix::*, linear::logistic_regression::*,
 };
@@ -23,7 +22,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         );
         metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
         metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("regression");
+        metadata.add_tag("classification");
         metadata.add_tag("linear modeling");
         metadata.add_tag("analytics");
 
@@ -169,6 +168,15 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 })
             })?;
 
+        if x_train.element_type != ElementType::F64
+            || y_train.element_type != ElementType::F64
+            || x_test.element_type != ElementType::F64
+        {
+            return Err(KernelError::Other(format!(
+                "This proc-block only support f64 element type",
+            )));
+        }
+
         let output = transform(
             &x_train.buffer.elements(),
             &x_train.dimensions,
@@ -248,5 +256,58 @@ mod tests {
         let y_pred = transform(&x_train, &dim, &y_train, &x_train, &dim);
 
         assert_eq!(y_pred.unwrap(), y_train);
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_training_dimension_mismatch() {
+        let x_train = vec![
+            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 4.7, 3.2, 1.3, 0.2, 4.6,
+            3.1, 1.5, 0.2, 5.0, 3.6, 1.4, 0.2, 5.4, 3.9, 1.7, 0.4, 4.6, 3.4,
+            1.4, 0.3, 5.0, 3.4, 1.5, 0.2, 4.4, 2.9, 1.4, 0.2, 4.9, 3.1, 1.5,
+            0.1, 7.0, 3.2, 4.7, 1.4, 6.4, 3.2, 4.5, 1.5, 6.9, 3.1, 4.9, 1.5,
+            5.5, 2.3, 4.0, 1.3, 6.5, 2.8, 4.6, 1.5, 5.7, 2.8, 4.5, 1.3, 6.3,
+            3.3, 4.7, 1.6, 4.9, 2.4, 3.3, 1.0, 6.6, 2.9, 4.6, 1.3, 5.2, 2.7,
+            3.9, 1.4,
+        ]; // shape [20, 4] after transformation
+        let y_train: Vec<f64> = vec![
+            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1.,
+        ]; // shape[19, 1]
+
+        let dim: Vec<u32> = vec![20, 4];
+
+        let y_pred = transform(&x_train, &dim, &y_train, &x_train, &dim);
+
+        assert_eq!(y_pred.unwrap(), y_train);
+    }
+
+    #[test]
+    #[should_panic]
+    fn check_dimension_mismatch() {
+        let x_train = vec![
+            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 4.7, 3.2, 1.3, 0.2, 4.6,
+            3.1, 1.5, 0.2, 5.0, 3.6, 1.4, 0.2, 5.4, 3.9, 1.7, 0.4, 4.6, 3.4,
+            1.4, 0.3, 5.0, 3.4, 1.5, 0.2, 4.4, 2.9, 1.4, 0.2, 4.9, 3.1, 1.5,
+            0.1, 7.0, 3.2, 4.7, 1.4, 6.4, 3.2, 4.5, 1.5, 6.9, 3.1, 4.9, 1.5,
+            5.5, 2.3, 4.0, 1.3, 6.5, 2.8, 4.6, 1.5, 5.7, 2.8, 4.5, 1.3, 6.3,
+            3.3, 4.7, 1.6, 4.9, 2.4, 3.3, 1.0, 6.6, 2.9, 4.6, 1.3, 5.2, 2.7,
+            3.9, 1.4,
+        ];
+
+        let x_test = vec![5.1, 3.5, 1.4, 0.2, 4.9]; // shape [1,5]: column has to be same as x_train
+
+        let y_train: Vec<f64> = vec![
+            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1.,
+        ];
+
+        let y_test: Vec<f64> = vec![0.];
+
+        let dim: Vec<u32> = vec![20, 4];
+
+        let y_pred = transform(&x_train, &dim, &y_train, &x_test, &vec![1, 5]);
+
+        assert_eq!(y_pred.unwrap(), y_test);
     }
 }

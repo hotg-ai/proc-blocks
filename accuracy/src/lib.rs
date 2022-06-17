@@ -5,7 +5,7 @@ use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt, ndarray};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -109,17 +109,47 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             })
         })?;
 
+        let _ytrue: ndarray::ArrayView1<f64> = y_true
+            .buffer
+            .view(&y_true.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "y_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
+
         let y_pred = ctx.get_input_tensor("y_pred").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
                 name: "y_pred".to_string(),
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _ypred: ndarray::ArrayView1<f64> = y_true
+            .buffer
+            .view(&y_pred.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "y_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
+
+        if y_true.element_type != ElementType::F64
+            || y_pred.element_type != ElementType::F64
+        {
+            return Err(KernelError::Other(format!(
+                "This proc-block only support f64 element type",
+            )));
+        }
 
         let accuracy = transform(
             y_true.buffer.elements().to_vec(),
             y_pred.buffer.elements().to_vec(),
-        );
+        )
+        .unwrap();
 
         let output = vec![accuracy];
 
@@ -136,8 +166,13 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(y_true: Vec<f64>, y_pred: Vec<f64>) -> f64 {
-    ClassificationMetrics::accuracy().get_score(&y_true, &y_pred)
+fn transform(y_true: Vec<f64>, y_pred: Vec<f64>) -> Result<f64, KernelError> {
+    if y_true.len() != y_pred.len() {
+        return Err( KernelError::Other(format!(
+        "Dimension Mismatch: dimension of true labels is {} while {} for predicted labels", y_true.len(), y_pred.len()
+    )));
+    }
+    Ok(ClassificationMetrics::accuracy().get_score(&y_true, &y_pred))
 }
 
 #[cfg(test)]
@@ -151,6 +186,6 @@ mod tests {
 
         let accuracy = transform(y_true, y_pred);
 
-        assert_eq!(0.5, accuracy);
+        assert_eq!(0.5, accuracy.unwrap());
     }
 }
