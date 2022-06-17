@@ -222,6 +222,15 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 })
             })?;
 
+        if x_train.element_type != ElementType::F64
+            || y_train.element_type != ElementType::F64
+            || x_test.element_type != ElementType::F64
+        {
+            return Err(KernelError::Other(format!(
+                "This proc-block only support f64 element type",
+            )));
+        }
+
         let output = transform(
             &x_train.buffer.elements(),
             &x_train.dimensions,

@@ -6,7 +6,7 @@ use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt};
+use hotg_rune_proc_blocks::{ndarray, runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -112,6 +112,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _ytrue: ndarray::ArrayView1<f64> = y_true
+            .buffer
+            .view(&y_true.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "y_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
 
         let y_pred = ctx.get_input_tensor("y_pred").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
@@ -119,11 +129,24 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 reason: BadInputReason::NotFound,
             })
         })?;
+        let _ypred: ndarray::ArrayView1<f64> = y_true
+            .buffer
+            .view(&y_pred.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "y_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
+
+            
 
         let metric = transform(
             y_true.buffer.elements().to_vec(),
             y_pred.buffer.elements().to_vec(),
-        );
+        )
+        .unwrap();
 
         let mae = vec![metric.0];
 
@@ -151,11 +174,20 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(y_true: Vec<f64>, y_pred: Vec<f64>) -> (f64, f64) {
+fn transform(
+    y_true: Vec<f64>,
+    y_pred: Vec<f64>,
+) -> Result<(f64, f64), KernelError> {
+    if y_true.len() != y_pred.len() {
+        return Err( KernelError::Other(format!(
+        "Dimension Mismatch: dimension of true labels is {} while {} for predicted labels", y_true.len(), y_pred.len()
+    )));
+    }
+
     let mae = MeanAbsoluteError {}.get_score(&y_pred, &y_true);
     let mse = MeanSquareError {}.get_score(&y_pred, &y_true);
 
-    (mae, mse)
+    Ok((mae, mse))
 }
 
 #[cfg(test)]
@@ -166,7 +198,7 @@ mod tests {
     fn check_mae() {
         let y_pred: Vec<f64> = vec![0., 0., 1., 1., 1., 1.];
         let y_true: Vec<f64> = vec![0., 1., 1., 0., 1., 0.];
-        let metric = transform(y_true, y_pred);
+        let metric = transform(y_true, y_pred).unwrap();
 
         assert_eq!(0.5, metric.0);
     }
@@ -176,7 +208,18 @@ mod tests {
         let y_pred: Vec<f64> = vec![0., 0., 1., 1., 1., 1.];
         let y_true: Vec<f64> = vec![0., 1., 1., 0., 1., 0.];
 
-        let metric = transform(y_true, y_pred);
+        let metric = transform(y_true, y_pred).unwrap();
+
+        assert_eq!(0.5, metric.1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn dimension_mismatch() {
+        let y_pred: Vec<f64> = vec![0., 0., 1., 1., 1., 1.];
+        let y_true: Vec<f64> = vec![0., 1., 1., 0., 1.];
+
+        let metric = transform(y_true, y_pred).unwrap();
 
         assert_eq!(0.5, metric.1);
     }

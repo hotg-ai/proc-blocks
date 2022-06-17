@@ -10,6 +10,8 @@ use crate::proc_block_v1::{
     InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{
+    common::element_type,
+    ndarray,
     runtime_v1::{self, *},
     BufferExt, SliceExt,
 };
@@ -164,12 +166,48 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             })
         })?;
 
+        let _features: ndarray::ArrayView2<f64> = x
+            .buffer
+            .view(&x.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "x_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
+
         let y = ctx.get_input_tensor("targets").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
                 name: "targets".to_string(),
                 reason: BadInputReason::NotFound,
             })
         })?;
+
+        if x.element_type != ElementType::F64
+            || y.element_type != ElementType::F64
+        {
+            return Err(KernelError::Other(format!(
+                "This proc-block only support f64 element type",
+            )));
+        }
+
+        let _targets: ndarray::ArrayView2<f64> = x
+            .buffer
+            .view(&y.dimensions)
+            .and_then(|t| t.into_dimensionality())
+            .map_err(|e| {
+                KernelError::InvalidInput(InvalidInput {
+                    name: "x_train".to_string(),
+                    reason: BadInputReason::Other(e.to_string()),
+                })
+            })?;
+
+        if &x.dimensions[0] != &y.dimensions[0] {
+            return Err( KernelError::Other(format!(
+            "Dimension Mismatch: x and y should have the same number of samples. |x|: {}, |y|: {}",&x.dimensions[0], &y.dimensions[0]
+        )));
+        }
 
         let test_size: f32 = get_args("test_size", |n| ctx.get_argument(n))
             .map_err(KernelError::InvalidArgument)?;
@@ -312,5 +350,24 @@ mod tests {
 
         let should_be = (5, 4);
         assert_eq!(train_dim, should_be);
+    }
+
+    #[test]
+    #[should_panic]
+    fn dimension_mismatch() {
+        let x = [
+            5.1, 3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4, 5.1,
+            3.5, 1.4, 0.2, 4.9, 3.0, 1.4, 0.2, 5.2, 2.7, 3.9, 1.4,
+        ];
+        let y: Vec<f64> = vec![0., 0., 1., 0., 0.]; // it's dimension should be [6] instead of [5]
+
+        let dim: Vec<u32> = vec![6, 4];
+
+        let (_x_train, _x_test, _y_train, _y_test, _train_dim, test_dim) =
+            transform(&x, &dim, y, 0.2);
+
+        let should_be = (1, 4);
+
+        assert_eq!(test_dim, should_be);
     }
 }
