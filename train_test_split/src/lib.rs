@@ -159,16 +159,16 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = KernelContext::for_node(&node_id)
             .ok_or(KernelError::MissingContext)?;
 
-        let x = ctx.get_input_tensor("features").ok_or_else(|| {
+        let features = ctx.get_input_tensor("features").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
                 name: "features".to_string(),
                 reason: BadInputReason::NotFound,
             })
         })?;
 
-        let _features: ndarray::ArrayView2<f64> = x
+        let _features_dummy: ndarray::ArrayView2<f64> = features
             .buffer
-            .view(&x.dimensions)
+            .view(&features.dimensions)
             .and_then(|t| t.into_dimensionality())
             .map_err(|e| {
                 KernelError::InvalidInput(InvalidInput {
@@ -177,35 +177,35 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 })
             })?;
 
-        let y = ctx.get_input_tensor("targets").ok_or_else(|| {
+        let targets = ctx.get_input_tensor("targets").ok_or_else(|| {
             KernelError::InvalidInput(InvalidInput {
                 name: "targets".to_string(),
                 reason: BadInputReason::NotFound,
             })
         })?;
 
-        if x.element_type != ElementType::F64
-            || y.element_type != ElementType::F64
+        if features.element_type != ElementType::F64
+            || targets.element_type != ElementType::F64
         {
             return Err(KernelError::Other(format!(
                 "This proc-block only support f64 element type",
             )));
         }
 
-        let _targets: ndarray::ArrayView2<f64> = x
+        let _targets_dummy: ndarray::ArrayView1<f64> = targets
             .buffer
-            .view(&y.dimensions)
+            .view(&targets.dimensions)
             .and_then(|t| t.into_dimensionality())
             .map_err(|e| {
                 KernelError::InvalidInput(InvalidInput {
-                    name: "x_train".to_string(),
+                    name: "targets".to_string(),
                     reason: BadInputReason::Other(e.to_string()),
                 })
             })?;
 
-        if &x.dimensions[0] != &y.dimensions[0] {
+        if features.dimensions[0] != targets.dimensions[0] {
             return Err( KernelError::Other(format!(
-            "Dimension Mismatch: x and y should have the same number of samples. |x|: {}, |y|: {}",&x.dimensions[0], &y.dimensions[0]
+            "Dimension Mismatch: x and y should have the same number of samples. |x|: {}, |y|: {}",&features.dimensions[0], &targets.dimensions[0]
         )));
         }
 
@@ -213,9 +213,9 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             .map_err(KernelError::InvalidArgument)?;
 
         let (x_train, x_test, y_train, y_test, train_dim, test_dim) = transform(
-            &x.buffer.elements(),
-            &x.dimensions,
-            (&y.buffer.elements()).to_vec(),
+            features.buffer.elements(),
+            &features.dimensions,
+            targets.buffer.elements().to_vec(),
             test_size,
         );
 
@@ -224,7 +224,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             TensorParam {
                 element_type: ElementType::F64,
                 dimensions: &[train_dim.0 as u32, train_dim.1 as u32],
-                buffer: &x_train.as_bytes(),
+                buffer: x_train.as_bytes(),
             },
         );
 
@@ -233,7 +233,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             TensorParam {
                 element_type: ElementType::F64,
                 dimensions: &[test_dim.0 as u32, test_dim.1 as u32],
-                buffer: &x_test.as_bytes(),
+                buffer: x_test.as_bytes(),
             },
         );
 
