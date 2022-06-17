@@ -19,7 +19,7 @@ members = [
     "object_filter",
     "parse",
     "password_strength",
-    "prediction_errors"
+    "prediction_errors",
     "segment_output",
     "softmax",
     "support_vector_classifier",
@@ -34,9 +34,8 @@ members = [
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
-#[patch.'https://github.com/bytecodealliance/wit-bindgen']
-#wit-bindgen-rust = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
-#wit-bindgen-wasmtime = { git = "https://github.com/hotg-ai/wit-bindgen", branch = "variant-should-be-clone" }
+[patch.'https://github.com/bytecodealliance/wit-bindgen']
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen", branch = "wasmer" }
 
 [profile.dev]
 opt-level = 1
