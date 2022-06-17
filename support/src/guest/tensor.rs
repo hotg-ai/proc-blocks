@@ -285,6 +285,15 @@ impl Tensor {
         self.view_with_dimensions()
     }
 
+    pub fn view_1d_mut<T>(
+        &mut self,
+    ) -> Result<crate::ndarray::ArrayViewMut1<'_, T>, InvalidInput>
+    where
+        T: PrimitiveTensorElement,
+    {
+        self.view_with_dimensions_mut()
+    }
+
     pub fn string_view(&self) -> Result<ArrayD<&str>, ShapeError> {
         let dimensions: Vec<_> = self.dimensions().collect();
         let strings = crate::strings::decode_strings(&self.buffer)?;
@@ -311,6 +320,10 @@ impl PartialEq for Tensor {
 
 impl From<Vec<u32>> for Dimensions {
     fn from(fixed: Vec<u32>) -> Self { Dimensions::Fixed(fixed) }
+}
+
+impl<const N: usize> From<[u32; N]> for Dimensions {
+    fn from(fixed: [u32; N]) -> Self { Dimensions::Fixed(fixed.to_vec()) }
 }
 
 #[cfg(test)]

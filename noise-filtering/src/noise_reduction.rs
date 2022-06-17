@@ -2,12 +2,11 @@
 //!
 //! [tf]: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/experimental/microfrontend/lib/noise_reduction.c
 
-use alloc::vec::Vec;
-use core::str::FromStr;
+use std::str::FromStr;
 
 const NOISE_REDUCTION_BITS: usize = 14;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct State {
     pub estimate: Vec<u32>,
 }
