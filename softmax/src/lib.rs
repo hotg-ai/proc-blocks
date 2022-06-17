@@ -1,17 +1,74 @@
-use crate::proc_block_v1::{
-    BadInputReason, GraphError, InvalidInput, KernelError,
-};
-
 use hotg_rune_proc_blocks::{
-    ndarray::ArrayViewMut1, runtime_v1::*, BufferExt, ValueType,
+    guest::{
+        Argument, Dimensions, ElementTypeConstraint, InvalidInput, Metadata,
+        ProcBlock, RunError, Tensor, TensorConstraint, TensorConstraints,
+        TensorMetadata,
+    },
+    ndarray::ArrayViewMutD,
 };
 use num_traits::Float;
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
+hotg_rune_proc_blocks::export_proc_block! {
+    metadata: metadata,
+    proc_block: Softmax,
+}
 
-struct ProcBlockV1;
+fn metadata() -> Metadata {
+    Metadata::new("Softmax", env!("CARGO_PKG_VERSION"))
+        .with_description(env!("CARGO_PKG_DESCRIPTION"))
+        .with_repository(env!("CARGO_PKG_REPOSITORY"))
+        .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+        .with_tag("softmax")
+        .with_tag("image")
+        .with_tag("nlp")
+        .with_tag("numeric")
+        .with_tag("classification")
+        .with_input(TensorMetadata::new("input"))
+        .with_input(TensorMetadata::new("soft_max").with_description(
+            "Vector normalised into probability distribution",
+        ))
+}
 
-fn softmax<T>(mut input: ArrayViewMut1<'_, T>)
+struct Softmax;
+
+impl ProcBlock for Softmax {
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![TensorConstraint::new(
+                "input",
+                ElementTypeConstraint::F32 | ElementTypeConstraint::F64,
+                Dimensions::Dynamic,
+            )],
+            outputs: vec![TensorConstraint::new(
+                "soft_max",
+                ElementTypeConstraint::F32 | ElementTypeConstraint::F64,
+                Dimensions::Dynamic,
+            )],
+        }
+    }
+
+    fn run(&self, mut inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
+        let mut input = Tensor::take_named(&mut inputs, "input")?;
+
+        if let Ok(floats) = input.view_mut::<f32>() {
+            softmax_inplace(floats);
+        } else if let Ok(doubles) = input.view_mut::<f64>() {
+            softmax_inplace(doubles);
+        } else {
+            return Err(
+                InvalidInput::incompatible_element_type(&input.name).into()
+            );
+        }
+
+        Ok(vec![input.with_name("soft_max")])
+    }
+}
+
+impl From<Vec<Argument>> for Softmax {
+    fn from(_: Vec<Argument>) -> Self { Softmax }
+}
+
+fn softmax_inplace<T>(mut input: ArrayViewMutD<'_, T>)
 where
     T: Float + num_traits::FromPrimitive,
 {
@@ -23,140 +80,32 @@ where
     }
 }
 
-fn preprocess_buffer<'buf, T>(
-    buffer: &'buf mut [u8],
-    dimensions: &[u32],
-) -> Result<ArrayViewMut1<'buf, T>, KernelError>
-where
-    T: ValueType,
-{
-    buffer
-        .view_mut::<T>(dimensions)
-        .and_then(|t| t.into_dimensionality())
-        .map_err(|e| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "confidences".to_string(),
-                reason: BadInputReason::InvalidValue(e.to_string()),
-            })
-        })
-}
-
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata = Metadata::new("Softmax", env!("CARGO_PKG_VERSION"));
-        metadata.set_description(env!("CARGO_PKG_DESCRIPTION"));
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("softmax");
-        metadata.add_tag("image");
-        metadata.add_tag("nlp");
-        metadata.add_tag("numeric");
-        metadata.add_tag("classification");
-
-        let input = TensorMetadata::new("input");
-        let hint = supported_shapes(
-            &[ElementType::F32, ElementType::F64],
-            DimensionsParam::Fixed(&[0]),
-        );
-        input.add_hint(&hint);
-        metadata.add_input(&input);
-
-        let soft_max = TensorMetadata::new("soft_max");
-        soft_max
-            .set_description("Vector normalised into probability distribution");
-        let hint = supported_shapes(
-            &[ElementType::F32, ElementType::F64],
-            DimensionsParam::Fixed(&[0]),
-        );
-        soft_max.add_hint(&hint);
-        metadata.add_output(&soft_max);
-
-        register_node(&metadata);
-    }
-
-    fn graph(id: String) -> Result<(), GraphError> {
-        let ctx =
-            GraphContext::for_node(&id).ok_or(GraphError::MissingContext)?;
-
-        ctx.add_input_tensor(
-            "input",
-            ElementType::F32,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        ctx.add_output_tensor(
-            "soft_max",
-            ElementType::F32,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(id: String) -> Result<(), KernelError> {
-        let ctx =
-            KernelContext::for_node(&id).ok_or(KernelError::MissingContext)?;
-        let TensorResult {
-            element_type,
-            dimensions,
-            mut buffer,
-        } = ctx.get_input_tensor("input").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "input".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-
-        match element_type {
-            ElementType::F32 => preprocess_buffer::<f32>(&mut buffer, &dimensions).map(softmax)?,
-            ElementType::F64 => preprocess_buffer::<f64>(&mut buffer, &dimensions).map(softmax)?,
-            other => {
-                return Err(KernelError::Other(format!(
-                "The softmax proc-block only accepts f32 or f64 tensors, found {:?}",
-                other,
-                )))
-            },
-        };
-
-        ctx.set_output_tensor(
-            "soft_max",
-            TensorParam {
-                element_type,
-                dimensions: &dimensions,
-                buffer: &buffer,
-            },
-        );
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use hotg_rune_proc_blocks::ndarray;
 
     #[test]
-    fn test_softmax_unfiorm() {
+    fn softmax_uniform() {
         let mut input = ndarray::arr1(&[1.0, 1.0, 1.0, 1.0]);
         let softmax_correct = ndarray::arr1(&[0.25, 0.25, 0.25, 0.25]);
 
-        softmax(input.view_mut());
+        softmax_inplace(input.view_mut().into_dyn());
         assert_eq!(input, softmax_correct);
     }
 
     #[test]
-    fn test_softmax_single() {
+    fn softmax_single() {
         let mut input = ndarray::arr1(&[1.0, 0.0]);
         let softmax_correct =
             ndarray::arr1(&[0.7310585786300049, 0.26894142136999510]);
-        softmax(input.view_mut());
+        softmax_inplace(input.view_mut().into_dyn());
 
         assert_eq!(input, softmax_correct);
     }
 
     #[test]
-    fn test_softmax() {
+    fn known_values() {
         let mut input = ndarray::arr1(&[1.0, 2.0, 3.0]);
         let softmax_correct = ndarray::arr1(&[
             0.09003057317038046,
@@ -164,35 +113,49 @@ mod tests {
             0.6652409557748219,
         ]);
 
-        softmax(input.view_mut());
+        softmax_inplace(input.view_mut().into_dyn());
         assert_eq!(input, softmax_correct);
     }
 
     #[test]
-    fn test_softmax_zeros() {
+    fn softmax_zeros() {
         let mut input = ndarray::arr1(&[0.0, 0.0]);
         let softmax_correct = ndarray::arr1(&[0.5, 0.5]);
 
-        softmax(input.view_mut());
+        softmax_inplace(input.view_mut().into_dyn());
         assert_eq!(input, softmax_correct);
     }
 
     #[test]
-    fn test_softmax_zero() {
+    fn softmax_zero() {
         let mut input = ndarray::arr1(&[0.0]);
         let softmax_correct = ndarray::arr1(&[1.0]);
 
-        softmax(input.view_mut());
+        softmax_inplace(input.view_mut().into_dyn());
         assert_eq!(input, softmax_correct);
     }
 
     #[test]
-    fn test_softmax_empty() {
+    fn softmax_empty() {
         let empty: &[f32] = &[];
         let mut input = ndarray::Array::from_vec(empty.to_vec());
         let softmax_correct = ndarray::Array::from_vec(empty.to_vec());
 
-        softmax(input.view_mut());
+        softmax_inplace(input.view_mut().into_dyn());
         assert_eq!(input, softmax_correct);
+    }
+
+    #[test]
+    fn floats() {
+        let inputs = vec![Tensor::new_1d("input", &[1.0_f32, 2.0, 3.0])];
+        let softmax_correct = ndarray::arr1(&[
+            0.09003057317038046_f32,
+            0.24472847105479767,
+            0.6652409557748219,
+        ]);
+
+        let got = Softmax.run(inputs).unwrap();
+
+        assert_eq!(got, vec![Tensor::new("soft_max", &softmax_correct)]);
     }
 }
