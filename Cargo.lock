@@ -522,11 +522,8 @@ name = "fft"
 version = "0.12.0"
 dependencies = [
  "hotg-rune-proc-blocks",
- "hound",
- "libm",
  "mel",
  "nalgebra",
- "normalize",
  "pretty_assertions",
  "sonogram",
  "wit-bindgen-rust",
@@ -642,12 +639,6 @@ dependencies = [
  "tracing-subscriber",
  "wit-bindgen-rust",
 ]
-
-[[package]]
-name = "hound"
-version = "3.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a164bb2ceaeff4f42542bdb847c41517c78a60f5649671b2a07312b6e117549"
 
 [[package]]
 name = "id-arena"
