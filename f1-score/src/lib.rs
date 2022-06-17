@@ -38,7 +38,7 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let hint =
             supported_shapes(&supported_types, DimensionsParam::Fixed(&[1]));
         f1.add_hint(&hint);
-        metadata.add_input(&f1);
+        metadata.add_output(&f1);
 
         let precision = TensorMetadata::new("precision");
         let supported_types = [ElementType::F64];
