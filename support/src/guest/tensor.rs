@@ -90,8 +90,8 @@ impl Tensor {
         }
     }
 
-    pub fn take_named<'t>(
-        tensors: &'t mut Vec<Tensor>,
+    pub fn take_named(
+        tensors: &mut Vec<Tensor>,
         name: &str,
     ) -> Result<Self, RunError> {
         let index = tensors
@@ -182,9 +182,7 @@ impl Tensor {
         T: PrimitiveTensorElement,
     {
         if self.element_type != T::ELEMENT_TYPE {
-            return Err(
-                InvalidInput::incompatible_element_type(&self.name).into()
-            );
+            return Err(InvalidInput::incompatible_element_type(&self.name));
         }
 
         // Note: If our buffer is empty, the slice you get when from
@@ -210,9 +208,7 @@ impl Tensor {
         T: PrimitiveTensorElement,
     {
         if self.element_type != T::ELEMENT_TYPE {
-            return Err(
-                InvalidInput::incompatible_element_type(&self.name).into()
-            );
+            return Err(InvalidInput::incompatible_element_type(&self.name));
         }
 
         if self.dimensions.iter().product::<u32>() == 0 {

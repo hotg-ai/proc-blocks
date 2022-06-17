@@ -139,7 +139,7 @@ impl<'a> From<&'a Metadata<'a>> for LogMetadata<'a> {
         LogMetadata {
             name: metadata.name(),
             target: metadata.target(),
-            level: metadata.level().clone().into(),
+            level: LogLevel::from(*metadata.level()),
             file: metadata.file(),
             line: metadata.line(),
             module: metadata.module_path(),

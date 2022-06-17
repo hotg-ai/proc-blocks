@@ -85,17 +85,8 @@ impl ProcBlock for TrainTestSplit {
         let features = Tensor::get_named(&inputs, "features")?.view_2d()?;
         let targets = Tensor::get_named(&inputs, "targets")?.view_1d()?;
 
-        let test_size = parse::required_arg(
-            &vec![Argument {
-                name: "test_size".to_string(),
-                value: self.test_size.to_string(),
-            }],
-            "test_size",
-        )
-        .unwrap();
-
         let (x_train, y_train, x_test, y_test) =
-            transform(features, targets, test_size);
+            transform(features, targets, self.test_size);
 
         Ok(vec![
             Tensor::new("x_train", &x_train),
@@ -119,15 +110,11 @@ fn transform(
     let (x_train, x_test, y_train, y_test) =
         train_test_split(&x, &y, test_size, false);
 
-    let train_dim = x_train.shape();
-    let test_dim = x_test.shape();
-
-    let x_train: Vec<f64> = x_train.iter().map(|f| f).collect();
-    let x_test: Vec<f64> = x_test.iter().map(|f| f).collect();
-
     let x_train: Array2<f64> =
-        Array::from_shape_vec(train_dim, x_train).unwrap();
-    let x_test: Array2<f64> = Array::from_shape_vec(test_dim, x_test).unwrap();
+        Array::from_shape_vec(x_train.shape(), x_train.iter().collect())
+            .unwrap();
+    let x_test: Array2<f64> =
+        Array::from_shape_vec(x_test.shape(), x_test.iter().collect()).unwrap();
     let y_train: Array1<f64> =
         Array::from_shape_vec(y_train.len(), y_train).unwrap();
     let y_test: Array1<f64> =
@@ -140,11 +127,7 @@ impl TryFrom<Vec<Argument>> for TrainTestSplit {
     type Error = CreateError;
 
     fn try_from(args: Vec<Argument>) -> Result<Self, Self::Error> {
-        let test_size = hotg_rune_proc_blocks::guest::parse::optional_arg(
-            &args,
-            "test_size",
-        )?
-        .unwrap_or(0.2);
+        let test_size = parse::optional_arg(&args, "test_size")?.unwrap_or(0.2);
 
         Ok(TrainTestSplit { test_size })
     }
@@ -170,11 +153,7 @@ mod tests {
         let (_x_train, _y_train, x_test, _y_test) =
             transform(x.view(), y.view(), 0.2);
 
-        let dim = x_test.dim();
-
-        let should_be = (1 as usize, 4 as usize);
-
-        assert_eq!(dim, should_be);
+        assert_eq!(x_test.dim(), (1, 4));
     }
 
     #[test]
@@ -189,13 +168,10 @@ mod tests {
         ];
         let y: Array1<f64> = array![0., 0., 1., 0., 0., 1.];
 
-        let (x_train, _y_train, _x_test, _y_test) =
+        let (x_train, y_train, _x_test, _y_test) =
             transform(x.view(), y.view(), 0.2);
 
-        let dim = x_train.dim();
-
-        let should_be = (5 as usize, 4 as usize);
-
-        assert_eq!(dim, should_be);
+        assert_eq!(x_train.dim(), (5, 4));
+        assert_eq!(y_train, array![0.0, 1.0, 0.0, 0.0, 1.0]);
     }
 }

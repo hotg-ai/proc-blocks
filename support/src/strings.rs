@@ -20,7 +20,7 @@ use ndarray::{ErrorKind, ShapeError};
 /// assert_eq!(strings, &["this", "is", "a", "sentence"]);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct StringBuilder {
     buffer: Vec<u8>,
 }
