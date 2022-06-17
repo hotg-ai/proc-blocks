@@ -2,7 +2,7 @@
 name = "image_input"
 version = "0.12.0"
 edition = "2021"
-description = "Read an image from the environment."
+description = "Decode an image from a well-known image format."
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -11,6 +11,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 hotg-rune-proc-blocks = { path = "../support" }
+image = "0.24.2"
+strum = { version = "0.24.1", features = ["derive"] }
 wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
 
 [package.metadata.wapm]

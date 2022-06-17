@@ -126,12 +126,12 @@ impl From<MediaType> for TensorHint {
 impl TensorConstraint {
     pub fn new(
         name: impl Into<String>,
-        element_type: ElementTypeConstraint,
+        element_type: impl Into<ElementTypeConstraint>,
         dimensions: impl Into<Dimensions>,
     ) -> Self {
         TensorConstraint {
             name: name.into(),
-            element_type,
+            element_type: element_type.into(),
             dimensions: dimensions.into(),
         }
     }
@@ -156,4 +156,24 @@ impl ArgumentHint {
 
 impl From<ArgumentType> for ArgumentHint {
     fn from(a: ArgumentType) -> Self { ArgumentHint::ArgumentType(a) }
+}
+
+impl From<ElementType> for ElementTypeConstraint {
+    fn from(e: ElementType) -> Self {
+        match e {
+            ElementType::U8 => ElementTypeConstraint::U8,
+            ElementType::I8 => ElementTypeConstraint::I8,
+            ElementType::U16 => ElementTypeConstraint::U16,
+            ElementType::I16 => ElementTypeConstraint::I16,
+            ElementType::U32 => ElementTypeConstraint::U32,
+            ElementType::I32 => ElementTypeConstraint::I32,
+            ElementType::F32 => ElementTypeConstraint::F32,
+            ElementType::U64 => ElementTypeConstraint::U64,
+            ElementType::I64 => ElementTypeConstraint::I64,
+            ElementType::F64 => ElementTypeConstraint::F64,
+            ElementType::Complex64 => ElementTypeConstraint::COMPLEX64,
+            ElementType::Complex128 => ElementTypeConstraint::COMPLEX128,
+            ElementType::Utf8 => ElementTypeConstraint::UTF8,
+        }
+    }
 }
