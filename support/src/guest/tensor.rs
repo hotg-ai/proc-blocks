@@ -1,4 +1,4 @@
-use ndarray::{ArrayD, Dim, Dimension, IntoDimension, ShapeError};
+use ndarray::{ArrayD, Dim, Dimension, IntoDimension};
 
 use crate::{
     guest::{bindings::*, PrimitiveTensorElement},
@@ -294,11 +294,12 @@ impl Tensor {
         self.view_with_dimensions_mut()
     }
 
-    pub fn string_view(&self) -> Result<ArrayD<&str>, ShapeError> {
+    pub fn string_view(&self) -> Result<ArrayD<&str>, InvalidInput> {
         let dimensions: Vec<_> = self.dimensions().collect();
-        let strings = crate::strings::decode_strings(&self.buffer)?;
 
-        ArrayD::from_shape_vec(dimensions, strings)
+        crate::strings::decode_strings(&self.buffer)
+            .and_then(|strings| ArrayD::from_shape_vec(dimensions, strings))
+            .map_err(|e| InvalidInput::other(&self.name, e))
     }
 }
 
