@@ -1,6 +1,6 @@
 use hotg_rune_proc_blocks::guest::{
-    ElementType, Metadata, ProcBlock, RunError, Tensor, TensorConstraint,
-    TensorConstraints, TensorMetadata,
+    Argument, ElementType, Metadata, ProcBlock, RunError, Tensor,
+    TensorConstraint, TensorConstraints, TensorMetadata,
 };
 use smartcore::metrics::{
     mean_absolute_error::MeanAbsoluteError, mean_squared_error::MeanSquareError,
@@ -26,6 +26,7 @@ fn metadata() -> Metadata {
 }
 
 /// a proc-block to find Mean Absolute Error and Mean Squared Error
+#[derive(Debug, Default, Clone, PartialEq)]
 struct PredictionErrors;
 
 impl ProcBlock for PredictionErrors {
@@ -64,6 +65,10 @@ impl ProcBlock for PredictionErrors {
             Tensor::new_1d("mean_square_error", &[mse]),
         ])
     }
+}
+
+impl From<Vec<Argument>> for PredictionErrors {
+    fn from(_: Vec<Argument>) -> Self { PredictionErrors::default() }
 }
 
 #[cfg(test)]
