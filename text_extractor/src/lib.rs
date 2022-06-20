@@ -1,230 +1,143 @@
-use crate::proc_block_v1::*;
 use hotg_rune_proc_blocks::{
-    ndarray, runtime_v1::*, string_tensor_from_ndarray, BufferExt,
+    guest::{
+        Argument, ElementType, InvalidInput, Metadata, ProcBlock, RunError,
+        Tensor, TensorConstraint, TensorConstraints, TensorMetadata,
+    },
+    ndarray,
 };
 
-wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
-
-#[macro_use]
-extern crate alloc;
-use alloc::{string::String, vec::Vec};
-
-struct ProcBlockV1;
-
-impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
-    fn register_metadata() {
-        let metadata =
-            Metadata::new("Text Extractor", env!("CARGO_PKG_VERSION"));
-        metadata.set_description(
-                "Given a body of text and some start/end indices, extract parts of the text (i.e. words/phrases) specified by those indices.",
-            );
-        metadata.set_repository(env!("CARGO_PKG_REPOSITORY"));
-        metadata.set_homepage(env!("CARGO_PKG_HOMEPAGE"));
-        metadata.add_tag("nlp");
-
-        let text = TensorMetadata::new("text");
-        text.set_description("A string of text.");
-        let hint =
-            supported_shapes(&[ElementType::U8], DimensionsParam::Fixed(&[0]));
-        text.add_hint(&hint);
-        metadata.add_input(&text);
-
-        let start_logits = TensorMetadata::new("start_logits");
-        start_logits.set_description(
-            "The indices for the start of each word/phrase to extract.",
-        );
-        let hint =
-            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[0]));
-        start_logits.add_hint(&hint);
-        metadata.add_input(&start_logits);
-
-        let end_logits = TensorMetadata::new("end_logits");
-        end_logits.set_description(
-            "The indices for the end of each word/phrase to extract.",
-        );
-        let hint =
-            supported_shapes(&[ElementType::U32], DimensionsParam::Fixed(&[0]));
-        end_logits.add_hint(&hint);
-        metadata.add_input(&end_logits);
-
-        let phrases = TensorMetadata::new("phrases");
-        phrases.set_description("The phrases that were extracted.");
-        let hint = supported_shapes(
-            &[ElementType::Utf8],
-            DimensionsParam::Fixed(&[0]),
-        );
-        phrases.add_hint(&hint);
-        metadata.add_output(&phrases);
-
-        register_node(&metadata);
-    }
-
-    fn graph(node_id: String) -> Result<(), GraphError> {
-        let ctx = GraphContext::for_node(&node_id)
-            .ok_or(GraphError::MissingContext)?;
-
-        ctx.add_input_tensor(
-            "text",
-            ElementType::U8,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        ctx.add_input_tensor(
-            "start_logits",
-            ElementType::U32,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        ctx.add_input_tensor(
-            "end_logits",
-            ElementType::U32,
-            DimensionsParam::Fixed(&[0]),
-        );
-        ctx.add_output_tensor(
-            "phrases",
-            ElementType::Utf8,
-            DimensionsParam::Fixed(&[0]),
-        );
-
-        Ok(())
-    }
-
-    fn kernel(node_id: String) -> Result<(), KernelError> {
-        let ctx = KernelContext::for_node(&node_id)
-            .ok_or(KernelError::MissingContext)?;
-
-        let text = ctx.get_input_tensor("text").ok_or_else(|| {
-            KernelError::InvalidInput(InvalidInput {
-                name: "text".to_string(),
-                reason: BadInputReason::NotFound,
-            })
-        })?;
-
-        let start_logits =
-            ctx.get_input_tensor("start_logits").ok_or_else(|| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "start_logits".to_string(),
-                    reason: BadInputReason::NotFound,
-                })
-            })?;
-
-        let end_logits =
-            ctx.get_input_tensor("end_logits").ok_or_else(|| {
-                KernelError::InvalidInput(InvalidInput {
-                    name: "end_logits".to_string(),
-                    reason: BadInputReason::NotFound,
-                })
-            })?;
-        match text.element_type {
-                ElementType::U8 =>{
-                     text.buffer.view::<u8>(&text.dimensions)
-                    .map_err(|e| KernelError::InvalidInput(InvalidInput{ name: "text".to_string(), reason: BadInputReason::InvalidValue(e.to_string()) }))?;
-                    }
-                other => {
-                    return Err(KernelError::Other(format!(
-                    "The Object Filter proc-block doesn't support {:?} element type",
-                    other,
-                    )))
-                },
-            };
-        match start_logits.element_type {
-                ElementType::U32 =>{
-                    start_logits.buffer.view::<f32>(&start_logits.dimensions)
-                    .map_err(|e| KernelError::InvalidInput(InvalidInput{ name: "start_logits".to_string(), reason: BadInputReason::InvalidValue(e.to_string()) }))?;
-                    }
-                other => {
-                    return Err(KernelError::Other(format!(
-                    "The Object Filter proc-block doesn't support {:?} element type",
-                    other,
-                    )))
-                },
-            };
-        match end_logits.element_type {
-                ElementType::U32 =>{
-                    end_logits.buffer.view::<f32>(&start_logits.dimensions)
-                    .map_err(|e| KernelError::InvalidInput(InvalidInput{ name: "end_logits".to_string(), reason: BadInputReason::InvalidValue(e.to_string()) }))?;
-                    }
-                other => {
-                    return Err(KernelError::Other(format!(
-                    "The Object Filter proc-block doesn't support {:?} element type",
-                    other,
-                    )))
-                },
-            };
-        let output = transform((
-            text.buffer.elements(),
-            start_logits.buffer.elements(),
-            end_logits.buffer.elements(),
-        ));
-
-        ctx.set_output_tensor(
-            "phrases",
-            TensorParam {
-                element_type: ElementType::Utf8,
-                dimensions: &[output.len() as u32],
-                buffer: &string_tensor_from_ndarray(&ndarray::arr1(&output)),
-            },
-        );
-
-        Ok(())
-    }
+hotg_rune_proc_blocks::export_proc_block! {
+    metadata: metadata,
+    proc_block: TextExtractor,
 }
 
-fn transform<'a>(inputs: (&[u8], &[u32], &[u32])) -> Vec<String> {
-    let (text, start_logits, end_logits) = inputs;
+fn metadata() -> Metadata {
+    Metadata::new("Text Extractor", env!("CARGO_PKG_VERSION"))
+        .with_description(
+                "Given a body of text and some start/end indices, extract parts of the text (i.e. words/phrases) specified by those indices.",
+            )
+        .with_repository(env!("CARGO_PKG_REPOSITORY"))
+        .with_homepage(env!("CARGO_PKG_HOMEPAGE"))
+        .with_tag("nlp")
+        .with_input(
+            TensorMetadata::new("text")
+                .with_description("The tokens making up this body of text."),
+        )
+        .with_input(
+            TensorMetadata::new("start_logits")
+                .with_description("The indices for the start of each word/phrase to extract."),
+        )
+        .with_input(
+            TensorMetadata::new("end_logits")
+                .with_description("The indices for the end of each word/phrase to extract."),
+        )
+        .with_output(
+            TensorMetadata::new("phrases")
+                .with_description("The phrases that were extracted.")
+        )
+}
 
-    let underlying_bytes: &[u8] = text.elements();
-    let input_text = core::str::from_utf8(underlying_bytes)
-        .expect("Input tensor should be valid UTF8");
+#[derive(Debug, Default, Clone, PartialEq)]
+struct TextExtractor;
 
-    let input_text: Vec<&str> = input_text.lines().collect();
-
-    let start_index: u32 = start_logits[0];
-    let end_index: u32 = end_logits[0];
-    if end_index <= start_index {
-        panic!(
-            "Start index: {} is greater than or equal to end index: {}",
-            start_index, end_index
-        );
-    }
-
-    let v = &input_text[start_index as usize..end_index as usize + 1];
-
-    let mut buffer = String::new();
-    for tok in v {
-        if let Some(s) = tok.strip_prefix("##") {
-            buffer.push_str(s);
-        } else {
-            if !buffer.is_empty() {
-                buffer.push_str(" ");
-            }
-            buffer.push_str(tok);
+impl ProcBlock for TextExtractor {
+    fn tensor_constraints(&self) -> TensorConstraints {
+        TensorConstraints {
+            inputs: vec![
+                TensorConstraint::new("wordlist", ElementType::Utf8, [0]),
+                TensorConstraint::new("start_logits", ElementType::U32, [0]),
+                TensorConstraint::new("end_logits", ElementType::U32, [0]),
+            ],
+            outputs: vec![TensorConstraint::new(
+                "phrases",
+                ElementType::Utf8,
+                [0],
+            )],
         }
     }
 
-    let output_text = vec![(buffer)];
+    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
+        let text = Tensor::get_named(&inputs, "text")?.string_view()?;
+        let start_logits =
+            Tensor::get_named(&inputs, "start_logits")?.view_1d::<u32>()?;
+        let end_logits =
+            Tensor::get_named(&inputs, "end_logits")?.view_1d::<u32>()?;
 
-    println!("output {:?}", &output_text);
+        let mut phrases = Vec::new();
 
-    output_text
+        for (i, (&start, &end)) in
+            start_logits.into_iter().zip(end_logits).enumerate()
+        {
+            let start = start as usize;
+            let end = end as usize;
+
+            if start == 0 && end == 0 {
+                // No more logits
+                break;
+            } else if start > end {
+                return Err(RunError::other(format!("At index {i}, the start logit ({start}) is after the end ({end})")));
+            } else if end > text.len() {
+                return Err(InvalidInput::invalid_value("end_logits", format!("The {i}'th logit, {end}, is out of bounds (num tokens: {})", text.len())).into());
+            } else if start >= text.len() {
+                return Err(InvalidInput::invalid_value("start_logits", format!("The {i}'th logit, {start}, is out of bounds (num tokens: {})", text.len())).into());
+            }
+
+            dbg!(start, end);
+            let tokens = text.slice(ndarray::s!(start..=end));
+            let phrase = merge_phrases(tokens.iter().copied());
+            phrases.push(phrase);
+        }
+
+        let phrases = ndarray::aview1(&phrases);
+        Ok(vec![Tensor::from_strings("phrases", &phrases)])
+    }
+}
+
+impl From<Vec<Argument>> for TextExtractor {
+    fn from(_: Vec<Argument>) -> Self { TextExtractor::default() }
+}
+
+fn merge_phrases<'a>(tokens: impl Iterator<Item = &'a str>) -> String {
+    let mut buffer = String::new();
+
+    for token in tokens {
+        match token.strip_prefix("##") {
+            Some(token) => buffer.push_str(token),
+            None => {
+                if !buffer.is_empty() {
+                    buffer.push_str(" ");
+                }
+                buffer.push_str(token);
+            },
+        }
+    }
+
+    buffer
 }
 
 #[cfg(test)]
 
 mod tests {
     use super::*;
+
     #[test]
-    fn test_token_extractor() {
-        let bytes: Vec<u8> = "[UNK]\n[UNK]\nuna\n##ffa\n##ble\nworld\n!"
-            .as_bytes()
-            .to_vec();
-        // let bytes =(bytes);
-        let start_index = [2_u32];
-        let end_index = [4_u32];
-        let output = transform((&bytes, &start_index, &end_index));
+    fn known_inputs() {
+        let proc_block = TextExtractor::default();
+        let words = ndarray::array![
+            "[UNK]", "[UNK]", "una", "##ffa", "##ble", "world", "!"
+        ];
+        let inputs = vec![
+            Tensor::from_strings("text", &words),
+            Tensor::new_1d("start_logits", &[2_u32]),
+            Tensor::new_1d("end_logits", &[4_u32]),
+        ];
 
-        let should_be = vec!["unaffable".to_string()];
+        let got = proc_block.run(inputs).unwrap();
 
-        assert_eq!(output, should_be);
+        let should_be = vec![Tensor::from_strings(
+            "phrases",
+            &ndarray::array!["unaffable"],
+        )];
+        assert_eq!(got, should_be);
     }
 }
