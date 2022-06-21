@@ -1,0 +1,16 @@
+[package]
+name = "logistic_regression"
+version = "0.12.0"
+edition = "2021"
+description = "a statistical model that models the probability of one event taking place by having the log-odds for the event be a linear combination of one or more independent variables."
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hotg-rune-proc-blocks = { git = "https://github.com/hotg-ai/proc-blocks", branch = "wit-files-v2" }
+smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development" }
+
+[package.metadata.wapm]
+namespace = "hotg-ai"
+abi = "none"
