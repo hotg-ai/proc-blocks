@@ -1,18 +1,16 @@
 use hotg_rune_proc_blocks::{
     guest::{
-        Argument, ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor, TensorConstraint,
+        parse, Argument, ArgumentMetadata, ArgumentType, CreateError, Dimensions,
+        ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor, TensorConstraint,
         TensorConstraints, TensorMetadata,
     },
-    ndarray::{Array1, Array2, ArrayView1, ArrayView2},
+    ndarray::{Array, Array1, Array2, ArrayView1, ArrayView2},
 };
 use smartcore::{
     linalg::naive::dense_matrix::*,
-    linalg::naive::dense_matrix::*,
     linear::logistic_regression::*,
-    metrics::{
-        f1::F1, linalg::naive::dense_matrix::*, model_selection::train_test_split,
-        precision::Precision, recall::Recall, *,
-    },
+    metrics::{f1::F1, precision::Precision, recall::Recall, *},
+    model_selection::train_test_split,
 };
 
 hotg_rune_proc_blocks::export_proc_block! {
@@ -43,10 +41,12 @@ fn metadata() -> Metadata {
         .with_output(TensorMetadata::new("recall"))
 }
 
-use serde::{Deserialize, Serialize};
-use serde_json;
+// use serde::{Deserialize, Serialize};
+// use serde_json;
 
-struct Logistic;
+struct Logistic {
+    test_size: f32,
+}
 
 impl ProcBlock for Logistic {
     fn tensor_constraints(&self) -> TensorConstraints {
@@ -69,8 +69,7 @@ impl ProcBlock for Logistic {
         let features = Tensor::get_named(&inputs, "features")?.view_2d()?;
         let targets = Tensor::get_named(&inputs, "targets")?.view_1d()?;
 
-        let (model, accuracy, f1, precision, recall) =
-            transform(features, targets, self.test_size);
+        let (model, accuracy, f1, precision, recall) = transform(features, targets, self.test_size)?;
 
         Ok(vec![
             Tensor::new_1d("f1", &[f1]),
@@ -80,11 +79,6 @@ impl ProcBlock for Logistic {
     }
 }
 
-impl From<Vec<Argument>> for Logistic {
-    fn from(_: Vec<Argument>) -> Self {
-        Logistic
-    }
-}
 
 fn transform(
     x: ArrayView2<'_, f64>,
@@ -114,6 +108,8 @@ fn transform(
     let model =
         LogisticRegression::fit(&x_train, &y_train, Default::default()).map_err(RunError::other)?;
 
+    let a = model.coefficients();
+
     let (rows, columns) = x_test.dim();
     let x_test: Vec<f64> = x_test.t().iter().copied().collect();
     let x_test = DenseMatrix::new(rows, columns, x_test);
@@ -141,16 +137,15 @@ fn transform(
     Ok((model, accuracy, f1, precision, recall))
 }
 
-impl TryFrom<Vec<Argument>> for TrainTestSplit {
+impl TryFrom<Vec<Argument>> for Logistic {
     type Error = CreateError;
 
     fn try_from(args: Vec<Argument>) -> Result<Self, Self::Error> {
         let test_size = parse::optional_arg(&args, "test_size")?.unwrap_or(0.2);
 
-        Ok(TrainTestSplit { test_size })
+        Ok(Logistic { test_size })
     }
 }
-
 
 // #[cfg(test)]
 // mod tests {
