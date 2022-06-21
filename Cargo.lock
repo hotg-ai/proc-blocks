@@ -127,6 +127,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "logistic_regression_inference"
+version = "0.12.0"
+dependencies = [
+ "hotg-rune-proc-blocks",
+ "serde_json",
+ "smartcore",
+]
+
+[[package]]
 name = "matrixmultiply"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

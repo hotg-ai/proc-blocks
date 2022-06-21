@@ -13,6 +13,8 @@ use smartcore::{
     model_selection::train_test_split,
 };
 
+use serde_json;
+
 hotg_rune_proc_blocks::export_proc_block! {
     metadata: metadata,
     proc_block: Logistic,
@@ -72,6 +74,8 @@ impl ProcBlock for Logistic {
         let (model, accuracy, f1, precision, recall) = transform(features, targets, self.test_size)?;
 
         Ok(vec![
+            Tensor::from_strings("model", &model),
+            Tensor::new_1d("accuracy", &[accuracy]),
             Tensor::new_1d("f1", &[f1]),
             Tensor::new_1d("precision", &[precision]),
             Tensor::new_1d("recall", &[recall]),
@@ -128,7 +132,7 @@ fn transform(
         return Err(RunError::other(msg));
     }
 
-    let model = serde_json::to_string(&model).unwrap();
+    let model = serde_json::to_string(&model).map_err(RunError::other);
     let accuracy = ClassificationMetrics::accuracy().get_score(&y_test.to_vec(), &y_pred.to_vec());
     let f1 = F1 { beta: 1.0 }.get_score(&y_test.to_vec(), &y_pred.to_vec());
     let precision = Precision {}.get_score(&y_test.to_vec(), &y_pred.to_vec());
