@@ -67,7 +67,7 @@ impl ProcBlock for Logistic {
         }
     }
 
-    fn run(&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
+    fn run (&self, inputs: Vec<Tensor>) -> Result<Vec<Tensor>, RunError> {
         let features = Tensor::get_named(&inputs, "features")?.view_2d()?;
         let targets = Tensor::get_named(&inputs, "targets")?.view_1d()?;
 
