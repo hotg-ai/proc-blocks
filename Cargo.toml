@@ -22,7 +22,6 @@ members = [
     "utf8_decode",
     "xtask",
     "password_strength",
-    "logistic_regression",
     "linear_regression",
     "elastic_net",
     "support_vector_classifier",
@@ -30,7 +29,8 @@ members = [
     "train_test_split",
     "accuracy",
     "f1-score",
-    "prediction_errors"
+    "prediction_errors",
+    "smartcore",
 ]
 
 # Uncomment these lines if you need to override wit-bindgen with hotg's fork.
