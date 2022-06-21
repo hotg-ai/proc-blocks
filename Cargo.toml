@@ -1,5 +1,0 @@
-[workspace]
-members = [
-    "logistic_regression",
-    "logistic_regression_inference",
-]
