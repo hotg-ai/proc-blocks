@@ -9,6 +9,7 @@ description = "a model template which takes json file as ab argument and perform
 [dependencies]
 hotg-rune-proc-blocks = { git = "https://github.com/hotg-ai/proc-blocks", branch = "wit-files-v2" }
 smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development" }
+serde = { version = "1", features = ["derive"], optional = true }
 serde_json = "1.0.81"
 
 

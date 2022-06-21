@@ -4,7 +4,7 @@ use hotg_rune_proc_blocks::{
         ElementTypeConstraint, Metadata, ProcBlock, RunError, Tensor, TensorConstraint,
         TensorConstraints, TensorMetadata,
     },
-    ndarray::{Array, Array1, Array2, ArrayView1, ArrayView2},
+    ndarray::{Array, Array1, Array2, ArrayView1, ArrayView2, self},
 };
 use smartcore::{
     linalg::naive::dense_matrix::*,
@@ -73,6 +73,8 @@ impl ProcBlock for Logistic {
 
         let (model, accuracy, f1, precision, recall) = transform(features, targets, self.test_size)?;
 
+        let model = ndarray::arr1(&[model]);
+
         Ok(vec![
             Tensor::from_strings("model", &model),
             Tensor::new_1d("accuracy", &[accuracy]),
@@ -132,7 +134,7 @@ fn transform(
         return Err(RunError::other(msg));
     }
 
-    let model = serde_json::to_string(&model).map_err(RunError::other);
+    let model = serde_json::to_string(&model).map_err(RunError::other)?;
     let accuracy = ClassificationMetrics::accuracy().get_score(&y_test.to_vec(), &y_pred.to_vec());
     let f1 = F1 { beta: 1.0 }.get_score(&y_test.to_vec(), &y_pred.to_vec());
     let precision = Precision {}.get_score(&y_test.to_vec(), &y_pred.to_vec());
