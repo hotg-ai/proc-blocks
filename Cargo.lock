@@ -383,7 +383,7 @@ dependencies = [
 [[package]]
 name = "smartcore"
 version = "0.2.1"
-source = "git+https://github.com/Mohit0928/smartcore?branch=development#9d0a459726ff2f6dbaa55e46f452a373c6a4e55d"
+source = "git+https://github.com/hotg-ai/smartcore?branch=development#0fc78c0ce8508cd4677a11b1c41a14cae519d54f"
 dependencies = [
  "num",
  "num-traits",

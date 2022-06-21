@@ -9,7 +9,7 @@ description = "a statistical model that models the probability of one event taki
 
 [dependencies]
 hotg-rune-proc-blocks = { git = "https://github.com/hotg-ai/proc-blocks", branch = "wit-files-v2" }
-smartcore = { git = "https://github.com/Mohit0928/smartcore", branch = "development" }
+smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development", features = "serde" }
 serde_json = "1.0.81"
 serde = { version = "1", features = ["derive"], optional = true }
 
