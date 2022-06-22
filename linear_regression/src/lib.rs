@@ -1,8 +1,10 @@
+
+
 // use linfa_logistic::LogisticRegression;
 use smartcore::{linalg::naive::dense_matrix::*, linear::linear_regression::*};
 
 use crate::proc_block_v1::{
-    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+    BadInputReason, GraphError,
     InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{ndarray, runtime_v1::*, BufferExt, SliceExt};
@@ -148,6 +150,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
                 "This proc-block only support f64 element type",
             )));
         }
+
+        log(&Metadata::new("", ""), &format!("{:?} {:?} {:?}", x_train, y_train, x_test), &[]);
 
         let output = transform(
             &x_train.buffer.elements(),
