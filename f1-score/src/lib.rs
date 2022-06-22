@@ -4,7 +4,7 @@ use crate::proc_block_v1::{
     BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
     InvalidInput, KernelError,
 };
-use hotg_rune_proc_blocks::{runtime_v1::*, BufferExt, SliceExt, ndarray};
+use hotg_rune_proc_blocks::{ndarray, runtime_v1::*, BufferExt, SliceExt};
 
 wit_bindgen_rust::export!("../wit-files/rune/proc-block-v1.wit");
 
@@ -61,51 +61,33 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
-
         ctx.add_input_tensor(
             "y_true",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_input_tensor(
             "y_pred",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_output_tensor(
             "f1_score",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
         ctx.add_output_tensor(
             "precision",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
         ctx.add_output_tensor(
             "recall",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
@@ -162,7 +144,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let metric = transform(
             y_true.buffer.elements().to_vec(),
             y_pred.buffer.elements().to_vec(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let f1 = vec![metric.0];
 
@@ -201,8 +184,10 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 }
 
-fn transform(y_true: Vec<f64>, y_pred: Vec<f64>) -> Result<(f64, f64, f64), KernelError> {
-
+fn transform(
+    y_true: Vec<f64>,
+    y_pred: Vec<f64>,
+) -> Result<(f64, f64, f64), KernelError> {
     if y_true.len() != y_pred.len() {
         return Err( KernelError::Other(format!(
         "Dimension Mismatch: dimension of true labels is {} while {} for predicted labels", y_true.len(), y_pred.len()
