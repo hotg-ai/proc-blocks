@@ -58,15 +58,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         tol.set_default_value("0.001");
         metadata.add_argument(&tol);
 
-        let element_type = ArgumentMetadata::new("element_type");
-        element_type
-            .set_description("The type of tensor this proc-block will accept");
-        element_type.set_default_value("f64");
-        element_type.add_hint(&interpret_as_string_in_enum(&[
-            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
-        ]));
-        metadata.add_argument(&element_type);
-
         // todo: how to add an array of string: [linear, rbf, polynomial,
         // polynomial_with_degree, sigmoid, sigmoiod_with_gamma].
         // Have to figure out how to how to change the parameter of polynomial,
@@ -113,45 +104,27 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
-
         ctx.add_input_tensor(
             "x_train",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0, 0]),
         );
 
         ctx.add_input_tensor(
             "y_train",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_input_tensor(
             "x_test",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0, 0]),
         );
 
         ctx.add_output_tensor(
             "y_test",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 

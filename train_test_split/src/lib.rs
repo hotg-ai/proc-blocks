@@ -56,15 +56,6 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         test_size.set_default_value("0.2");
         metadata.add_argument(&test_size);
 
-        let element_type = ArgumentMetadata::new("element_type");
-        element_type
-            .set_description("The type of tensor this proc-block will accept");
-        element_type.set_default_value("f64");
-        element_type.add_hint(&runtime_v1::interpret_as_string_in_enum(&[
-            "u8", "i8", "u16", "i16", "u32", "i32", "f32", "u64", "i64", "f64",
-        ]));
-        metadata.add_argument(&element_type);
-
         let x_train = TensorMetadata::new("x_train");
         let supported_types = [ElementType::F64];
         let hint =
@@ -98,57 +89,39 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
-
         ctx.add_input_tensor(
             "features",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0, 0]),
         );
 
         ctx.add_input_tensor(
             "targets",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_output_tensor(
             "x_train",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0, 0]),
         );
 
         ctx.add_output_tensor(
             "y_train",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_output_tensor(
             "x_test",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0, 0]),
         );
 
         ctx.add_output_tensor(
             "y_test",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 

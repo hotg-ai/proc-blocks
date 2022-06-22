@@ -94,73 +94,55 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
-
         ctx.add_input_tensor(
             "y_true",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_input_tensor(
             "y_pred",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_output_tensor(
             "f1_score",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
         ctx.add_output_tensor(
             "precision",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
         ctx.add_output_tensor(
             "recall",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
         ctx.add_output_tensor(
             "auc",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
         ctx.add_output_tensor(
             "mean_absolute_error",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
         ctx.add_output_tensor(
             "mean_square_error",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[1]),
         );
 
-        ctx.add_output_tensor("r2", element_type, DimensionsParam::Fixed(&[1]));
+        ctx.add_output_tensor("r2", ElementType::F64, DimensionsParam::Fixed(&[1]));
 
         Ok(())
     }

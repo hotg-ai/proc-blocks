@@ -57,45 +57,27 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
-        let element_type = match ctx.get_argument("element_type").as_deref() {
-            Some("f64") => ElementType::F64,
-            Some(_) => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::InvalidValue(
-                        "Unsupported element type".to_string(),
-                    ),
-                }));
-            },
-            None => {
-                return Err(GraphError::InvalidArgument(InvalidArgument {
-                    name: "element_type".to_string(),
-                    reason: BadArgumentReason::NotFound,
-                }))
-            },
-        };
-
         ctx.add_input_tensor(
             "x_train",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0, 0]),
         );
 
         ctx.add_input_tensor(
             "y_train",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
         ctx.add_input_tensor(
             "x_test",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0, 0]),
         );
 
         ctx.add_output_tensor(
             "y_test",
-            element_type,
+            ElementType::F64,
             DimensionsParam::Fixed(&[0]),
         );
 
