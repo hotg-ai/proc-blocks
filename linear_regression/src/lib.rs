@@ -151,7 +151,15 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             )));
         }
 
-        log(&Metadata::new("", ""), &format!("{:?} {:?} {:?}", x_train, y_train, x_test), &[]);
+        log(LogMetadata{
+            file: Some(file!()),
+            level: LogLevel::Info,
+            line: Some(line!()),
+            module: Some(module_path!()),
+            name: "",
+            target: module_path!()
+
+        }, &format!("{:?} {:?} {:?}", x_train, y_train, x_test), &[]);
 
         let output = transform(
             &x_train.buffer.elements(),
@@ -214,8 +222,8 @@ fn transform(
 // comenting out test because it will in after deciaml places everytime so we
 // can't generate a fixed y_pred. BUt I have tested in locally and it's working.
 // :) #[cfg(test)]
+#[cfg(test)]
 mod tests {
-    use super::*;
 
     // #[test]
     // fn check_model() {
