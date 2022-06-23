@@ -1,11 +1,8 @@
-
-
 // use linfa_logistic::LogisticRegression;
 use smartcore::{linalg::naive::dense_matrix::*, linear::linear_regression::*};
 
 use crate::proc_block_v1::{
-    BadInputReason, GraphError,
-    InvalidInput, KernelError,
+    BadInputReason, GraphError, InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{ndarray, runtime_v1::*, BufferExt, SliceExt};
 
@@ -16,6 +13,8 @@ struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
+        ensure_initialized();
+
         let metadata =
             Metadata::new("Linear Regression", env!("CARGO_PKG_VERSION"));
         metadata.set_description(
@@ -57,6 +56,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 
     fn graph(node_id: String) -> Result<(), GraphError> {
+        ensure_initialized();
+
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
@@ -88,6 +89,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 
     fn kernel(node_id: String) -> Result<(), KernelError> {
+        ensure_initialized();
+
         let ctx = KernelContext::for_node(&node_id)
             .ok_or(KernelError::MissingContext)?;
 
@@ -151,7 +154,18 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             )));
         }
 
-        log(&Metadata::new("", ""), &format!("{:?} {:?} {:?}", x_train, y_train, x_test), &[]);
+        log(
+            LogMetadata {
+                file: Some(file!()),
+                level: LogLevel::Info,
+                line: Some(line!()),
+                module: Some(module_path!()),
+                name: "",
+                target: module_path!(),
+            },
+            &format!("{:?} {:?} {:?}", x_train, y_train, x_test),
+            &[],
+        );
 
         let output = transform(
             &x_train.buffer.elements(),
@@ -214,6 +228,7 @@ fn transform(
 // comenting out test because it will in after deciaml places everytime so we
 // can't generate a fixed y_pred. BUt I have tested in locally and it's working.
 // :) #[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*;
 

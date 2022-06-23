@@ -14,6 +14,8 @@ struct ProcBlockV1;
 
 impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     fn register_metadata() {
+        ensure_initialized();
+
         let metadata =
             Metadata::new("Logistic Regression", env!("CARGO_PKG_VERSION"));
         metadata.set_description(
@@ -55,6 +57,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 
     fn graph(node_id: String) -> Result<(), GraphError> {
+        ensure_initialized();
+
         let ctx = GraphContext::for_node(&node_id)
             .ok_or(GraphError::MissingContext)?;
 
@@ -86,6 +90,8 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
     }
 
     fn kernel(node_id: String) -> Result<(), KernelError> {
+        ensure_initialized();
+
         let ctx = KernelContext::for_node(&node_id)
             .ok_or(KernelError::MissingContext)?;
 

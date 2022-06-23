@@ -1,9 +1,10 @@
-use crate::runtime::proc_block_v1::{
-    BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
-    InvalidInput, KernelError,
+use crate::runtime::{
+    proc_block_v1::{
+        BadArgumentReason, BadInputReason, GraphError, InvalidArgument,
+        InvalidInput, KernelError, ProcBlockV1,
+    },
+    runtime_v1::LogMetadata,
 };
-
-use self::proc_block_v1::{ProcBlockV1, ProcBlockV1Data};
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,62 +13,56 @@ use std::{
     num::NonZeroUsize,
     sync::{Arc, Mutex},
 };
-use wasmtime::{Engine, Linker, Module, Store};
+use wasmer::{ImportObject, Module, Store, WasmerEnv};
 
-wit_bindgen_wasmtime::export!("../wit-files/rune/runtime-v1.wit");
-wit_bindgen_wasmtime::import!("../wit-files/rune/proc-block-v1.wit");
+wit_bindgen_wasmer::export!("../wit-files/rune/runtime-v1.wit");
+wit_bindgen_wasmer::import!("../wit-files/rune/proc-block-v1.wit");
 
 pub struct Runtime {
-    rune: ProcBlockV1<State>,
-    store: Store<State>,
+    rune: ProcBlockV1,
+    shared: Arc<Mutex<Shared>>,
 }
 
 impl Runtime {
     #[tracing::instrument(skip(wasm))]
     pub fn load(wasm: &[u8]) -> Result<Self, Error> {
-        let engine = Engine::default();
-
         tracing::debug!("Loading the WebAssembly module");
 
-        let module = Module::new(&engine, wasm)
+        let mut store = Store::default();
+        let module = Module::new(&store, wasm)
             .context("Unable to instantiate the module")?;
-        let mut store = Store::new(&engine, State::default());
 
         tracing::debug!("Setting up the host functions");
 
-        let mut linker = Linker::new(&engine);
-        runtime_v1::add_to_linker(&mut linker, |state: &mut State| {
-            (&mut state.runtime, &mut state.tables)
-        })
-        .context("Unable to register the host functions")?;
+        let mut imports = ImportObject::default();
+        let shared = Arc::new(Mutex::new(Shared::default()));
+        runtime_v1::add_to_imports(
+            &store,
+            &mut imports,
+            RuntimeV1(shared.clone()),
+        );
 
         tracing::debug!("Instantiating the WebAssembly module");
 
-        let (rune, _) = ProcBlockV1::instantiate(
-            &mut store,
-            &module,
-            &mut linker,
-            |state: &mut State| &mut state.rune_v1_data,
-        )
-        .context("Unable to instantiate the WebAssembly module")?;
+        let (rune, _) =
+            ProcBlockV1::instantiate(&mut store, &module, &mut imports)
+                .context("Unable to instantiate the WebAssembly module")?;
 
-        Ok(Runtime { rune, store })
+        Ok(Runtime { rune, shared })
     }
 
     #[tracing::instrument(skip(self))]
     pub fn metadata(&mut self) -> Result<Metadata, Error> {
         tracing::debug!("Running the register_metadata() function");
 
-        self.rune.register_metadata(&mut self.store).context(
+        self.rune.register_metadata().context(
             "Unable to run the WebAssembly module's register_metadata() function",
         )?;
 
-        self.store
-            .data_mut()
-            .runtime
-            .node
-            .take()
-            .context("The WebAssembly module didn't register any metadata")
+        let mut shared = self.shared.lock().unwrap();
+        let metadata = std::mem::take(&mut shared.metadata);
+
+        Ok(metadata)
     }
 
     #[tracing::instrument(skip(self, args))]
@@ -75,32 +70,27 @@ impl Runtime {
         &mut self,
         args: HashMap<String, String>,
     ) -> Result<NodeInfo, Error> {
-        let ctx = GraphContext::new(args);
-        self.store.data_mut().runtime.graph_ctx =
-            Some(Arc::new(Mutex::new(ctx)));
+        let mut shared = self.shared.lock().unwrap();
+        shared.args = args;
+        drop(shared);
 
         self.rune
-            .graph(&mut self.store, "")
+            .graph("")
             .context("Unable to call the graph() function")??;
 
-        let ctx = self.store.data_mut().runtime.graph_ctx.take().unwrap();
-        let ctx = ctx.lock().unwrap();
-        Ok(ctx.node.clone())
+        let mut shared = self.shared.lock().unwrap();
+        Ok(std::mem::take(&mut shared.node))
     }
 }
 
-#[derive(Default)]
-struct State {
-    runtime: RuntimeV1,
-    tables: runtime_v1::RuntimeV1Tables<RuntimeV1>,
-    rune_v1_data: ProcBlockV1Data,
-}
+#[derive(Default, Clone, WasmerEnv)]
+struct RuntimeV1(Arc<Mutex<Shared>>);
 
-#[derive(Default)]
-struct RuntimeV1 {
-    node: Option<Metadata>,
-    graph_ctx: Option<Arc<Mutex<GraphContext>>>,
-    kernel_ctx: Option<Arc<Mutex<KernelContext>>>,
+#[derive(Default, Clone, WasmerEnv)]
+struct Shared {
+    args: HashMap<String, String>,
+    metadata: Metadata,
+    node: NodeInfo,
 }
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
@@ -261,21 +251,6 @@ enum ArgumentTypeRepr {
     LongString,
 }
 
-#[derive(Debug)]
-pub struct GraphContext {
-    args: HashMap<String, String>,
-    node: NodeInfo,
-}
-
-impl GraphContext {
-    pub fn new(args: HashMap<String, String>) -> Self {
-        GraphContext {
-            args,
-            node: NodeInfo::default(),
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct NodeInfo {
@@ -291,16 +266,11 @@ pub struct TensorInfo {
     pub dimensions: Dimensions,
 }
 
-#[derive(Debug)]
-pub struct KernelContext {
-    args: HashMap<String, String>,
-}
-
 impl runtime_v1::RuntimeV1 for RuntimeV1 {
     type ArgumentHint = ArgumentHint;
     type ArgumentMetadata = Mutex<ArgumentMetadata>;
-    type GraphContext = Arc<Mutex<GraphContext>>;
-    type KernelContext = Arc<Mutex<KernelContext>>;
+    type GraphContext = ();
+    type KernelContext = ();
     type Metadata = Mutex<Metadata>;
     type Model = ();
     type TensorHint = TensorHint;
@@ -478,32 +448,28 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
     }
 
     fn register_node(&mut self, metadata: &Self::Metadata) {
-        self.node = Some(metadata.lock().unwrap().clone());
+        self.0.lock().unwrap().metadata = metadata.lock().unwrap().clone();
     }
 
-    fn graph_context_for_node(
-        &mut self,
-        _name: &str,
-    ) -> Option<Self::GraphContext> {
-        self.graph_ctx.clone()
-    }
+    fn graph_context_for_node(&mut self, _name: &str) -> Option<()> { Some(()) }
 
     fn graph_context_get_argument(
         &mut self,
-        self_: &Self::GraphContext,
+        _: &Self::GraphContext,
         name: &str,
     ) -> Option<String> {
-        self_.lock().unwrap().args.get(name).cloned()
+        self.0.lock().unwrap().args.get(name).cloned()
     }
 
     fn graph_context_add_input_tensor(
         &mut self,
-        self_: &Self::GraphContext,
+        _: &Self::GraphContext,
         name: &str,
         element_type: runtime_v1::ElementType,
         dimensions: runtime_v1::DimensionsParam<'_>,
     ) {
-        self_.lock().unwrap().node.inputs.push(TensorInfo {
+        let mut shared = self.0.lock().unwrap();
+        shared.node.inputs.push(TensorInfo {
             name: name.to_string(),
             element_type: element_type.into(),
             dimensions: dimensions.into(),
@@ -512,12 +478,13 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
 
     fn graph_context_add_output_tensor(
         &mut self,
-        self_: &Self::GraphContext,
+        _: &Self::GraphContext,
         name: &str,
         element_type: runtime_v1::ElementType,
         dimensions: runtime_v1::DimensionsParam<'_>,
     ) {
-        self_.lock().unwrap().node.outputs.push(TensorInfo {
+        let mut shared = self.0.lock().unwrap();
+        shared.node.outputs.push(TensorInfo {
             name: name.to_string(),
             element_type: element_type.into(),
             dimensions: dimensions.into(),
@@ -528,20 +495,20 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
         &mut self,
         _name: &str,
     ) -> Option<Self::KernelContext> {
-        self.kernel_ctx.clone()
+        Some(())
     }
 
     fn kernel_context_get_argument(
         &mut self,
-        self_: &Self::KernelContext,
+        _: &Self::KernelContext,
         name: &str,
     ) -> Option<String> {
-        self_.lock().unwrap().args.get(name).cloned()
+        self.0.lock().unwrap().args.get(name).cloned()
     }
 
     fn kernel_context_get_input_tensor(
         &mut self,
-        _self_: &Self::KernelContext,
+        _: &Self::KernelContext,
         _name: &str,
     ) -> Option<runtime_v1::TensorResult> {
         unimplemented!()
@@ -549,18 +516,18 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
 
     fn kernel_context_set_output_tensor(
         &mut self,
-        _self_: &Self::KernelContext,
+        _: &Self::KernelContext,
         _name: &str,
         _tensor: runtime_v1::TensorParam<'_>,
     ) {
         unimplemented!()
     }
 
-    fn is_enabled(&mut self, _metadata: &Self::Metadata) -> bool { true }
+    fn is_enabled(&mut self, _metadata: LogMetadata<'_>) -> bool { true }
 
     fn log(
         &mut self,
-        metadata: &Self::Metadata,
+        metadata: LogMetadata<'_>,
         message: &str,
         data: runtime_v1::LogValueMap<'_>,
     ) {
@@ -569,7 +536,7 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
 
     fn kernel_context_get_global_input(
         &mut self,
-        _self_: &Self::KernelContext,
+        _: &Self::KernelContext,
         _name: &str,
     ) -> Option<runtime_v1::TensorResult> {
         todo!()
@@ -577,7 +544,7 @@ impl runtime_v1::RuntimeV1 for RuntimeV1 {
 
     fn kernel_context_set_global_output(
         &mut self,
-        _self_: &Self::KernelContext,
+        _: &Self::KernelContext,
         _name: &str,
         _tensor: runtime_v1::TensorParam<'_>,
     ) {

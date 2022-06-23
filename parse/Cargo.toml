@@ -10,7 +10,7 @@ description = "Parse a string tensor into a tensor of numeric values."
 
 [dependencies]
 hotg-rune-proc-blocks = { path = "../support" }
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen", branch = "wasmer" }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

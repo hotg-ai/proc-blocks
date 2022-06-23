@@ -12,7 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 hotg-rune-proc-blocks = { path = "../support" }
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen", branch = "wasmer" }
 num-traits = {version = "0.2.14", default-features=false, features=["libm"]}
 
 [package.metadata.wapm]
