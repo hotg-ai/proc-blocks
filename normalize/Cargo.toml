@@ -15,7 +15,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 num-traits = "0.2.14"
 hotg-rune-proc-blocks = { path = "../support" }
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen", branch = "wasmer" }
 
 [package.metadata.wapm]
 namespace = "hotg-ai"

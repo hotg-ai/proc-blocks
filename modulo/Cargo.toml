@@ -12,7 +12,7 @@ description = "Apply the modulus operator to each element in a tensor."
 [dependencies]
 num-traits = { version = "0.2.14", default-features = false }
 hotg-rune-proc-blocks = {path = "../support"}
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen", branch = "wasmer" }
 
 [lib]
 crate-type = ["rlib", "cdylib"]

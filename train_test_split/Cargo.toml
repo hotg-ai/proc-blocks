@@ -8,7 +8,7 @@ description = "a random split into training and test sets"
 
 [dependencies]
 hotg-rune-proc-blocks = { path = "../support" }
-wit-bindgen-rust = { git = "https://github.com/bytecodealliance/wit-bindgen" }
+wit-bindgen-rust = { git = "https://github.com/wasmerio/wit-bindgen", branch = "wasmer" }
 smartcore = { git = "https://github.com/hotg-ai/smartcore", branch = "development" }
 
 [lib]
