@@ -13,6 +13,7 @@ pub mod runtime_v1 {
     use std::{
         fmt::{self, Display, Formatter},
         str::FromStr,
+        sync::Once,
     };
 
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -125,6 +126,31 @@ pub mod runtime_v1 {
         fn _get_argument(&self, name: &str) -> Option<String> {
             self.get_argument(name)
         }
+    }
+
+    /// Make sure all once-off initialization is done.
+    ///
+    /// This does things like setting a panic handler which will make sure
+    /// panics get logged by the host instead of disappearing.
+    pub fn ensure_initialized() {
+        static ONCE: Once = Once::new();
+
+        ONCE.call_once(|| {
+            std::panic::set_hook(Box::new(|info| {
+                let msg = info.to_string();
+                let location = info.location();
+                let meta = LogMetadata {
+                    level: LogLevel::Error,
+                    file: location.map(|loc| loc.file()),
+                    line: location.map(|loc| loc.line()),
+                    module: Some(module_path!()),
+                    target: module_path!(),
+                    name: env!("CARGO_PKG_NAME"),
+                };
+
+                log(meta, &msg, &[]);
+            }));
+        });
     }
 }
 
