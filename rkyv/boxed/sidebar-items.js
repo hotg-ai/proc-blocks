@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["ArchivedBox","An archived [`Box`]."],["BoxResolver","The resolver for `Box`."]]};

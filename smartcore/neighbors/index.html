@@ -1,0 +1,48 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Supervised neighbors-based learning methods"><meta name="keywords" content="rust, rustlang, rust-lang, neighbors"><title>smartcore::neighbors - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Module neighbors</a></h2><div class="sidebar-elems"><section><div class="block"><ul><li><a href="#modules">Modules</a></li><li><a href="#enums">Enums</a></li><li><a href="#types">Type Definitions</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../smartcore/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Module <a href="../index.html">smartcore</a>::<wbr><a class="mod" href="#">neighbors</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../src/smartcore/neighbors/mod.rs.html#1-79">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Supervised neighbors-based learning methods</p>
+<h2 id="nearest-neighbors"><a href="#nearest-neighbors">Nearest Neighbors</a></h2>
+<p>The k-nearest neighbors (KNN) algorithm is a simple supervised machine learning algorithm that can be used to solve both classification and regression problems.
+KNN is a non-parametric method that assumes that similar things exist in close proximity.</p>
+<p>During training the algorithms memorizes all training samples. To make a prediction it finds a predefined set of training samples closest in distance to the new
+point and uses labels of found samples to calculate value of new point. The number of samples (k) is defined by user and does not change after training.</p>
+<p>The distance can be any metric measure that is defined as \( d(x, y) \geq 0\)
+and follows three conditions:</p>
+<ol>
+<li>\( d(x, y) = 0 \) if and only \( x = y \), positive definiteness</li>
+<li>\( d(x, y) = d(y, x) \), symmetry</li>
+<li>\( d(x, y) \leq d(x, z) + d(z, y) \), subadditivity or triangle inequality</li>
+</ol>
+<p>for all \(x, y, z \in Z \)</p>
+<p>Neighbors-based methods are very simple and are known as non-generalizing machine learning methods since they simply remember all of its training data and is prone to overfitting.
+Despite its disadvantages, nearest neighbors algorithms has been very successful in a large number of applications because of its flexibility and speed.</p>
+<p><strong>Advantages</strong></p>
+<ul>
+<li>The algorithm is simple and fast.</li>
+<li>The algorithm is non-parametric: there’s no need to build a model, the algorithm simply stores all training samples in memory.</li>
+<li>The algorithm is versatile. It can be used for classification, regression.</li>
+</ul>
+<p><strong>Disadvantages</strong></p>
+<ul>
+<li>The algorithm gets significantly slower as the number of examples and/or predictors/independent variables increase.</li>
+</ul>
+<h3 id="references"><a href="#references">References:</a></h3>
+<ul>
+<li><a href="http://ssg.mit.edu/cal/abs/2000_spring/np_dens/classification/cover67.pdf">“Nearest Neighbor Pattern Classification” Cover, T.M., IEEE Transactions on Information Theory (1967)</a></li>
+<li><a href="https://web.stanford.edu/%7Ehastie/ElemStatLearn/">“The Elements of Statistical Learning: Data Mining, Inference, and Prediction” Trevor et al., 2nd edition, chapter 13</a></li>
+</ul>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></div></details><h2 id="modules" class="small-section-header"><a href="#modules">Modules</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="mod" href="knn_classifier/index.html" title="smartcore::neighbors::knn_classifier mod">knn_classifier</a></div><div class="item-right docblock-short"><p>K Nearest Neighbors Classifier</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="knn_regressor/index.html" title="smartcore::neighbors::knn_regressor mod">knn_regressor</a></div><div class="item-right docblock-short"><p>K Nearest Neighbors Regressor</p>
+</div></div></div><h2 id="enums" class="small-section-header"><a href="#enums">Enums</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="enum" href="enum.KNNWeightFunction.html" title="smartcore::neighbors::KNNWeightFunction enum">KNNWeightFunction</a></div><div class="item-right docblock-short"><p>Weight function that is used to determine estimated value.</p>
+</div></div></div><h2 id="types" class="small-section-header"><a href="#types">Type Definitions</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="type" href="type.KNNAlgorithmName.html" title="smartcore::neighbors::KNNAlgorithmName type">KNNAlgorithmName</a><span class="stab deprecated" title="">Deprecated</span></div><div class="item-right docblock-short"><p><code>KNNAlgorithmName</code> maintains a list of supported search algorithms, see <a href="../algorithm/neighbour/index.html">KNN algorithms</a></p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

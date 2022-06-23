@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["EVD","Results of eigen decomposition"]],"trait":[["EVDDecomposableMatrix","Trait that implements EVD decomposition routine for any matrix."]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["DecisionTreeRegressor","Regression Tree"],["DecisionTreeRegressorParameters","Parameters of Regression Tree"]]};

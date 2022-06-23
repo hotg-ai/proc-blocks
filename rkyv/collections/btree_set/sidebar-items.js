@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["ArchivedBTreeSet","An archived `BTreeSet`. This is a wrapper around a B-tree map with the same key and a value of `()`."],["BTreeSetResolver","The resolver for archived B-tree sets."]]};

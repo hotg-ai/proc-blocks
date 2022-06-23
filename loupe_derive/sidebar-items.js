@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":[["MemoryUsage","Procedural macro to implement the `loupe::MemoryUsage` trait automatically for structs and enums."]]};

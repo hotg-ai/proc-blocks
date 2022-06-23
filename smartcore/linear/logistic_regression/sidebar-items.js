@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["LogisticRegressionSolverName","Solver options for Logistic regression. Right now only LBFGS solver is supported."]],"struct":[["LogisticRegression","Logistic Regression"],["LogisticRegressionParameters","Logistic Regression parameters"]]};

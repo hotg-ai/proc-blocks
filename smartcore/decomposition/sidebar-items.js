@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["pca","PCA is a popular approach for deriving a low-dimensional set of features from a large set of variables."],["svd","Dimensionality reduction using SVD"]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Minkowski","Defines the Minkowski distance of order `p`"]]};

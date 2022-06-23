@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["LinearRegressionSolverName","Approach to use for estimation of regression coefficients. QR is more efficient but SVD is more stable."]],"struct":[["LinearRegression","Linear Regression"],["LinearRegressionParameters","Linear Regression parameters"]]};

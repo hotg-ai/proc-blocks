@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["PCA","Principal components analysis algorithm"],["PCAParameters","PCA parameters"]]};

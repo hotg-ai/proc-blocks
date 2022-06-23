@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["ArchivedCString","An archived `CString`."],["CStringResolver","The resolver for `CString`."]]};

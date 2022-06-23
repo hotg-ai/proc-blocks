@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/smartcore-21ea4dcbae50956e/31f8612/src/linear/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div>
+        </a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../smartcore/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<span id="2">2</span>
+<span id="3">3</span>
+<span id="4">4</span>
+<span id="5">5</span>
+<span id="6">6</span>
+<span id="7">7</span>
+<span id="8">8</span>
+<span id="9">9</span>
+<span id="10">10</span>
+<span id="11">11</span>
+<span id="12">12</span>
+<span id="13">13</span>
+<span id="14">14</span>
+<span id="15">15</span>
+<span id="16">16</span>
+<span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+</pre><pre class="rust"><code><span class="doccomment">//! # Linear Models</span>
+<span class="doccomment">//! Linear models describe a continuous response variable as a function of one or more predictor variables.</span>
+<span class="doccomment">//! The model describes the relationship between a dependent variable y (also called the response) as a function of one or more independent, or explanatory variables \\(X_i\\). The general equation for a linear model is:</span>
+<span class="doccomment">//! \\[y = \beta_0 + \sum_{i=1}^n \beta_iX_i + \epsilon\\]</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! where \\(\beta_0 \\) is the intercept term (the expected value of Y when X = 0), \\(\epsilon \\) is an error term that is is independent of X and \\(\beta_i \\)</span>
+<span class="doccomment">//! is the average increase in y associated with a one-unit increase in \\(X_i\\)</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Model assumptions:</span>
+<span class="doccomment">//! * _Linearity_. The relationship between X and the mean of y is linear.</span>
+<span class="doccomment">//! * _Constant variance_. The variance of residual is the same for any value of X.</span>
+<span class="doccomment">//! * _Normality_. For any fixed value of X, Y is normally distributed.</span>
+<span class="doccomment">//! * _Independence_. Observations are independent of each other.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! ## References:</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! * [&quot;An Introduction to Statistical Learning&quot;, James G., Witten D., Hastie T., Tibshirani R., 3. Linear Regression](http://faculty.marshall.usc.edu/gareth-james/ISL/)</span>
+<span class="doccomment">//! * [&quot;The Statistical Sleuth, A Course in Methods of Data Analysis&quot;, Ramsey F.L., Schafer D.W., Ch 7, 8, 3rd edition, 2013](http://www.statisticalsleuth.com/)</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! &lt;script src=&quot;https://polyfill.io/v3/polyfill.min.js?features=es6&quot;&gt;&lt;/script&gt;</span>
+<span class="doccomment">//! &lt;script id=&quot;MathJax-script&quot; async src=&quot;https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js&quot;&gt;&lt;/script&gt;</span>
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod</span> <span class="ident">bg_solver</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">elastic_net</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">lasso</span>;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod</span> <span class="ident">lasso_optimizer</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">linear_regression</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">logistic_regression</span>;
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">ridge_regression</span>;
+</code></pre></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

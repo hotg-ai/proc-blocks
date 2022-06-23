@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["GaussianNB","GaussianNB implements the naive Bayes algorithm for data that follows the Gaussian distribution."],["GaussianNBParameters","`GaussianNB` parameters. Use `Default::default()` for default values."]]};

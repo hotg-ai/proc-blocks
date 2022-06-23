@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["tokenizer","Tokenizers"],["vocab","Vocabularies"]],"struct":[["Tokenizers",""]]};

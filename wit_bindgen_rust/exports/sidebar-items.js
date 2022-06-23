@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["InBuffer","Implementation of `(in-buffer T)`"],["InBufferRaw","Implementation of `(in-buffer T)` for raw types `T` that can be directly copied into."],["OutBuffer","Implementation of `(in-buffer T)`"],["OutBufferRaw","Implementation of `(out-buffer T)` for raw types `T` that can be directly copied to the caller."]]};

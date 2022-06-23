@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["SVC","Support Vector Classifier"],["SVCParameters","SVC Parameters"]]};

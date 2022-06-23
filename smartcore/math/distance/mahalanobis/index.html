@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="The Mahalanobis distance is the distance between two points in multivariate space."><meta name="keywords" content="rust, rustlang, rust-lang, mahalanobis"><title>smartcore::math::distance::mahalanobis - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../../main.js"></script><noscript><link rel="stylesheet" href="../../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../../favicon.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Module mahalanobis</a></h2><div class="sidebar-elems"><section><div class="block"><ul><li><a href="#structs">Structs</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../../smartcore/index.html"><img class="rust-logo" src="../../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Module <a href="../../../index.html">smartcore</a>::<wbr><a href="../../index.html">math</a>::<wbr><a href="../index.html">distance</a>::<wbr><a class="mod" href="#">mahalanobis</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../../../src/smartcore/math/distance/mahalanobis.rs.html#1-156">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>The Mahalanobis distance is the distance between two points in multivariate space.</p>
+<h2 id="mahalanobis-distance"><a href="#mahalanobis-distance">Mahalanobis Distance</a></h2>
+<p>The Mahalanobis distance (MD) is the distance between two points in multivariate space.
+In a regular Euclidean space the distance between any two points can be measured with <a href="../euclidian/index.html">Euclidean distance</a>.
+For uncorrelated variables, the Euclidean distance equals the MD. However, if two or more variables are correlated the measurements become impossible
+with Euclidean distance because the axes are no longer at right angles to each other. MD on the other hand, is scale-invariant,
+it takes into account the covariance matrix of the dataset when calculating distance between 2 points that belong to the same space as the dataset.</p>
+<p>MD between two vectors \( x \in ℝ^n \) and \( y \in ℝ^n \) is defined as
+\[ d(x, y) = \sqrt{(x - y)^TS^{-1}(x - y)}\]</p>
+<p>where \( S \) is the covariance matrix of the dataset.</p>
+<p>Example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">smartcore::linalg::naive::dense_matrix</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">smartcore::math::distance::Distance</span>;
+<span class="kw">use</span> <span class="ident">smartcore::math::distance::mahalanobis::Mahalanobis</span>;
+
+<span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">DenseMatrix::from_2d_array</span>(<span class="kw-2">&amp;</span>[
+                  <span class="kw-2">&amp;</span>[<span class="number">64.</span>, <span class="number">580.</span>, <span class="number">29.</span>],
+                  <span class="kw-2">&amp;</span>[<span class="number">66.</span>, <span class="number">570.</span>, <span class="number">33.</span>],
+                  <span class="kw-2">&amp;</span>[<span class="number">68.</span>, <span class="number">590.</span>, <span class="number">37.</span>],
+                  <span class="kw-2">&amp;</span>[<span class="number">69.</span>, <span class="number">660.</span>, <span class="number">46.</span>],
+                  <span class="kw-2">&amp;</span>[<span class="number">73.</span>, <span class="number">600.</span>, <span class="number">55.</span>],
+]);
+
+<span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="ident">data</span>.<span class="ident">column_mean</span>();
+<span class="kw">let</span> <span class="ident">b</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">66.</span>, <span class="number">640.</span>, <span class="number">44.</span>];
+
+<span class="kw">let</span> <span class="ident">mahalanobis</span> <span class="op">=</span> <span class="ident">Mahalanobis::new</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>);
+
+<span class="ident">mahalanobis</span>.<span class="ident">distance</span>(<span class="kw-2">&amp;</span><span class="ident">a</span>, <span class="kw-2">&amp;</span><span class="ident">b</span>);</code></pre></div>
+<h3 id="references"><a href="#references">References</a></h3>
+<ul>
+<li><a href="https://www.taylorfrancis.com/books/9780429145049">“Introduction to Multivariate Statistical Analysis in Chemometrics”, Varmuza, K., Filzmoser, P., 2016, p.46</a></li>
+<li><a href="https://jamesmccaffrey.wordpress.com/2017/11/09/example-of-calculating-the-mahalanobis-distance/">“Example of Calculating the Mahalanobis Distance”, McCaffrey, J.D.</a></li>
+</ul>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.Mahalanobis.html" title="smartcore::math::distance::mahalanobis::Mahalanobis struct">Mahalanobis</a></div><div class="item-right docblock-short"><p>Mahalanobis distance.</p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

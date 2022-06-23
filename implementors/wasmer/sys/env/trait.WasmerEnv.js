@@ -1,0 +1,4 @@
+(function() {var implementors = {};
+implementors["wasmer"] = [];
+implementors["xtask"] = [{"text":"impl <a class=\"trait\" href=\"wasmer/sys/env/trait.WasmerEnv.html\" title=\"trait wasmer::sys::env::WasmerEnv\">WasmerEnv</a> for <a class=\"struct\" href=\"xtask/runtime/proc_block_v1/struct.ProcBlockV1Data.html\" title=\"struct xtask::runtime::proc_block_v1::ProcBlockV1Data\">ProcBlockV1Data</a>","synthetic":false,"types":["xtask::runtime::proc_block_v1::ProcBlockV1Data"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

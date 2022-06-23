@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Get the start and end (byte index) range (`Range&lt;usize&gt;`), where `substring` is located in `string`. The returned range is relative to `string`."><meta name="keywords" content="rust, rustlang, rust-lang, str_to_range_unchecked"><title>str_to_range_unchecked in line_span - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../dark.css" disabled><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../main.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../favicon.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../line_span/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../line_span/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><div class="sidebar-elems"><h2 class="location"><a href="index.html">In line_span</a></h2></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../line_span/index.html"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Function <a href="index.html">line_span</a>::<wbr><a class="fn" href="#">str_to_range_unchecked</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../src/line_span/lib.rs.html#587-592">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><div class="docblock item-decl"><pre class="rust fn"><code>pub fn str_to_range_unchecked(string: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/core/primitive.str.html">str</a>, substring: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/core/primitive.str.html">str</a>) -&gt; <a class="struct" href="https://doc.rust-lang.org/nightly/core/ops/range/struct.Range.html" title="struct core::ops::range::Range">Range</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/core/primitive.usize.html">usize</a>&gt;</code></pre></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Get the start and end (byte index) range (<code>Range&lt;usize&gt;</code>), where <code>substring</code>
+is located in <code>string</code>.
+The returned range is relative to <code>string</code>.</p>
+<p>If <code>substring</code> is not a part of <code>string</code>, it either panics or returns an
+invalid range.</p>
+<p><em>For a safe version, check out <a href="fn.str_to_range.html"><code>str_to_range</code></a>.</em></p>
+<h2 id="panics"><a href="#panics">Panics</a></h2>
+<p>Panics if <code>substring</code> is not a substring of <code>string</code>. *</p>
+<p>* Panicking depends on where the strings are located in memory. It might
+not panic but instead return an invalid range.</p>
+<h2 id="example"><a href="#example">Example</a></h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let</span> <span class="ident">string</span> <span class="op">=</span> <span class="string">&quot;Foo Bar Baz&quot;</span>;
+
+<span class="kw">let</span> <span class="ident">substring</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">string</span>[<span class="number">4</span>..<span class="number">7</span>]; <span class="comment">// &quot;Bar&quot;</span>
+
+<span class="macro">assert_eq!</span>(<span class="ident">str_to_range_unchecked</span>(<span class="ident">string</span>, <span class="ident">substring</span>), <span class="number">4</span>..<span class="number">7</span>);</code></pre></div>
+<h2 id="example---substring-of-substring"><a href="#example---substring-of-substring">Example - Substring of Substring</a></h2>
+<p>Since the resulting range is relative to <code>string</code>, that implies
+<code>substring</code> can be a substring of a substring of a substring of …
+and so on.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let</span> <span class="ident">s1</span> <span class="op">=</span> <span class="string">&quot;Foo Bar Baz&quot;</span>;
+
+<span class="comment">// Substring of `s1`</span>
+<span class="kw">let</span> <span class="ident">s2</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">s1</span>[<span class="number">4</span>..<span class="number">11</span>]; <span class="comment">// &quot;Bar Baz&quot;</span>
+
+<span class="comment">// Substring of `s1`</span>
+<span class="kw">let</span> <span class="ident">s3</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">s1</span>[<span class="number">4</span>..<span class="number">7</span>]; <span class="comment">// &quot;Bar&quot;</span>
+
+<span class="comment">// Substring of `s2`, which is a substring of `s1`</span>
+<span class="kw">let</span> <span class="ident">s4</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">s2</span>[<span class="number">0</span>..<span class="number">3</span>]; <span class="comment">// &quot;Bar&quot;</span>
+
+<span class="comment">// Get the range of `s2` relative to `s1`</span>
+<span class="macro">assert_eq!</span>(<span class="ident">str_to_range_unchecked</span>(<span class="ident">s1</span>, <span class="ident">s2</span>), <span class="number">4</span>..<span class="number">11</span>);
+
+<span class="comment">// Get the range of `s3` relative to `s1`</span>
+<span class="macro">assert_eq!</span>(<span class="ident">str_to_range_unchecked</span>(<span class="ident">s1</span>, <span class="ident">s3</span>), <span class="number">4</span>..<span class="number">7</span>);
+
+<span class="comment">// Get the range of `s4` relative to `s1`</span>
+<span class="macro">assert_eq!</span>(<span class="ident">str_to_range_unchecked</span>(<span class="ident">s1</span>, <span class="ident">s4</span>), <span class="number">4</span>..<span class="number">7</span>);
+
+<span class="comment">// Get the range of `s4` relative to `s2`</span>
+<span class="macro">assert_eq!</span>(<span class="ident">str_to_range_unchecked</span>(<span class="ident">s2</span>, <span class="ident">s4</span>), <span class="number">0</span>..<span class="number">3</span>);</code></pre></div>
+</div></details></section></div></main><div id="rustdoc-vars" data-root-path="../" data-current-crate="line_span" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="SmartCore"><meta name="keywords" content="rust, rustlang, rust-lang, smartcore"><title>smartcore - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../dark.css" disabled><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../storage.js"></script><script defer src="../crates.js"></script><script defer src="../main.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../favicon.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Crate smartcore</a></h2><div class="sidebar-elems"><div class="block"><ul><li class="version">Version 0.2.1</li><li><a id="all-types" href="all.html">All Items</a></li></ul></div><section><div class="block"><ul><li><a href="#modules">Modules</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../smartcore/index.html"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Crate <a class="mod" href="#">smartcore</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../src/smartcore/lib.rs.html#1-101">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="smartcore"><a href="#smartcore">SmartCore</a></h2>
+<p>Welcome to SmartCore, the most advanced machine learning library in Rust!</p>
+<p>SmartCore features various classification, regression and clustering algorithms including support vector machines, random forests, k-means and DBSCAN,
+as well as tools for model selection and model evaluation.</p>
+<p>SmartCore is well integrated with a with wide variaty of libraries that provide support for large, multi-dimensional arrays and matrices. At this moment,
+all Smartcore’s algorithms work with ordinary Rust vectors, as well as matrices and vectors defined in these packages:</p>
+<ul>
+<li><a href="https://docs.rs/ndarray">ndarray</a></li>
+<li><a href="https://docs.rs/nalgebra/">nalgebra</a></li>
+</ul>
+<h3 id="getting-started"><a href="#getting-started">Getting Started</a></h3>
+<p>To start using SmartCore simply add the following to your Cargo.toml file:</p>
+
+<div class='information'><div class='tooltip ignore'>ⓘ</div></div><div class="example-wrap"><pre class="rust rust-example-rendered ignore"><code>[<span class="ident">dependencies</span>]
+<span class="ident">smartcore</span> <span class="op">=</span> <span class="string">&quot;0.2.0&quot;</span></code></pre></div>
+<p>All machine learning algorithms in SmartCore are grouped into these broad categories:</p>
+<ul>
+<li><a href="cluster/index.html">Clustering</a>, unsupervised clustering of unlabeled data.</li>
+<li><a href="decomposition/index.html">Matrix Decomposition</a>, various methods for matrix decomposition.</li>
+<li><a href="linear/index.html">Linear Models</a>, regression and classification methods where output is assumed to have linear relation to explanatory variables</li>
+<li><a href="ensemble/index.html">Ensemble Models</a>, variety of regression and classification ensemble models</li>
+<li><a href="tree/index.html">Tree-based Models</a>, classification and regression trees</li>
+<li><a href="neighbors/index.html">Nearest Neighbors</a>, K Nearest Neighbors for classification and regression</li>
+<li><a href="naive_bayes/index.html">Naive Bayes</a>, statistical classification technique based on Bayes Theorem</li>
+<li><a href="svm/index.html">SVM</a>, support vector machines</li>
+</ul>
+<p>For example, you can use this code to fit a <a href="neighbors/knn_classifier/index.html">K Nearest Neighbors classifier</a> to a dataset that is defined as standard Rust vector:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// DenseMatrix defenition</span>
+<span class="kw">use</span> <span class="ident">smartcore::linalg::naive::dense_matrix</span>::<span class="kw-2">*</span>;
+<span class="comment">// KNNClassifier</span>
+<span class="kw">use</span> <span class="ident">smartcore::neighbors::knn_classifier</span>::<span class="kw-2">*</span>;
+<span class="comment">// Various distance metrics</span>
+<span class="kw">use</span> <span class="ident">smartcore::math::distance</span>::<span class="kw-2">*</span>;
+
+<span class="comment">// Turn Rust vectors with samples into a matrix</span>
+<span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">DenseMatrix::from_2d_array</span>(<span class="kw-2">&amp;</span>[
+   <span class="kw-2">&amp;</span>[<span class="number">1.</span>, <span class="number">2.</span>],
+   <span class="kw-2">&amp;</span>[<span class="number">3.</span>, <span class="number">4.</span>],
+   <span class="kw-2">&amp;</span>[<span class="number">5.</span>, <span class="number">6.</span>],
+   <span class="kw-2">&amp;</span>[<span class="number">7.</span>, <span class="number">8.</span>],
+   <span class="kw-2">&amp;</span>[<span class="number">9.</span>, <span class="number">10.</span>]]);
+<span class="comment">// Our classes are defined as a Vector</span>
+<span class="kw">let</span> <span class="ident">y</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">2.</span>, <span class="number">2.</span>, <span class="number">2.</span>, <span class="number">3.</span>, <span class="number">3.</span>];
+
+<span class="comment">// Train classifier</span>
+<span class="kw">let</span> <span class="ident">knn</span> <span class="op">=</span> <span class="ident">KNNClassifier::fit</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">y</span>, <span class="ident">Default::default</span>()).<span class="ident">unwrap</span>();
+
+<span class="comment">// Predict classes</span>
+<span class="kw">let</span> <span class="ident">y_hat</span> <span class="op">=</span> <span class="ident">knn</span>.<span class="ident">predict</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>).<span class="ident">unwrap</span>();</code></pre></div>
+</div></details><h2 id="modules" class="small-section-header"><a href="#modules">Modules</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="mod" href="algorithm/index.html" title="smartcore::algorithm mod">algorithm</a></div><div class="item-right docblock-short"><p>Various algorithms and helper methods that are used elsewhere in SmartCore</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="api/index.html" title="smartcore::api mod">api</a></div><div class="item-right docblock-short"><p>Common Interfaces and API</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="cluster/index.html" title="smartcore::cluster mod">cluster</a></div><div class="item-right docblock-short"><p>Algorithms for clustering of unlabeled data</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="dataset/index.html" title="smartcore::dataset mod">dataset</a></div><div class="item-right docblock-short"><p>Various datasets
+Datasets</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="decomposition/index.html" title="smartcore::decomposition mod">decomposition</a></div><div class="item-right docblock-short"><p>Matrix decomposition algorithms</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="ensemble/index.html" title="smartcore::ensemble mod">ensemble</a></div><div class="item-right docblock-short"><p>Ensemble methods, including Random Forest classifier and regressor</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="error/index.html" title="smartcore::error mod">error</a></div><div class="item-right docblock-short"><p>Custom warnings and errors</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="linalg/index.html" title="smartcore::linalg mod">linalg</a></div><div class="item-right docblock-short"><p>Diverse collection of linear algebra abstractions and methods that power SmartCore algorithms</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="linear/index.html" title="smartcore::linear mod">linear</a></div><div class="item-right docblock-short"><p>Supervised classification and regression models that assume linear relationship between dependent and explanatory variables.</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="math/index.html" title="smartcore::math mod">math</a></div><div class="item-right docblock-short"><p>Helper methods and classes, including definitions of distance metrics</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="metrics/index.html" title="smartcore::metrics mod">metrics</a></div><div class="item-right docblock-short"><p>Functions for assessing prediction error.</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="model_selection/index.html" title="smartcore::model_selection mod">model_selection</a></div><div class="item-right docblock-short"><p>Model Selection methods</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="naive_bayes/index.html" title="smartcore::naive_bayes mod">naive_bayes</a></div><div class="item-right docblock-short"><p>Supervised learning algorithms based on applying the Bayes theorem with the independence assumptions between predictors</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="neighbors/index.html" title="smartcore::neighbors mod">neighbors</a></div><div class="item-right docblock-short"><p>Supervised neighbors-based learning methods</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="preprocessing/index.html" title="smartcore::preprocessing mod">preprocessing</a></div><div class="item-right docblock-short"><p>Preprocessing utilities</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="svm/index.html" title="smartcore::svm mod">svm</a></div><div class="item-right docblock-short"><p>Support Vector Machines</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="mod" href="tree/index.html" title="smartcore::tree mod">tree</a></div><div class="item-right docblock-short"><p>Supervised tree-based learning methods</p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

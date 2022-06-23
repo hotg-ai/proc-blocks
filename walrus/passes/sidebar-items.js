@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["gc","Removes any non-referenced items from a module"]],"struct":[["Roots","Set of all root used items in a wasm module."]]};

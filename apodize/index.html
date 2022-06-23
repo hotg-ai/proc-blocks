@@ -1,0 +1,107 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="very simple rust iterators that yield generalized cosine, hanning, hamming, blackman, nuttall and triangular windows"><meta name="keywords" content="rust, rustlang, rust-lang, apodize"><title>apodize - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../dark.css" disabled><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../storage.js"></script><script defer src="../crates.js"></script><script defer src="../main.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../favicon.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../apodize/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../apodize/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Crate apodize</a></h2><div class="sidebar-elems"><div class="block"><ul><li class="version">Version 1.0.0</li><li><a id="all-types" href="all.html">All Items</a></li></ul></div><section><div class="block"><ul><li><a href="#structs">Structs</a></li><li><a href="#functions">Functions</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../apodize/index.html"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Crate <a class="mod" href="#">apodize</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../src/apodize/lib.rs.html#1-257">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p><strong>very simple rust iterators that yield
+<a href="https://snd.github.io/apodize/apodize/fn.cosine_iter.html">generalized cosine</a>,
+<a href="https://snd.github.io/apodize/apodize/fn.hanning_iter.html">hanning</a>,
+<a href="https://snd.github.io/apodize/apodize/fn.hamming_iter.html">hamming</a>,
+<a href="https://snd.github.io/apodize/apodize/fn.blackman_iter.html">blackman</a>,
+<a href="https://snd.github.io/apodize/apodize/fn.nuttall_iter.html">nuttall</a>
+and
+<a href="https://snd.github.io/apodize/apodize/fn.triangular_iter.html">triangular</a>
+windows</strong></p>
+<p>useful for
+smoothing the sharp discontinuities at the beginning and end
+of a slice of samples when doing a
+<a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform">short time fourier transform</a>.
+windowing also improves temporal resolution by making
+the signal near the time
+being analyzed have higher weight than the signal
+further away from the time being analyzed.</p>
+<p>all iterators yield <code>f64</code>s.
+previously they were generic over the floating type used.
+this was removed because it introduced complexity.
+if you need <code>f32</code>s just <code>.map(|x| x as f32)</code> over the iterator.</p>
+<h3 id="example"><a href="#example">example</a></h3>
+<p>you will most likely want to collect the yielded values
+in a vector and then multiply that window vector repeatedly with some
+data vectors to apodize them.</p>
+<p>here is an example of that for a hanning window (hamming, blackman and nuttall are analogous).</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">approx</span>;
+
+<span class="kw">fn</span> <span class="ident">main</span>() {
+    <span class="comment">// create a hanning window iterator of size 7</span>
+    <span class="comment">// and collect the values it yields in a Vec</span>
+    <span class="kw">let</span> <span class="ident">window</span> <span class="op">=</span> <span class="ident">apodize::hanning_iter</span>(<span class="number">7</span>).<span class="ident">collect</span>::<span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">f64</span><span class="op">&gt;</span><span class="op">&gt;</span>();
+
+    <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="macro">vec!</span>[
+        <span class="number">0.0</span>,
+        <span class="number">0.24999999999999994</span>,
+        <span class="number">0.7499999999999999</span>,
+        <span class="number">1.0</span>,
+        <span class="number">0.7500000000000002</span>,
+        <span class="number">0.25</span>,
+        <span class="number">0.0</span>
+    ];
+    <span class="macro">assert_ulps_eq!</span>(<span class="ident">window</span>.<span class="ident">as_slice</span>(), <span class="ident">expected</span>.<span class="ident">as_slice</span>(), <span class="ident">max_ulps</span> <span class="op">=</span> <span class="number">10</span>);
+
+    <span class="comment">// some data we want to apodize (multiply with the window)</span>
+    <span class="kw">let</span> <span class="ident">data</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">f64</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">1.</span>, <span class="number">2.</span>, <span class="number">3.</span>, <span class="number">4.</span>, <span class="number">5.</span>, <span class="number">6.</span>, <span class="number">7.</span>];
+
+    <span class="comment">// buffer that will hold data * window</span>
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">windowed_data</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0.</span>; <span class="ident">data</span>.<span class="ident">len</span>()];
+
+    <span class="kw">for</span> (<span class="ident">windowed</span>, (<span class="ident">window</span>, <span class="ident">data</span>)) <span class="kw">in</span> <span class="ident">windowed_data</span>.<span class="ident">iter_mut</span>().<span class="ident">zip</span>(<span class="ident">window</span>.<span class="ident">iter</span>().<span class="ident">zip</span>(<span class="ident">data</span>.<span class="ident">iter</span>())) {
+        <span class="kw-2">*</span><span class="ident">windowed</span> <span class="op">=</span> <span class="kw-2">*</span><span class="ident">window</span> <span class="op">*</span> <span class="kw-2">*</span><span class="ident">data</span>;
+    }
+
+    <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="macro">vec!</span>[
+        <span class="number">0.0</span>,
+        <span class="number">0.4999999999999999</span>,
+        <span class="number">2.2499999999999996</span>,
+        <span class="number">4.0</span>,
+        <span class="number">3.750000000000001</span>,
+        <span class="number">1.5</span>,
+        <span class="number">0.0</span>
+    ];
+    <span class="macro">assert_ulps_eq!</span>(<span class="ident">windowed_data</span>.<span class="ident">as_slice</span>(), <span class="ident">expected</span>.<span class="ident">as_slice</span>(), <span class="ident">max_ulps</span> <span class="op">=</span> <span class="number">10</span>);
+}</code></pre></div>
+</div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.CosineWindowIter.html" title="apodize::CosineWindowIter struct">CosineWindowIter</a></div><div class="item-right docblock-short"><p>holds the window coefficients and
+iteration state of an iterator for a cosine window</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.TriangularWindowIter.html" title="apodize::TriangularWindowIter struct">TriangularWindowIter</a></div><div class="item-right docblock-short"><p>holds the iteration state of an iterator for a triangular window</p>
+</div></div></div><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.blackman_iter.html" title="apodize::blackman_iter fn">blackman_iter</a></div><div class="item-right docblock-short"><p>returns an iterator that yields the values for a <a href="https://en.wikipedia.org/wiki/Window_function#Blackman_windows">blackman
+window</a> of <code>size</code></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.cosine_at.html" title="apodize::cosine_at fn">cosine_at</a></div><div class="item-right docblock-short"><p>returns the value of the <a href="https://en.wikipedia.org/wiki/Window_function#Higher-order_generalized_cosine_windows">cosine
+window</a>
+of <code>size</code>
+with the coefficients <code>a</code>, <code>b</code>, <code>c</code> and <code>d</code>
+at <code>index</code></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.cosine_iter.html" title="apodize::cosine_iter fn">cosine_iter</a></div><div class="item-right docblock-short"><p>returns an iterator that yields the values for a <a href="https://en.wikipedia.org/wiki/Window_function#Hann_.28Hanning.29_window">cosine
+window</a> of <code>size</code>
+with the coefficients <code>a</code>, <code>b</code>, <code>c</code> and <code>d</code></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.hamming_iter.html" title="apodize::hamming_iter fn">hamming_iter</a></div><div class="item-right docblock-short"><p>returns an iterator that yields the values for a <a href="https://en.wikipedia.org/wiki/Window_function#Hamming_window">hamming
+window</a> of <code>size</code></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.hanning_iter.html" title="apodize::hanning_iter fn">hanning_iter</a></div><div class="item-right docblock-short"><p>returns an iterator that yields the values for a <a href="https://en.wikipedia.org/wiki/Window_function#Hann_.28Hanning.29_window">hanning
+window</a> of <code>size</code></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.nuttall_iter.html" title="apodize::nuttall_iter fn">nuttall_iter</a></div><div class="item-right docblock-short"><p>returns an iterator that yields the values for a <a href="https://en.wikipedia.org/wiki/Window_function#Nuttall_window.2C_continuous_first_derivative">nuttall
+window</a> of <code>size</code></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.triangular_at.html" title="apodize::triangular_at fn">triangular_at</a></div><div class="item-right docblock-short"><p>returns the value of the
+[triangular window]
+(https://en.wikipedia.org/wiki/Window_function#Triangular_window)
+of <code>size</code>
+at <code>index</code></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.triangular_iter.html" title="apodize::triangular_iter fn">triangular_iter</a></div><div class="item-right docblock-short"><p>returns an iterator that yields the values for a <a href="https://en.wikipedia.org/wiki/Window_function#Triangular_window">triangular
+window</a>
+if <code>l = size - 1</code> then the outermost values of the window are <code>0</code>.
+if <code>l = size</code> then the outermost values of the window are higher.
+if <code>l = size + 1</code> then the outermost values of the window are even higher.</p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../" data-current-crate="apodize" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

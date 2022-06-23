@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="useful functions for working with frame-rates, sample-rates, other rates, time durations, frequencies, etc and for keeping a constant framerate."><meta name="keywords" content="rust, rustlang, rust-lang, hertz"><title>hertz - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../dark.css" disabled><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../storage.js"></script><script defer src="../crates.js"></script><script defer src="../main.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../favicon.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../hertz/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../hertz/index.html"><div class="logo-container"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Crate hertz</a></h2><div class="sidebar-elems"><div class="block"><ul><li class="version">Version 0.3.0</li><li><a id="all-types" href="all.html">All Items</a></li></ul></div><section><div class="block"><ul><li><a href="#functions">Functions</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../hertz/index.html"><img class="rust-logo" src="../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Crate <a class="mod" href="#">hertz</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../src/hertz/lib.rs.html#1-211">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p><strong>useful functions for working with frame-rates, sample-rates,
+other rates,
+time durations,
+frequencies, etc and for keeping a constant framerate.</strong></p>
+<p><code>rate</code>, <code>sample rate</code>, <code>frame rate</code>, <code>fps</code>, <code>frequency</code>, etc
+express the same concept and are therefore used interchangeably.</p>
+<p>you can use hertz to compute the time resolution
+and frequency range that can be meaningfully analyzed by a
+<a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform#Explanation">short-time fourier transform</a>
+of a signal:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">hertz</span>;
+
+<span class="kw">fn</span> <span class="ident">main</span>() {
+    <span class="kw">let</span> <span class="ident">sample_rate</span> <span class="op">=</span> <span class="number">44100</span>;
+    <span class="kw">let</span> <span class="ident">window_size</span> <span class="op">=</span> <span class="number">4096</span>;
+    <span class="kw">let</span> <span class="ident">step_size</span> <span class="op">=</span> <span class="number">512</span>;
+
+    <span class="comment">// 11 hertz is the maximum frequency that can be meaningfully analyzed</span>
+    <span class="macro">assert_eq!</span>(
+        <span class="number">11.</span>,
+        <span class="ident">hertz::rayleigh</span>(<span class="ident">sample_rate</span> <span class="kw">as</span> <span class="ident">f64</span>, <span class="ident">window_size</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">round</span>());
+
+    <span class="comment">// 22050 hertz is the maximum frequency that can be meaningfully analyzed</span>
+    <span class="macro">assert_eq!</span>(
+        <span class="number">22050.</span>,
+        <span class="ident">hertz::nyquist</span>(<span class="ident">sample_rate</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">round</span>());
+
+    <span class="comment">// 12 ms is the time resolution we get when analyzing a 44100 hertz</span>
+    <span class="comment">// signal with a step size of 512</span>
+    <span class="macro">assert_eq!</span>(
+        <span class="number">12.</span>,
+        <span class="ident">hertz::s_to_ms</span>(<span class="ident">hertz::cycles_per_second_to_seconds_per_cycle</span>(
+            <span class="ident">sample_rate</span> <span class="kw">as</span> <span class="ident">f64</span>,
+            <span class="ident">step_size</span> <span class="kw">as</span> <span class="ident">f64</span>)).<span class="ident">round</span>());
+}</code></pre></div>
+<p>you can use hertz to keep a constant framerate in a game or other
+computer graphics application:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn</span> <span class="ident">main</span>() {
+    <span class="kw">let</span> <span class="ident">frames_per_second</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="number">60</span>;
+
+    <span class="kw">loop</span> {
+        <span class="kw">let</span> <span class="ident">instant_at_frame_start</span> <span class="op">=</span> <span class="ident">std::time::Instant::now</span>();
+
+        <span class="comment">// here&#39;s where logic and rendering would go.</span>
+        <span class="comment">// this is never called more than frames_per_second</span>
+        <span class="comment">// times per second.</span>
+
+        <span class="ident">hertz::sleep_for_constant_rate</span>(
+            <span class="ident">frames_per_second</span>, <span class="ident">instant_at_frame_start</span>);
+    }
+}</code></pre></div>
+</div></details><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.cycles_per_second_to_seconds_per_cycle.html" title="hertz::cycles_per_second_to_seconds_per_cycle fn">cycles_per_second_to_seconds_per_cycle</a></div><div class="item-right docblock-short"><p>window duration in seconds
+sample_rate in hertz</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.fps_to_ns_per_frame.html" title="hertz::fps_to_ns_per_frame fn">fps_to_ns_per_frame</a></div><div class="item-right docblock-short"><p>when given frames per second (or sample rate)
+returns the duration of a single frame</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.hertz_range.html" title="hertz::hertz_range fn">hertz_range</a></div><div class="item-right docblock-short"><p>frequency range that can be modeled when taking the short
+time fourier transform of a signal with <code>sample_rate</code> with
+a sliding window of <code>window_sizew</code>.
+equivalent to <code>rayleigh(sample_rate, window_size)..nyquist(sample_rate)</code>
+increase the window size to increase the lower frequency
+increase the sample rate to increase the upper frequency</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.ms_to_ns.html" title="hertz::ms_to_ns fn">ms_to_ns</a></div><div class="item-right docblock-short"><p>milliseconds to nanoseconds</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.ms_to_s.html" title="hertz::ms_to_s fn">ms_to_s</a></div><div class="item-right docblock-short"><p>milliseconds to seconds</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.ns_to_ms.html" title="hertz::ns_to_ms fn">ns_to_ms</a></div><div class="item-right docblock-short"><p>nanoseconds to milliseconds</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.ns_to_s.html" title="hertz::ns_to_s fn">ns_to_s</a></div><div class="item-right docblock-short"><p>nanoseconds to seconds</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.nyquist.html" title="hertz::nyquist fn">nyquist</a></div><div class="item-right docblock-short"><p>maximum frequency in hertz that can be meaningfully analyzed with a given sample rate
+<a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform#Explanation">https://en.wikipedia.org/wiki/Short-time_Fourier_transform#Explanation</a></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.rayleigh.html" title="hertz::rayleigh fn">rayleigh</a></div><div class="item-right docblock-short"><p>minimum frequency in hertz that can be meaningfully analyzed with a given sample rate and
+window size
+<a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform#Rayleigh_frequency">https://en.wikipedia.org/wiki/Short-time_Fourier_transform#Rayleigh_frequency</a></p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.s_to_ms.html" title="hertz::s_to_ms fn">s_to_ms</a></div><div class="item-right docblock-short"><p>seconds to milliseconds</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.s_to_ns.html" title="hertz::s_to_ns fn">s_to_ns</a></div><div class="item-right docblock-short"><p>seconds to nanoseconds</p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../" data-current-crate="hertz" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

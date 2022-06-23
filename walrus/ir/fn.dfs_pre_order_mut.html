@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Perform an intra-procedural, depth-first, pre-order, mutable traversal of the IR."><meta name="keywords" content="rust, rustlang, rust-lang, dfs_pre_order_mut"><title>dfs_pre_order_mut in walrus::ir - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../walrus/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../walrus/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><div class="sidebar-elems"><h2 class="location"><a href="index.html">In walrus::ir</a></h2></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../walrus/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Function <a href="../index.html">walrus</a>::<wbr><a href="index.html">ir</a>::<wbr><a class="fn" href="#">dfs_pre_order_mut</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../src/walrus/ir/traversals.rs.html#183-218">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><div class="docblock item-decl"><pre class="rust fn"><code>pub fn dfs_pre_order_mut(<br>&nbsp;&nbsp;&nbsp;&nbsp;visitor: &amp;mut impl <a class="trait" href="trait.VisitorMut.html" title="trait walrus::ir::VisitorMut">VisitorMut</a>, <br>&nbsp;&nbsp;&nbsp;&nbsp;func: &amp;mut <a class="struct" href="../struct.LocalFunction.html" title="struct walrus::LocalFunction">LocalFunction</a>, <br>&nbsp;&nbsp;&nbsp;&nbsp;start: <a class="type" href="type.InstrSeqId.html" title="type walrus::ir::InstrSeqId">InstrSeqId</a><br>)</code></pre></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Perform an intra-procedural, depth-first, pre-order, mutable traversal of
+the IR.</p>
+<ul>
+<li>
+<p><em>Intra-procedural</em>: Only traverses IR within a function. Does not cross
+function boundaries (although it will report edges to other functions via
+<code>visit_function_id</code> calls on the visitor, so you can use this as a
+building block for making global, inter-procedural analyses).</p>
+</li>
+<li>
+<p><em>Depth-first, pre-order</em>: Visits instructions and instruction sequences in
+a top-down manner, where all instructions in a parent sequences are
+visited before child sequences. See <a href="https://en.wikipedia.org/wiki/Tree_traversal#Pre-order_(NLR)">Wikipedia</a> for details.</p>
+</li>
+</ul>
+<p>Calls <code>visitor</code> methods for every instruction, instruction sequence, and
+resource that the traversal visits.</p>
+<p>The traversals begins at the <code>start</code> instruction sequence and goes from
+there. To traverse everything in a function, pass <code>func.entry_block()</code> as
+<code>start</code>.</p>
+<p>This implementation is iterative — not recursive — and so it
+will not blow the call stack on deeply nested Wasm (although it may still
+OOM).</p>
+<h2 id="example"><a href="#example">Example</a></h2>
+<p>This example walks the IR and adds one to all <code>i32.const</code>’s values.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">walrus::LocalFunction</span>;
+<span class="kw">use</span> <span class="ident">walrus::ir</span>::<span class="kw-2">*</span>;
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>)]</span>
+<span class="kw">struct</span> <span class="ident">AddOneToI32Consts</span>;
+
+<span class="kw">impl</span> <span class="ident">VisitorMut</span> <span class="kw">for</span> <span class="ident">AddOneToI32Consts</span> {
+    <span class="kw">fn</span> <span class="ident">visit_const_mut</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">c</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Const</span>) {
+        <span class="kw">match</span> <span class="kw-2">&amp;mut</span> <span class="ident">c</span>.<span class="ident">value</span> {
+            <span class="ident">Value::I32</span>(<span class="ident">x</span>) =&gt; {
+                <span class="kw-2">*</span><span class="ident">x</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+            }
+            <span class="kw">_</span> =&gt; {},
+        }
+    }
+}
+
+<span class="comment">// Get a function from somewhere.</span>
+<span class="kw">let</span> <span class="ident">my_func</span>: <span class="kw-2">&amp;mut</span> <span class="ident">LocalFunction</span> <span class="op">=</span> <span class="ident">get_my_function</span>();
+
+<span class="comment">// Create our visitor.</span>
+<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">visitor</span> <span class="op">=</span> <span class="ident">AddOneToI32Consts::default</span>();
+
+<span class="comment">// Traverse and mutate everything in the function with our visitor.</span>
+<span class="ident">dfs_pre_order_mut</span>(<span class="kw-2">&amp;mut</span> <span class="ident">visitor</span>, <span class="ident">my_func</span>, <span class="ident">my_func</span>.<span class="ident">entry_block</span>());</code></pre></div>
+</div></details></section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="walrus" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

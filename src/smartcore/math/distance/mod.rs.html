@@ -1,0 +1,139 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/smartcore-21ea4dcbae50956e/31f8612/src/math/distance/mod.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../../storage.js"></script><script defer src="../../../../source-script.js"></script><script defer src="../../../../source-files.js"></script><script defer src="../../../../main.js"></script><noscript><link rel="stylesheet" href="../../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../../rust-logo.svg" alt="logo"></div>
+        </a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../../smartcore/index.html"><img class="rust-logo" src="../../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<span id="2">2</span>
+<span id="3">3</span>
+<span id="4">4</span>
+<span id="5">5</span>
+<span id="6">6</span>
+<span id="7">7</span>
+<span id="8">8</span>
+<span id="9">9</span>
+<span id="10">10</span>
+<span id="11">11</span>
+<span id="12">12</span>
+<span id="13">13</span>
+<span id="14">14</span>
+<span id="15">15</span>
+<span id="16">16</span>
+<span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
+<span id="39">39</span>
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
+<span id="44">44</span>
+<span id="45">45</span>
+<span id="46">46</span>
+<span id="47">47</span>
+<span id="48">48</span>
+<span id="49">49</span>
+<span id="50">50</span>
+<span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
+<span id="65">65</span>
+</pre><pre class="rust"><code><span class="doccomment">//! # Collection of Distance Functions</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Many algorithms in machine learning require a measure of distance between data points. Distance metric (or metric) is a function that defines a distance between a pair of point elements of a set.</span>
+<span class="doccomment">//! Formally, the distance can be any metric measure that is defined as \\( d(x, y) \geq 0\\) and follows three conditions:</span>
+<span class="doccomment">//! 1. \\( d(x, y) = 0 \\) if and only \\( x = y \\), positive definiteness</span>
+<span class="doccomment">//! 1. \\( d(x, y) = d(y, x) \\), symmetry</span>
+<span class="doccomment">//! 1. \\( d(x, y) \leq d(x, z) + d(z, y) \\), subadditivity or triangle inequality</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! for all \\(x, y, z \in Z \\)</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! A good distance metric helps to improve the performance of classification, clustering and information retrieval algorithms significantly.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! &lt;script src=&quot;https://polyfill.io/v3/polyfill.min.js?features=es6&quot;&gt;&lt;/script&gt;</span>
+<span class="doccomment">//! &lt;script id=&quot;MathJax-script&quot; async src=&quot;https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js&quot;&gt;&lt;/script&gt;</span>
+
+<span class="doccomment">/// Euclidean Distance is the straight-line distance between two points in Euclidean spacere that presents the shortest distance between these points.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">euclidian</span>;
+<span class="doccomment">/// Hamming Distance between two strings is the number of positions at which the corresponding symbols are different.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">hamming</span>;
+<span class="doccomment">/// The Mahalanobis distance is the distance between two points in multivariate space.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">mahalanobis</span>;
+<span class="doccomment">/// Also known as rectilinear distance, city block distance, taxicab metric.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">manhattan</span>;
+<span class="doccomment">/// A generalization of both the Euclidean distance and the Manhattan distance.</span>
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">minkowski</span>;
+
+<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::linalg::Matrix</span>;
+<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::math::num::RealNumber</span>;
+
+<span class="doccomment">/// Distance metric, a function that calculates distance between two points</span>
+<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">Distance</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">F</span>: <span class="ident">RealNumber</span><span class="op">&gt;</span>: <span class="ident">Clone</span> {
+    <span class="doccomment">/// Calculates distance between _a_ and _b_</span>
+    <span class="kw">fn</span> <span class="ident">distance</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">a</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>, <span class="ident">b</span>: <span class="kw-2">&amp;</span><span class="ident">T</span>) -&gt; <span class="ident">F</span>;
+}
+
+<span class="doccomment">/// Multitude of distance metric functions</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Distances</span> {}
+
+<span class="kw">impl</span> <span class="ident">Distances</span> {
+    <span class="doccomment">/// Euclidian distance, see [`Euclidian`](euclidian/index.html)</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">euclidian</span>() -&gt; <span class="ident">euclidian::Euclidian</span> {
+        <span class="ident">euclidian::Euclidian</span> {}
+    }
+
+    <span class="doccomment">/// Minkowski distance, see [`Minkowski`](minkowski/index.html)</span>
+    <span class="doccomment">/// * `p` - function order. Should be &gt;= 1</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">minkowski</span>(<span class="ident">p</span>: <span class="ident">u16</span>) -&gt; <span class="ident">minkowski::Minkowski</span> {
+        <span class="ident">minkowski::Minkowski</span> { <span class="ident">p</span> }
+    }
+
+    <span class="doccomment">/// Manhattan distance, see [`Manhattan`](manhattan/index.html)</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">manhattan</span>() -&gt; <span class="ident">manhattan::Manhattan</span> {
+        <span class="ident">manhattan::Manhattan</span> {}
+    }
+
+    <span class="doccomment">/// Hamming distance, see [`Hamming`](hamming/index.html)</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">hamming</span>() -&gt; <span class="ident">hamming::Hamming</span> {
+        <span class="ident">hamming::Hamming</span> {}
+    }
+
+    <span class="doccomment">/// Mahalanobis distance, see [`Mahalanobis`](mahalanobis/index.html)</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">mahalanobis</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">RealNumber</span>, <span class="ident">M</span>: <span class="ident">Matrix</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span><span class="op">&gt;</span>(<span class="ident">data</span>: <span class="kw-2">&amp;</span><span class="ident">M</span>) -&gt; <span class="ident">mahalanobis::Mahalanobis</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">M</span><span class="op">&gt;</span> {
+        <span class="ident">mahalanobis::Mahalanobis::new</span>(<span class="ident">data</span>)
+    }
+}
+</code></pre></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["SVD","Results of SVD decomposition"]],"trait":[["SVDDecomposableMatrix","Trait that implements SVD decomposition routine for any matrix."]]};

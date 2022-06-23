@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["KNNWeightFunction","Weight function that is used to determine estimated value."]],"mod":[["knn_classifier","K Nearest Neighbors Classifier"],["knn_regressor","K Nearest Neighbors Regressor"]],"type":[["KNNAlgorithmName","`KNNAlgorithmName` maintains a list of supported search algorithms, see KNN algorithms"]]};

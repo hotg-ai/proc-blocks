@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["DBSCAN","DBSCAN clustering algorithm"],["DBSCANParameters","DBSCAN clustering algorithm parameters"]]};

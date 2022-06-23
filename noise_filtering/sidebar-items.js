@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["NoiseFiltering",""],["ScaledU16","A `u16` which can be parsed from a float that gets scaled from `[0, 1]` to `[0, 2^14]`."]]};

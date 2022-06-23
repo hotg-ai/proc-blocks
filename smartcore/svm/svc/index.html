@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Support Vector Classifier."><meta name="keywords" content="rust, rustlang, rust-lang, svc"><title>smartcore::svm::svc - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Module svc</a></h2><div class="sidebar-elems"><section><div class="block"><ul><li><a href="#structs">Structs</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../smartcore/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Module <a href="../../index.html">smartcore</a>::<wbr><a href="../index.html">svm</a>::<wbr><a class="mod" href="#">svc</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../../src/smartcore/svm/svc.rs.html#1-857">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="support-vector-classifier"><a href="#support-vector-classifier">Support Vector Classifier.</a></h2>
+<p>Support Vector Classifier (SVC) is a binary classifier that uses an optimal hyperplane to separate the points in the input variable space by their class.</p>
+<p>During training, SVC chooses a Maximal-Margin hyperplane that can separate all training instances with the largest margin.
+The margin is calculated as the perpendicular distance from the boundary to only the closest points. Hence, only these points are relevant in defining
+the hyperplane and in the construction of the classifier. These points are called the support vectors.</p>
+<p>While SVC selects a hyperplane with the largest margin it allows some points in the training data to violate the separating boundary.
+The parameter <code>C</code> &gt; 0 gives you control over how SVC will handle violating points. The bigger the value of this parameter the more we penalize the algorithm
+for incorrectly classified points. In other words, setting this parameter to a small value will result in a classifier that allows for a big number
+of misclassified samples. Mathematically, SVC optimization problem can be defined as:</p>
+<p>\[\underset{w, \zeta}{minimize} \space \space \frac{1}{2} \lVert \vec{w} \rVert^2 + C\sum_{i=1}^m \zeta_i \]</p>
+<p>subject to:</p>
+<p>\[y_i(\langle\vec{w}, \vec{x}_i \rangle + b) \geq 1 - \zeta_i \]
+\[\zeta_i \geq 0 for \space any \space i = 1, … , m\]</p>
+<p>Where \( m \) is a number of training samples, \( y_i \) is a label value (either 1 or -1) and \(\langle\vec{w}, \vec{x}_i \rangle + b\) is a decision boundary.</p>
+<p>To solve this optimization problem, SmartCore uses an <a href="https://leon.bottou.org/projects/lasvm">approximate SVM solver</a>.
+The optimizer reaches accuracies similar to that of a real SVM after performing two passes through the training examples. You can choose the number of passes
+through the data that the algorithm takes by changing the <code>epoch</code> parameter of the classifier.</p>
+<p>Example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">smartcore::linalg::naive::dense_matrix</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">smartcore::svm::Kernels</span>;
+<span class="kw">use</span> <span class="ident">smartcore::svm::svc</span>::{<span class="ident">SVC</span>, <span class="ident">SVCParameters</span>};
+
+<span class="comment">// Iris dataset</span>
+<span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">DenseMatrix::from_2d_array</span>(<span class="kw-2">&amp;</span>[
+           <span class="kw-2">&amp;</span>[<span class="number">5.1</span>, <span class="number">3.5</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">3.0</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">4.7</span>, <span class="number">3.2</span>, <span class="number">1.3</span>, <span class="number">0.2</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">4.6</span>, <span class="number">3.1</span>, <span class="number">1.5</span>, <span class="number">0.2</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">5.0</span>, <span class="number">3.6</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">5.4</span>, <span class="number">3.9</span>, <span class="number">1.7</span>, <span class="number">0.4</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">4.6</span>, <span class="number">3.4</span>, <span class="number">1.4</span>, <span class="number">0.3</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">5.0</span>, <span class="number">3.4</span>, <span class="number">1.5</span>, <span class="number">0.2</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">4.4</span>, <span class="number">2.9</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">3.1</span>, <span class="number">1.5</span>, <span class="number">0.1</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">7.0</span>, <span class="number">3.2</span>, <span class="number">4.7</span>, <span class="number">1.4</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">6.4</span>, <span class="number">3.2</span>, <span class="number">4.5</span>, <span class="number">1.5</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">6.9</span>, <span class="number">3.1</span>, <span class="number">4.9</span>, <span class="number">1.5</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">5.5</span>, <span class="number">2.3</span>, <span class="number">4.0</span>, <span class="number">1.3</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">6.5</span>, <span class="number">2.8</span>, <span class="number">4.6</span>, <span class="number">1.5</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">5.7</span>, <span class="number">2.8</span>, <span class="number">4.5</span>, <span class="number">1.3</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">6.3</span>, <span class="number">3.3</span>, <span class="number">4.7</span>, <span class="number">1.6</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">2.4</span>, <span class="number">3.3</span>, <span class="number">1.0</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">6.6</span>, <span class="number">2.9</span>, <span class="number">4.6</span>, <span class="number">1.3</span>],
+           <span class="kw-2">&amp;</span>[<span class="number">5.2</span>, <span class="number">2.7</span>, <span class="number">3.9</span>, <span class="number">1.4</span>],
+        ]);
+<span class="kw">let</span> <span class="ident">y</span> <span class="op">=</span> <span class="macro">vec!</span>[ <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>,
+           <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>];
+
+<span class="kw">let</span> <span class="ident">svc</span> <span class="op">=</span> <span class="ident">SVC::fit</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">y</span>, <span class="ident">SVCParameters::default</span>().<span class="ident">with_c</span>(<span class="number">200.0</span>)).<span class="ident">unwrap</span>();
+
+<span class="kw">let</span> <span class="ident">y_hat</span> <span class="op">=</span> <span class="ident">svc</span>.<span class="ident">predict</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>).<span class="ident">unwrap</span>();</code></pre></div>
+<h3 id="references"><a href="#references">References:</a></h3>
+<ul>
+<li><a href="https://www.svm-tutorial.com/2017/10/support-vector-machines-succinctly-released/">“Support Vector Machines”, Kowalczyk A., 2017</a></li>
+<li><a href="https://www.jmlr.org/papers/volume6/bordes05a/bordes05a.pdf">“Fast Kernel Classifiers with Online and Active Learning”, Bordes A., Ertekin S., Weston J., Bottou L., 2005</a></li>
+</ul>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.SVC.html" title="smartcore::svm::svc::SVC struct">SVC</a></div><div class="item-right docblock-short"><p>Support Vector Classifier</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.SVCParameters.html" title="smartcore::svm::svc::SVCParameters struct">SVCParameters</a></div><div class="item-right docblock-short"><p>SVC Parameters</p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

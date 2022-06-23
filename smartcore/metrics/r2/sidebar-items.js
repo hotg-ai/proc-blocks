@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["R2","Coefficient of Determination (R2)"]]};

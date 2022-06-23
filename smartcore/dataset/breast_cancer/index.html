@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Breast Cancer Wisconsin (Diagnostic) Data Set"><meta name="keywords" content="rust, rustlang, rust-lang, breast_cancer"><title>smartcore::dataset::breast_cancer - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Module breast_cancer</a></h2><div class="sidebar-elems"><section><div class="block"><ul><li><a href="#functions">Functions</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../smartcore/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Module <a href="../../index.html">smartcore</a>::<wbr><a href="../index.html">dataset</a>::<wbr><a class="mod" href="#">breast_cancer</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../../src/smartcore/dataset/breast_cancer.rs.html#1-94">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="breast-cancer-wisconsin-diagnostic-data-set"><a href="#breast-cancer-wisconsin-diagnostic-data-set">Breast Cancer Wisconsin (Diagnostic) Data Set</a></h2>
+<p>Diagnostic Wisconsin Breast Cancer database</p>
+<div><table><thead><tr><th>Number of Instances</th><th>Number of Attributes</th><th>Missing Values?</th><th>Associated Tasks:</th></tr></thead><tbody>
+<tr><td>569</td><td>30</td><td>No</td><td>Classification</td></tr>
+</tbody></table>
+</div>
+<p><a href="https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Diagnostic%29">Breast Cancer</a> was collected by Dr. William H. Wolberg, W. Nick Street and Olvi L. Mangasarian.
+Features are computed from a digitized image of a fine needle aspirate (FNA) of a breast mass and describe characteristics of the cell nuclei present in the image.
+The dataset has following attributes:</p>
+<div><table><thead><tr><th>Predictor</th><th>Data Type</th><th>Target?</th></tr></thead><tbody>
+<tr><td>Radius (mean of distances from center to points on the perimeter)</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Texture (standard deviation of gray-scale values)</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Perimeter</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Area</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Smoothness (local variation in radius lengths)</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Compactness (perimeter^2 / area - 1.0)</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Concavity (severity of concave portions of the contour)</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Concave points (number of concave portions of the contour)</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Symmetry</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Fractal dimension (“coastline approximation” - 1)</td><td>Numerical</td><td>No</td></tr>
+<tr><td>Has cancer</td><td>Nominal</td><td>Yes</td></tr>
+</tbody></table>
+</div>
+<p>The mean, standard error, and “worst” or largest (mean of the three worst/largest values) of these features were computed for each image, resulting in 30 features.
+For instance, field 0 is Mean Radius, field 10 is Radius SE, field 20 is Worst Radius.</p>
+</div></details><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.load_dataset.html" title="smartcore::dataset::breast_cancer::load_dataset fn">load_dataset</a></div><div class="item-right docblock-short"><p>Get dataset</p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

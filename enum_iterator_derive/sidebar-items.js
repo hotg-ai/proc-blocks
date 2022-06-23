@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":[["IntoEnumIterator","Derives `IntoEnumIterator` for field-less enums."]]};

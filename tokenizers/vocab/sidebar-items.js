@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["bert_vocab",""]],"trait":[["Vocab","Base Vocab trait"]]};

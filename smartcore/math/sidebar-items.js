@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["distance","Multitude of distance metrics are defined here"],["num","Real Number"]]};

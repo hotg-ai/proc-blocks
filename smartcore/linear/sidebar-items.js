@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["elastic_net","Elastic Net"],["lasso","Lasso"],["linear_regression","Linear Regression"],["logistic_regression","Logistic Regression"],["ridge_regression","Ridge Regression"]]};

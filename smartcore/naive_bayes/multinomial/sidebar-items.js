@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["MultinomialNB","MultinomialNB implements the naive Bayes algorithm for multinomially distributed data."],["MultinomialNBParameters","`MultinomialNB` parameters. Use `Default::default()` for default values."]]};

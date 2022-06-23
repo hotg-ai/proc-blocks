@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["boston","The Boston Housing Dataset"],["breast_cancer","Breast Cancer Wisconsin (Diagnostic) Data Set"],["diabetes","Diabetes Data"],["digits","Optical Recognition of Handwritten Digits Data Set"],["generator","Dataset Generators"],["iris","The Iris Dataset flower"]],"struct":[["Dataset","Dataset"]]};

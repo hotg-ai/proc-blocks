@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["repr","An archived string representation that supports inlining short strings."]],"struct":[["ArchivedString","An archived [`String`]."],["StringResolver","The resolver for `String`."]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["ADDITIONAL_WHITESPACE_CHARS",""],["WHITESPACE_CHARS",""]],"struct":[["ACCENT_MARKERS",""],["BYTES_TO_UNICODE",""],["CONTROL_CHARS",""],["PUNCTUATION_CHARS",""],["UNICODE_TO_BYTES",""]],"trait":[["IntoIterator",""]]};

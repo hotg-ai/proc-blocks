@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["ArchivedIndexSet","An archived `IndexSet`."],["IndexSetResolver","The resolver for `IndexSet`."]]};

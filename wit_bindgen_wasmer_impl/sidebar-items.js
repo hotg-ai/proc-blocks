@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":[["export","Generate code to support implementing the given interfaces and exporting them to wasm modules."],["import","Generate code to support consuming the given interfaces, importaing them from wasm modules."]]};

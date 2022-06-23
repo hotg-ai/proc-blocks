@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["VERSION","Version number of this crate."]],"struct":[["Dylib","The Dylib builder"],["DylibArtifact","A compiled Wasm module, ready to be instantiated."],["DylibEngine","A WebAssembly `Dylib` Engine."]]};

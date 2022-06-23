@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["ArchivedRange","An archived `Range`."],["ArchivedRangeFrom","An archived `RangeFrom`."],["ArchivedRangeInclusive","An archived `RangeInclusive`."],["ArchivedRangeTo","An archived `RangeTo`."],["ArchivedRangeToInclusive","An archived `RangeToInclusive`."]]};

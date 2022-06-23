@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["RidgeRegressionSolverName","Approach to use for estimation of regression coefficients. Cholesky is more efficient but SVD is more stable."]],"struct":[["RidgeRegression","Ridge regression"],["RidgeRegressionParameters","Ridge Regression parameters"]]};

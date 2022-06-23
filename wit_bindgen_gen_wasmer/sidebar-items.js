@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["Async",""]],"struct":[["Opts",""],["Wasmer",""]]};

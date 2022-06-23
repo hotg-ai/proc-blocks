@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["categorical","Transform a data matrix by replaceing all categorical variables with their one-hot vector equivalents"],["series_encoder","Encode a series (column, array) of categorical variables as one-hot vectors"]]};

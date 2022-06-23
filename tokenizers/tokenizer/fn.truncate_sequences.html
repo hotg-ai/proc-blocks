@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Truncates a sequence pair in place to the maximum length."><meta name="keywords" content="rust, rustlang, rust-lang, truncate_sequences"><title>truncate_sequences in tokenizers::tokenizer - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../tokenizers/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../tokenizers/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><div class="sidebar-elems"><h2 class="location"><a href="index.html">In tokenizers::tokenizer</a></h2></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../tokenizers/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Function <a href="../index.html">tokenizers</a>::<wbr><a href="index.html">tokenizer</a>::<wbr><a class="fn" href="#">truncate_sequences</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../src/tokenizers/tokenizer/tokenization_utils.rs.html#484-674">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><div class="docblock item-decl"><pre class="rust fn"><code>pub fn truncate_sequences(<br>&nbsp;&nbsp;&nbsp;&nbsp;token_ids_with_offsets_1: TokenIdsWithOffsets, <br>&nbsp;&nbsp;&nbsp;&nbsp;token_ids_with_offsets_2: <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;TokenIdsWithOffsets&gt;, <br>&nbsp;&nbsp;&nbsp;&nbsp;num_tokens_to_remove: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a>, <br>&nbsp;&nbsp;&nbsp;&nbsp;truncation_strategy: &amp;<a class="enum" href="enum.TruncationStrategy.html" title="enum tokenizers::tokenizer::TruncationStrategy">TruncationStrategy</a>, <br>&nbsp;&nbsp;&nbsp;&nbsp;stride: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a><br>) -&gt; <a class="type" href="../../anyhow/type.Result.html" title="type anyhow::Result">Result</a>&lt;(TokenIdsWithOffsets, <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;TokenIdsWithOffsets&gt;, <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.i64.html">i64</a>&gt;, <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;Offset&gt;&gt;), &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</code></pre></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="truncates-a-sequence-pair-in-place-to-the-maximum-length"><a href="#truncates-a-sequence-pair-in-place-to-the-maximum-length">Truncates a sequence pair in place to the maximum length.</a></h2>
+<ul>
+<li>tokens_1: list of tokenized input ids. Can be obtained from a string by
+chaining the <code>tokenize</code> and <code>convert_tokens_to_ids</code> methods.</li>
+<li>tokens_2: Optional second list of input ids. Can be obtained from a
+string by chaining the <code>tokenize</code> and <code>convert_tokens_to_ids</code> methods.</li>
+<li>offsets: list of offsets for tokens_1 (must be same length or empty if
+not used at all)</li>
+<li>offsets_2: optional second list of offsets for tokens_2 (must be same
+length or empty if not used at all)</li>
+<li>tokens_2: Optional second list of input ids. Can be obtained from a
+string by chaining the <code>tokenize</code> and <code>convert_tokens_to_ids</code> methods.</li>
+<li>num_tokens_to_remove number of tokens to remove using the truncation
+strategy</li>
+<li>truncation_strategy: truncation strategy
+<ul>
+<li>TruncationStrategy::LongestFirst (default) Iteratively reduce the
+inputs sequence until the input is under max_length starting from
+the longest one at each token (when there is a pair of input
+sequences). Overflowing tokens only contains overflow from the first
+sequence.</li>
+<li>TruncationStrategy::OnlyFirst: Only truncate the first sequence.
+raise an error if the first sequence is shorter or equal to than
+num_tokens_to_remove.</li>
+<li>TruncationStrategy::OnlySecond: Only truncate the second sequence</li>
+<li>TruncationStrategy::DoNotTruncate: Does not truncate (raise an error
+if the input sequence is longer than max_length)</li>
+</ul>
+</li>
+<li>stride If set to a number along with max_length, the overflowing tokens
+returned will contain some tokens from the main sequence returned. The
+value of this argument defines the number of additional tokens.</li>
+</ul>
+</div></details></section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="tokenizers" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

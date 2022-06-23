@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["make_blobs","Generate `num_centers` clusters of normally distributed points"],["make_circles","Make a large circle containing a smaller circle in 2d."],["make_moons","Make two interleaving half circles in 2d"]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["decision_tree_classifier","Classification tree for dependent variables that take a finite number of unordered values."],["decision_tree_regressor","Regression tree for for dependent variables that take continuous or ordered discrete values."]]};

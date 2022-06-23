@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["DenseMatrix","Column-major, dense matrix. See Simple Dense Matrix."],["DenseMatrixIterator","Column-major, dense matrix. See Simple Dense Matrix."]]};

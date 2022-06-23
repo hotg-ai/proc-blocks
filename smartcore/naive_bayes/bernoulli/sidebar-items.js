@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["BernoulliNB","BernoulliNB implements the naive Bayes algorithm for data that follows the Bernoulli distribution."],["BernoulliNBParameters","`BernoulliNB` parameters. Use `Default::default()` for default values."]]};

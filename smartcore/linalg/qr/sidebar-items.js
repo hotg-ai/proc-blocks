@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["QR","Results of QR decomposition."]],"trait":[["QRDecomposableMatrix","Trait that implements QR decomposition routine for any matrix."]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Accuracy","Accuracy metric."]]};

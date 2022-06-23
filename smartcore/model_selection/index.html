@@ -1,0 +1,113 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Model Selection methods"><meta name="keywords" content="rust, rustlang, rust-lang, model_selection"><title>smartcore::model_selection - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"></h2>
+    </nav>
+    <nav class="sidebar"><a class="sidebar-logo" href="../../smartcore/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div>
+        </a><h2 class="location"><a href="#">Module model_selection</a></h2><div class="sidebar-elems"><section><div class="block"><ul><li><a href="#structs">Structs</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li></ul></div></section></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../smartcore/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><button type="button" id="help-button" title="help">?</button><div id="settings-menu" tabindex="-1">
+                                <a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div>
+                        </div></form></nav></div><section id="main-content" class="content"><div class="main-heading">
+    <h1 class="fqn"><span class="in-band">Module <a href="../index.html">smartcore</a>::<wbr><a class="mod" href="#">model_selection</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../src/smartcore/model_selection/mod.rs.html#1-452">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="model-selection-methods"><a href="#model-selection-methods">Model Selection methods</a></h2>
+<p>In statistics and machine learning we usually split our data into two sets: one for training and the other one for testing.
+We fit our model to the training data, in order to make predictions on the test data. We do that to avoid overfitting or underfitting model to our data.
+Overfitting is bad because the model we trained fits trained data too well and can’t make any inferences on new data.
+Underfitted is bad because the model is undetrained and does not fit the training data well.
+Splitting data into multiple subsets helps us to find the right combination of hyperparameters, estimate model performance and choose the right model for
+the data.</p>
+<p>In SmartCore a random split into training and test sets can be quickly computed with the <a href="./fn.train_test_split.html">train_test_split</a> helper function.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::smartcore::linalg::BaseMatrix</span>;
+<span class="kw">use</span> <span class="ident">smartcore::linalg::naive::dense_matrix::DenseMatrix</span>;
+<span class="kw">use</span> <span class="ident">smartcore::model_selection::train_test_split</span>;
+
+<span class="comment">//Iris data</span>
+<span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">DenseMatrix::from_2d_array</span>(<span class="kw-2">&amp;</span>[
+          <span class="kw-2">&amp;</span>[<span class="number">5.1</span>, <span class="number">3.5</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">3.0</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.7</span>, <span class="number">3.2</span>, <span class="number">1.3</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.6</span>, <span class="number">3.1</span>, <span class="number">1.5</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.0</span>, <span class="number">3.6</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.4</span>, <span class="number">3.9</span>, <span class="number">1.7</span>, <span class="number">0.4</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.6</span>, <span class="number">3.4</span>, <span class="number">1.4</span>, <span class="number">0.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.0</span>, <span class="number">3.4</span>, <span class="number">1.5</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.4</span>, <span class="number">2.9</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">3.1</span>, <span class="number">1.5</span>, <span class="number">0.1</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">7.0</span>, <span class="number">3.2</span>, <span class="number">4.7</span>, <span class="number">1.4</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.4</span>, <span class="number">3.2</span>, <span class="number">4.5</span>, <span class="number">1.5</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.9</span>, <span class="number">3.1</span>, <span class="number">4.9</span>, <span class="number">1.5</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.5</span>, <span class="number">2.3</span>, <span class="number">4.0</span>, <span class="number">1.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.5</span>, <span class="number">2.8</span>, <span class="number">4.6</span>, <span class="number">1.5</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.7</span>, <span class="number">2.8</span>, <span class="number">4.5</span>, <span class="number">1.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.3</span>, <span class="number">3.3</span>, <span class="number">4.7</span>, <span class="number">1.6</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">2.4</span>, <span class="number">3.3</span>, <span class="number">1.0</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.6</span>, <span class="number">2.9</span>, <span class="number">4.6</span>, <span class="number">1.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.2</span>, <span class="number">2.7</span>, <span class="number">3.9</span>, <span class="number">1.4</span>],
+          ]);
+<span class="kw">let</span> <span class="ident">y</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">f64</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec!</span>[
+          <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>,
+];
+
+<span class="kw">let</span> (<span class="ident">x_train</span>, <span class="ident">x_test</span>, <span class="ident">y_train</span>, <span class="ident">y_test</span>) <span class="op">=</span> <span class="ident">train_test_split</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">y</span>, <span class="number">0.2</span>, <span class="bool-val">true</span>);
+
+<span class="macro">println!</span>(<span class="string">&quot;X train: {:?}, y train: {}, X test: {:?}, y test: {}&quot;</span>,
+            <span class="ident">x_train</span>.<span class="ident">shape</span>(), <span class="ident">y_train</span>.<span class="ident">len</span>(), <span class="ident">x_test</span>.<span class="ident">shape</span>(), <span class="ident">y_test</span>.<span class="ident">len</span>());</code></pre></div>
+<p>When we partition the available data into two disjoint sets, we drastically reduce the number of samples that can be used for training.</p>
+<p>One way to solve this problem is to use k-fold cross-validation. With k-fold validation, the dataset is split into k disjoint sets.
+A model is trained using k - 1 of the folds, and the resulting model is validated on the remaining portion of the data.</p>
+<p>The simplest way to run cross-validation is to use the <a href="./fn.cross_validate.html">cross_val_score</a> helper function on your estimator and the dataset.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use</span> <span class="ident">smartcore::linalg::naive::dense_matrix::DenseMatrix</span>;
+<span class="kw">use</span> <span class="ident">smartcore::model_selection</span>::{<span class="ident">KFold</span>, <span class="ident">cross_validate</span>};
+<span class="kw">use</span> <span class="ident">smartcore::metrics::accuracy</span>;
+<span class="kw">use</span> <span class="ident">smartcore::linear::logistic_regression::LogisticRegression</span>;
+
+<span class="comment">//Iris data</span>
+<span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">DenseMatrix::from_2d_array</span>(<span class="kw-2">&amp;</span>[
+          <span class="kw-2">&amp;</span>[<span class="number">5.1</span>, <span class="number">3.5</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">3.0</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.7</span>, <span class="number">3.2</span>, <span class="number">1.3</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.6</span>, <span class="number">3.1</span>, <span class="number">1.5</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.0</span>, <span class="number">3.6</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.4</span>, <span class="number">3.9</span>, <span class="number">1.7</span>, <span class="number">0.4</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.6</span>, <span class="number">3.4</span>, <span class="number">1.4</span>, <span class="number">0.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.0</span>, <span class="number">3.4</span>, <span class="number">1.5</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.4</span>, <span class="number">2.9</span>, <span class="number">1.4</span>, <span class="number">0.2</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">3.1</span>, <span class="number">1.5</span>, <span class="number">0.1</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">7.0</span>, <span class="number">3.2</span>, <span class="number">4.7</span>, <span class="number">1.4</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.4</span>, <span class="number">3.2</span>, <span class="number">4.5</span>, <span class="number">1.5</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.9</span>, <span class="number">3.1</span>, <span class="number">4.9</span>, <span class="number">1.5</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.5</span>, <span class="number">2.3</span>, <span class="number">4.0</span>, <span class="number">1.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.5</span>, <span class="number">2.8</span>, <span class="number">4.6</span>, <span class="number">1.5</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.7</span>, <span class="number">2.8</span>, <span class="number">4.5</span>, <span class="number">1.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.3</span>, <span class="number">3.3</span>, <span class="number">4.7</span>, <span class="number">1.6</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">4.9</span>, <span class="number">2.4</span>, <span class="number">3.3</span>, <span class="number">1.0</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">6.6</span>, <span class="number">2.9</span>, <span class="number">4.6</span>, <span class="number">1.3</span>],
+          <span class="kw-2">&amp;</span>[<span class="number">5.2</span>, <span class="number">2.7</span>, <span class="number">3.9</span>, <span class="number">1.4</span>],
+          ]);
+<span class="kw">let</span> <span class="ident">y</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">f64</span><span class="op">&gt;</span> <span class="op">=</span> <span class="macro">vec!</span>[
+          <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">0.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>, <span class="number">1.</span>,
+];
+
+<span class="kw">let</span> <span class="ident">cv</span> <span class="op">=</span> <span class="ident">KFold::default</span>().<span class="ident">with_n_splits</span>(<span class="number">3</span>);
+
+<span class="kw">let</span> <span class="ident">results</span> <span class="op">=</span> <span class="ident">cross_validate</span>(<span class="ident">LogisticRegression::fit</span>,   <span class="comment">//estimator</span>
+                                <span class="kw-2">&amp;</span><span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">y</span>,                 <span class="comment">//data</span>
+                                <span class="ident">Default::default</span>(),     <span class="comment">//hyperparameters</span>
+                                <span class="ident">cv</span>,                     <span class="comment">//cross validation split</span>
+                                <span class="kw-2">&amp;</span><span class="ident">accuracy</span>).<span class="ident">unwrap</span>();    <span class="comment">//metric</span>
+
+<span class="macro">println!</span>(<span class="string">&quot;Training accuracy: {}, test accuracy: {}&quot;</span>,
+    <span class="ident">results</span>.<span class="ident">mean_test_score</span>(), <span class="ident">results</span>.<span class="ident">mean_train_score</span>());</code></pre></div>
+<p>The function <a href="./fn.cross_val_predict.html">cross_val_predict</a> has a similar interface to <code>cross_val_score</code>,
+but instead of test error it calculates predictions for all samples in the test set.</p>
+</div></details><h2 id="structs" class="small-section-header"><a href="#structs">Structs</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.CrossValidationResult.html" title="smartcore::model_selection::CrossValidationResult struct">CrossValidationResult</a></div><div class="item-right docblock-short"><p>Cross validation results.</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.KFold.html" title="smartcore::model_selection::KFold struct">KFold</a></div><div class="item-right docblock-short"><p>K-Folds cross-validator</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="struct" href="struct.KFoldIter.html" title="smartcore::model_selection::KFoldIter struct">KFoldIter</a></div><div class="item-right docblock-short"><p>An iterator over indices that split data into training and test set.</p>
+</div></div></div><h2 id="traits" class="small-section-header"><a href="#traits">Traits</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="trait" href="trait.BaseKFold.html" title="smartcore::model_selection::BaseKFold trait">BaseKFold</a></div><div class="item-right docblock-short"><p>An interface for the K-Folds cross-validator</p>
+</div></div></div><h2 id="functions" class="small-section-header"><a href="#functions">Functions</a></h2>
+<div class="item-table"><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.cross_val_predict.html" title="smartcore::model_selection::cross_val_predict fn">cross_val_predict</a></div><div class="item-right docblock-short"><p>Generate cross-validated estimates for each input data point.
+The data is split according to the cv parameter. Each sample belongs to exactly one test set, and its prediction is computed with an estimator fitted on the corresponding training set.</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.cross_validate.html" title="smartcore::model_selection::cross_validate fn">cross_validate</a></div><div class="item-right docblock-short"><p>Evaluate an estimator by cross-validation using given metric.</p>
+</div></div><div class="item-row"><div class="item-left module-item"><a class="fn" href="fn.train_test_split.html" title="smartcore::model_selection::train_test_split fn">train_test_split</a></div><div class="item-right docblock-short"><p>Splits data into 2 disjoint datasets.</p>
+</div></div></div></section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="smartcore" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0-nightly (10f4ce324 2022-06-22)" ></div>
+</body></html>

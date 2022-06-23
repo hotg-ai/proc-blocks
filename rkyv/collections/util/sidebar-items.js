@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["Entry","A simple key-value pair."]]};
