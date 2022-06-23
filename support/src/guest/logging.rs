@@ -1,14 +1,14 @@
 use tracing::{Event, Metadata, Subscriber};
 use tracing_subscriber::{
     layer::{Context, SubscriberExt},
-    util::SubscriberInitExt,
+    util::{SubscriberInitExt, TryInitError},
     Registry,
 };
 
 use crate::guest::bindings::{self, LogLevel, LogMetadata, LogValue};
 
-pub(crate) fn initialize_logger() {
-    let _ = Registry::default().with(Layer).try_init();
+pub(crate) fn initialize_logger() -> Result<(), TryInitError> {
+    Registry::default().with(Layer).try_init()
 }
 
 struct Layer;

@@ -1,6 +1,6 @@
 pub use self::{proc_block_v2::*, runtime_v2::*};
 
-use crate::guest::{logging, ProcBlock};
+use crate::guest::ProcBlock;
 use wit_bindgen_rust::Handle;
 
 wit_bindgen_rust::import!("../wit-files/rune/runtime-v2.wit");
@@ -17,14 +17,14 @@ struct ProcBlockV2;
 
 impl proc_block_v2::ProcBlockV2 for ProcBlockV2 {
     fn metadata() -> Metadata {
-        logging::initialize_logger();
+        crate::guest::ensure_initialized();
         unsafe { __proc_block_metadata() }
     }
 
     fn create_node(
         args: Vec<Argument>,
     ) -> Result<wit_bindgen_rust::Handle<self::Node>, CreateError> {
-        logging::initialize_logger();
+        crate::guest::ensure_initialized();
         let proc_block = unsafe { __proc_block_new(args)? };
         Ok(Handle::new(Node(Box::new(proc_block))))
     }
