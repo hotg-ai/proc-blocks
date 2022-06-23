@@ -1,11 +1,8 @@
-
-
 // use linfa_logistic::LogisticRegression;
 use smartcore::{linalg::naive::dense_matrix::*, linear::linear_regression::*};
 
 use crate::proc_block_v1::{
-    BadInputReason, GraphError,
-    InvalidInput, KernelError,
+    BadInputReason, GraphError, InvalidInput, KernelError,
 };
 use hotg_rune_proc_blocks::{ndarray, runtime_v1::*, BufferExt, SliceExt};
 
@@ -151,15 +148,18 @@ impl proc_block_v1::ProcBlockV1 for ProcBlockV1 {
             )));
         }
 
-        log(LogMetadata{
-            file: Some(file!()),
-            level: LogLevel::Info,
-            line: Some(line!()),
-            module: Some(module_path!()),
-            name: "",
-            target: module_path!()
-
-        }, &format!("{:?} {:?} {:?}", x_train, y_train, x_test), &[]);
+        log(
+            LogMetadata {
+                file: Some(file!()),
+                level: LogLevel::Info,
+                line: Some(line!()),
+                module: Some(module_path!()),
+                name: "",
+                target: module_path!(),
+            },
+            &format!("{:?} {:?} {:?}", x_train, y_train, x_test),
+            &[],
+        );
 
         let output = transform(
             &x_train.buffer.elements(),
@@ -224,6 +224,7 @@ fn transform(
 // :) #[cfg(test)]
 #[cfg(test)]
 mod tests {
+    use super::*;
 
     // #[test]
     // fn check_model() {
